@@ -9,6 +9,7 @@ const PORT = 3000;
 
 // Pour parser les données des formulaires
 app.use(express.urlencoded({ extended: true }));
+app.use(express.json());
 app.use(express.static('public')); // Permet de servir les fichiers statiques (CSS, JS, images)
 
 // Configuration des sessions
@@ -159,6 +160,62 @@ app.get('/api/products', (req, res) => {
   });
 });
 
-app.listen(PORT, () => {
+if (!fs.existsSync('./data_store')) {
+  fs.mkdirSync('./data_store');
+}
+
+app.post('/api/save-order', requireLogin, (req, res) => {
+  // Récupérer les informations de l'utilisateur et du panier
+  const userId = req.session.user.username;
+  const cartItems = req.body.items;
+  
+  // Créer un objet commande
+  const order = {
+    userId: userId,
+    items: cartItems,
+    status: 'en cours',
+    date: new Date().toISOString()
+  };
+  
+  // Vérifier si l'utilisateur a déjà des commandes
+  const userOrdersPath = `./data_store/${userId}_orders.json`;
+  let userOrders = [];
+  
+  if (fs.existsSync(userOrdersPath)) {
+    // Lire le fichier existant
+    const fileContent = fs.readFileSync(userOrdersPath, 'utf8');
+    userOrders = JSON.parse(fileContent);
+  }
+  
+  // Ajouter la nouvelle commande
+  userOrders.push(order);
+  
+  // Sauvegarder dans le fichier
+  fs.writeFileSync(userOrdersPath, JSON.stringify(userOrders, null, 2));
+  
+  res.json({ success: true, message: 'Commande enregistrée' });
+});
+
+// Route pour récupérer les commandes d'un utilisateur
+app.get('/api/user-orders', requireLogin, (req, res) => {
+  const userId = req.session.user.username;
+  const userOrdersPath = `./data_store/${userId}_orders.json`;
+  
+  if (fs.existsSync(userOrdersPath)) {
+    const fileContent = fs.readFileSync(userOrdersPath, 'utf8');
+    const orders = JSON.parse(fileContent);
+    res.json(orders);
+  } else {
+    res.json([]);
+  }
+});
+
+// Route pour la page des commandes
+app.get('/orders', requireLogin, (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'orders.html'));
+});
+
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`Serveur démarré sur http://localhost:${PORT}`);
+  console.log(`Accessible sur le réseau à l'adresse http://10.18.203.95:${PORT}`);
 });

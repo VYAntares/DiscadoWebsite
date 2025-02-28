@@ -291,8 +291,36 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Bouton passer la commande
     document.getElementById('checkout-btn').addEventListener('click', function() {
-        alert('Fonctionnalité de commande à implémenter.');
-        // Ici vous pouvez ajouter la logique pour finaliser la commande
+        const cart = JSON.parse(localStorage.getItem('cart')) || [];
+        
+        if (cart.length === 0) {
+            alert('Votre panier est vide');
+            return;
+        }
+        
+        // Envoyer la commande au serveur
+        fetch('/api/save-order', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ items: cart })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Commande passée avec succès!');
+                // Vider le panier après la commande
+                localStorage.removeItem('cart');
+                updateCartCount();
+                // Fermer la modale du panier
+                document.getElementById('cart-modal').style.display = 'none';
+            }
+        })
+        .catch(error => {
+            console.error('Erreur:', error);
+            alert('Erreur lors de la commande');
+        });
     });
     
     // Chargement initial des produits

@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mes Commandes</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>
+        <h1>Mes Commandes</h1>
+        <a href="/catalog" class="back-btn">Retour au catalogue</a>
+    </header>
+
+    <main>
+        <div id="ordersList">
+            <p>Chargement de vos commandes...</p>
+        </div>
+    </main>
+
+    <script>
+        // Charger les commandes de l'utilisateur
+        document.addEventListener('DOMContentLoaded', function() {
+            fetch('/api/user-orders')
+                .then(response => response.json())
+                .then(orders => {
+                    const ordersContainer = document.getElementById('ordersList');
+                    
+                    if (orders.length === 0) {
+                        ordersContainer.innerHTML = '<p>Vous n\'avez pas encore passé de commande.</p>';
+                        return;
+                    }
+                    
+                    let html = '';
+                    orders.forEach((order, index) => {
+                        html += `
+                            <div class="order-card">
+                                <h3>Commande #${index + 1} - ${new Date(order.date).toLocaleDateString()}</h3>
+                                <p>Statut: <strong>${order.status}</strong></p>
+                                <h4>Articles:</h4>
+                                <ul>
+                                    ${order.items.map(item => `
+                                        <li>
+                                            ${item.Nom} - ${item.quantity} × ${item.prix} CHF
+                                        </li>
+                                    `).join('')}
+                                </ul>
+                                <p class="order-total">Total: <strong>${calculateTotal(order.items)} CHF</strong></p>
+                            </div>
+                        `;
+                    });
+                    
+                    ordersContainer.innerHTML = html;
+                })
+                .catch(error => {
+                    console.error('Erreur:', error);
+                    document.getElementById('ordersList').innerHTML = 
+                        '<p>Erreur lors du chargement des commandes.</p>';
+                });
+        });
+        
+        // Calculer le total d'une commande
+        function calculateTotal(items) {
+            return items.reduce((total, item) => {
+                return total + (parseFloat(item.prix) * item.quantity);
+            }, 0).toFixed(2);
+        }
+    </script>
+</body>
+</html>
