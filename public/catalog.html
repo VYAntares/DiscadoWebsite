@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Catalogue de Produits</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>
+        <h1>Catalogue de Produits</h1>
+        <div class="header-controls">
+            <div class="filter-section">
+                <label for="categoryFilter">Filtrer par catégorie :</label>
+                <select id="categoryFilter">
+                    <option value="all">Toute catégorie</option>
+                    <option value="magnet">Magnets</option>
+                    <option value="keyring">Key-Rings</option>
+                    <option value="pens">Pens</option>
+                    <option value="bags">Bags</option>
+                    <option value="hats">Hats</option>
+                    <option value="caps">Caps</option>
+                    <option value="bells">Bells</option>
+                    <option value="softtoy">Soft-Toy</option>  
+                    <option value="tshirt">T-Shirts</option>
+                    <option value="lighter">Lighter</option>
+                </select>
+            </div>
+            <div class="cart-icon">
+                <a href="#" id="view-cart" title="Voir le panier">
+                    <span class="cart-count">0</span>
+                    🛒
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <ul id="productList"></ul>
+    </main>
+
+    <!-- Modal pour le panier (à implémenter plus tard) -->
+    <div id="cart-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <span class="close-modal">&times;</span>
+            <h2>Votre Panier</h2>
+            <div id="cart-items">
+                <!-- Les articles du panier seront ajoutés ici dynamiquement -->
+            </div>
+            <div class="cart-total">
+                <strong>Total:</strong> <span id="cart-total-amount">0.00</span> CHF
+            </div>
+            <button id="checkout-btn">Passer la commande</button>
+        </div>
+    </div>
+
+    <!-- Import du fichier script.js -->
+    <script src="script.js"></script>
+</body>
+</html>
