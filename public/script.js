@@ -42,27 +42,6 @@ function showNotification(message, type = 'success') {
     }, 4000);
 }
 
-// Fonction pour obtenir l'URL de l'image en fonction de la catégorie
-function getImageUrl(category) {
-    // Ici, vous pourriez remplacer par de vraies images spécifiques à chaque produit
-    const categoryImages = {
-        'magnet': '/images/magnet-default.jpg',
-        'keyring': '/images/keyring-default.jpg',
-        'pens': '/images/pen-default.jpg',
-        'bags': '/images/bag-default.jpg',
-        'hats': '/images/hat-default.jpg',
-        'caps': '/images/cap-default.jpg',
-        'bells': '/images/bell-default.jpg',
-        'softtoy': '/images/softtoy-default.jpg',
-        'tshirt': '/images/tshirt-default.jpg',
-        'lighter': '/images/lighter-default.jpg',
-        // Ajouter d'autres catégories au besoin
-    };
-    
-    // Si pas d'image spécifique, utiliser une image par défaut
-    return categoryImages[category] || '/images/product-default.jpg';
-}
-
 function displayProducts(products, category = "all") {
     const list = document.getElementById("productList");
     list.innerHTML = "";
@@ -132,13 +111,16 @@ function displayProducts(products, category = "all") {
             const actionContainer = document.createElement("div");
             actionContainer.className = "product-actions";
 
+            // Trouve cette section dans ton fichier script.js, dans la fonction displayProducts
+            // Remplace le code qui crée les boutons de quantité par celui-ci:
+
             // Compteur de quantité
             const quantityContainer = document.createElement("div");
             quantityContainer.className = "quantity-container";
 
             // Bouton moins
             const minusBtn = document.createElement("button");
-            minusBtn.textContent = "-";
+            minusBtn.textContent = "−"; // Utiliser un tiret un peu plus élégant
             minusBtn.className = "quantity-btn minus-btn";
             minusBtn.onclick = function() {
                 const input = this.parentNode.querySelector('input');
@@ -154,6 +136,15 @@ function displayProducts(products, category = "all") {
             quantityInput.min = "0";
             quantityInput.value = "0";
             quantityInput.className = "quantity-input";
+            // Permettre l'ajout au panier avec Enter
+            quantityInput.addEventListener('keyup', function(event) {
+                if (event.key === 'Enter') {
+                    const addBtn = this.closest('.product-actions').querySelector('.add-to-cart-btn');
+                    if (addBtn) {
+                        addBtn.click();
+                    }
+                }
+            });
 
             // Bouton plus
             const plusBtn = document.createElement("button");
@@ -161,7 +152,11 @@ function displayProducts(products, category = "all") {
             plusBtn.className = "quantity-btn plus-btn";
             plusBtn.onclick = function() {
                 const input = this.parentNode.querySelector('input');
-                input.value = parseInt(input.value) + 1;
+                // Limiter à 9999 articles pour éviter les problèmes d'affichage
+                const currentValue = parseInt(input.value);
+                if (currentValue < 9999) {
+                    input.value = currentValue + 1;
+                }
             };
 
             // Ajout des éléments au conteneur de quantité
@@ -180,6 +175,11 @@ function displayProducts(products, category = "all") {
                     const actualImageUrl = this.closest('.product-item').querySelector('.product-img').src;
                     addToCart({...p, Nom: productName, prix: productPrice, categorie: productCategory}, quantity, actualImageUrl);
                     updateCartCount();
+                    
+                    // Mettre à jour le badge du panier dans le header
+                    if (typeof updateCartUI === 'function') {
+                        updateCartUI();
+                    }
                 }
             };
 
@@ -231,7 +231,15 @@ function addToCart(product, quantity, imageUrl) {
 function updateCartCount() {
     const cart = JSON.parse(localStorage.getItem('cart')) || [];
     const cartCount = cart.reduce((total, item) => total + item.quantity, 0);
-    document.querySelector('.cart-count').textContent = cartCount;
+    const cartCountElement = document.querySelector('.cart-count');
+    if (cartCountElement) {
+        cartCountElement.textContent = cartCount;
+    }
+    
+    // Mettre à jour le compteur dans le header aussi
+    if (typeof updateHeaderCartCount === 'function') {
+        updateHeaderCartCount();
+    }
 }
 
 // Fonction pour afficher le contenu du panier dans la modale
@@ -292,79 +300,48 @@ function removeCartItem(index) {
     
     displayCart();
     updateCartCount();
+    
+    // Mettre à jour le badge du panier dans le header
+    if (typeof updateCartUI === 'function') {
+        updateCartUI();
+    }
 }
 
-// Attacher les écouteurs d'événements
+// Fonction de recherche de produits
+function searchProducts(query, products) {
+    if (!query || query.trim() === '') {
+        return products; // Retourne tous les produits si la recherche est vide
+    }
+    
+    query = query.toLowerCase().trim();
+    
+    return products.filter(product => {
+        // Vérifier si le produit a un nom valide
+        if (!product.Nom) return false;
+        
+        const productName = product.Nom.toLowerCase();
+        const productCategory = (product.categorie || '').toLowerCase();
+        
+        // Recherche dans le nom du produit et la catégorie
+        return productName.includes(query) || productCategory.includes(query);
+    });
+}
+
+// Document ready
 document.addEventListener('DOMContentLoaded', function() {
     // Variable pour stocker tous les produits
     let allProducts = [];
     
-    // Fonction pour ajuster la marge supérieure du main en fonction de la hauteur réelle du header
-    function adjustMainMargin() {
-        const header = document.querySelector('header');
-        const main = document.querySelector('main');
-        if (header && main) {
-            const headerHeight = header.offsetHeight;
-            main.style.marginTop = (headerHeight - 140) + 'px'; // Utilisation de votre valeur d'offset
-        }
-    }
-    
-    // Appel initial pour régler la marge
-    adjustMainMargin();
-    
-    // Réajuster en cas de redimensionnement
-    window.addEventListener('resize', adjustMainMargin);
-    
-    // Gestion du scroll pour l'en-tête sur mobile
-    let lastScrollTop = 0;
-    window.addEventListener('scroll', function() {
-        const currentScrollTop = window.pageYOffset || document.documentElement.scrollTop;
-        const header = document.querySelector('header');
-        
-        // Si on est tout en haut de la page OU si on remonte
-        if (currentScrollTop <= 10 || currentScrollTop < lastScrollTop) {
-            header.style.transform = 'translateY(0)';
-            setTimeout(adjustMainMargin, 200); // Réajuster après l'animation
-        } 
-        // Si on descend la page (scroll vers le bas)
-        else if (currentScrollTop > lastScrollTop) {
-            header.style.transform = 'translateY(-100%)';
-        }
-        
-        lastScrollTop = currentScrollTop;
-    });
-    
-    // Fonction de recherche de produits
-    function searchProducts(query, products) {
-        if (!query || query.trim() === '') {
-            return products; // Retourne tous les produits si la recherche est vide
-        }
-        
-        query = query.toLowerCase().trim();
-        
-        return products.filter(product => {
-            // Vérifier si le produit a un nom valide
-            if (!product.Nom) return false;
-            
-            const productName = product.Nom.toLowerCase();
-            const productCategory = (product.categorie || '').toLowerCase();
-            
-            // Recherche dans le nom du produit et la catégorie
-            return productName.includes(query) || productCategory.includes(query);
-        });
-    }
-    
-    // Fonction pour effectuer la recherche
     // Fonction pour effectuer la recherche
     function performSearch() {
         const searchQuery = document.getElementById('searchInput').value;
     
-    // Si la recherche est vide, ne rien faire
+        // Si la recherche est vide, ne rien faire
         if (!searchQuery || searchQuery.trim() === '') {
             return;
-    }
+        }
     
-    // Si nous n'avons pas encore chargé les produits, faisons-le maintenant
+        // Si nous n'avons pas encore chargé les produits, faisons-le maintenant
         if (allProducts.length === 0) {
             fetchProducts().then(products => {
                 allProducts = products.filter(p => p.Nom && p.Nom.trim() !== "");
@@ -372,114 +349,152 @@ document.addEventListener('DOMContentLoaded', function() {
                 const filteredProducts = searchProducts(searchQuery, allProducts);
                 displayProducts(filteredProducts);
                 
-                // Optionnel: Remettre la sélection de catégorie à "Toutes catégories"
+                // Mettre à jour la sélection de catégorie
                 document.getElementById('categoryFilter').value = "all";
+                
+                // Mettre à jour les éléments de catégorie dans le menu
+                const categoryItems = document.querySelectorAll('.category-item');
+                categoryItems.forEach(item => {
+                    item.classList.remove('active');
+                    if (item.getAttribute('data-category') === 'all') {
+                        item.classList.add('active');
+                    }
+                });
             });
         } else {
             // Rechercher à travers TOUTES les catégories
             const filteredProducts = searchProducts(searchQuery, allProducts);
             displayProducts(filteredProducts);
             
-            // Optionnel: Remettre la sélection de catégorie à "Toutes catégories"
+            // Mettre à jour la sélection de catégorie
             document.getElementById('categoryFilter').value = "all";
+            
+            // Mettre à jour les éléments de catégorie dans le menu
+            const categoryItems = document.querySelectorAll('.category-item');
+            categoryItems.forEach(item => {
+                item.classList.remove('active');
+                if (item.getAttribute('data-category') === 'all') {
+                    item.classList.add('active');
+                }
+            });
         }
     }
     
     // Écouteur d'événement pour la touche Entrée dans le champ de recherche
-    document.getElementById('searchInput').addEventListener('keyup', function(event) {
-        if (event.key === 'Enter') {
-            performSearch();
-        }
-    });
+    const searchInput = document.getElementById('searchInput');
+    if (searchInput) {
+        searchInput.addEventListener('keyup', function(event) {
+            if (event.key === 'Enter') {
+                performSearch();
+            }
+        });
+    }
     
     // Écouteur d'événement pour le bouton de recherche
-    document.getElementById('searchButton').addEventListener('click', performSearch);
+    const searchButton = document.getElementById('searchButton');
+    if (searchButton) {
+        searchButton.addEventListener('click', performSearch);
+    }
     
-    // Filtre par catégorie
-    document.getElementById('categoryFilter').addEventListener('change', async function() {
-        const selectedCategory = this.value;
-        
-        // Obtenir la valeur actuelle de la recherche
-        const searchQuery = document.getElementById('searchInput').value;
-        
-        // Si une recherche est en cours, filtrer d'abord par la recherche
-        if (searchQuery && searchQuery.trim() !== '') {
-            // Si nous n'avons pas encore chargé les produits, faisons-le maintenant
-            if (allProducts.length === 0) {
-                allProducts = await fetchProducts();
-            }
+    // Filtre par catégorie (pour le select caché)
+    const categoryFilter = document.getElementById('categoryFilter');
+    if (categoryFilter) {
+        categoryFilter.addEventListener('change', async function() {
+            const selectedCategory = this.value;
             
-            const searchFilteredProducts = searchProducts(searchQuery, allProducts);
+            // Obtenir la valeur actuelle de la recherche
+            const searchQuery = document.getElementById('searchInput')?.value || '';
             
-            // Puis appliquer le filtre de catégorie
-            if (selectedCategory === "all") {
-                displayProducts(searchFilteredProducts);
+            // Si une recherche est en cours, filtrer d'abord par la recherche
+            if (searchQuery && searchQuery.trim() !== '') {
+                // Si nous n'avons pas encore chargé les produits, faisons-le maintenant
+                if (allProducts.length === 0) {
+                    allProducts = await fetchProducts();
+                    allProducts = allProducts.filter(p => p.Nom && p.Nom.trim() !== "");
+                }
+                
+                const searchFilteredProducts = searchProducts(searchQuery, allProducts);
+                
+                // Puis appliquer le filtre de catégorie
+                if (selectedCategory === "all") {
+                    displayProducts(searchFilteredProducts);
+                } else {
+                    const finalFilteredProducts = searchFilteredProducts.filter(p => p.categorie === selectedCategory);
+                    displayProducts(finalFilteredProducts);
+                }
             } else {
-                const finalFilteredProducts = searchFilteredProducts.filter(p => p.categorie === selectedCategory);
-                displayProducts(finalFilteredProducts);
+                // Sinon, simplement filtrer par catégorie comme avant
+                if (allProducts.length === 0) {
+                    allProducts = await fetchProducts();
+                    allProducts = allProducts.filter(p => p.Nom && p.Nom.trim() !== "");
+                }
+                displayProducts(allProducts, selectedCategory);
             }
-        } else {
-            // Sinon, simplement filtrer par catégorie comme avant
-            if (allProducts.length === 0) {
-                allProducts = await fetchProducts();
-            }
-            displayProducts(allProducts, selectedCategory);
-        }
-    });
-    
-    // Ouvrir la modale du panier
-    document.getElementById('view-cart').addEventListener('click', function(e) {
-        e.preventDefault();
-        displayCart();
-        document.getElementById('cart-modal').style.display = 'block';
-    });
+        });
+    }
     
     // Fermer la modale du panier
-    document.querySelector('.close-modal').addEventListener('click', function() {
-        document.getElementById('cart-modal').style.display = 'none';
-    });
+    const closeModal = document.querySelector('.close-modal');
+    if (closeModal) {
+        closeModal.addEventListener('click', function() {
+            const cartModal = document.getElementById('cart-modal');
+            if (cartModal) {
+                cartModal.style.display = 'none';
+            }
+        });
+    }
     
     // Clic en dehors de la modale pour la fermer
     window.addEventListener('click', function(event) {
-        const modal = document.getElementById('cart-modal');
-        if (event.target === modal) {
-            modal.style.display = 'none';
+        const cartModal = document.getElementById('cart-modal');
+        if (cartModal && event.target === cartModal) {
+            cartModal.style.display = 'none';
         }
     });
     
-    // Dans l'écouteur d'événements pour checkout-btn
-    document.getElementById('checkout-btn').addEventListener('click', function() {
-        const cart = JSON.parse(localStorage.getItem('cart')) || [];
-        
-        if (cart.length === 0) {
-            showNotification('Empty Cart', 'error');
-            return;
-        }
-        
-        // Envoyer la commande au serveur
-        fetch('/api/save-order', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ items: cart })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                showNotification('Order placed successfully !', 'success');
-                // Vider le panier après la commande
-                localStorage.removeItem('cart');
-                updateCartCount();
-                // Fermer la modale du panier
-                document.getElementById('cart-modal').style.display = 'none';
+    // Checkout button
+    const checkoutBtn = document.getElementById('checkout-btn');
+    if (checkoutBtn) {
+        checkoutBtn.addEventListener('click', function() {
+            const cart = JSON.parse(localStorage.getItem('cart')) || [];
+            
+            if (cart.length === 0) {
+                showNotification('Empty Cart', 'error');
+                return;
             }
-        })
-        .catch(error => {
-            console.error('Erreur:', error);
-            showNotification('Erreur lors de la commande', 'error');
+            
+            // Envoyer la commande au serveur
+            fetch('/api/save-order', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ items: cart })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showNotification('Order placed successfully !', 'success');
+                    // Vider le panier après la commande
+                    localStorage.removeItem('cart');
+                    updateCartCount();
+                    // Mettre à jour le badge du panier dans le header
+                    if (typeof updateCartUI === 'function') {
+                        updateCartUI();
+                    }
+                    // Fermer la modale du panier
+                    const cartModal = document.getElementById('cart-modal');
+                    if (cartModal) {
+                        cartModal.style.display = 'none';
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Erreur:', error);
+                showNotification('Erreur lors de la commande', 'error');
+            });
         });
-    });
+    }
     
     // Chargement initial des produits
     (async () => {

@@ -3,66 +3,131 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Catalogue de Produits</title>
     <link rel="stylesheet" href="styles.css">
+    <!-- Font Awesome pour les icônes -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Styles additionnels pour pousser le contenu principal plus bas */
+        main {
+            padding-top: 10px; /* Plus d'espace en haut */
+            margin-top: 10px; /* Marge supplémentaire pour s'éloigner du header */
+        }
+        
+        /* Style pour les mobiles */
+        @media (max-width: 768px) {
+            main {
+                padding-top: 10px;
+                margin-top: 20px;
+            }
+        }
+    </style>
 </head>
 <body>
+    <!-- Header compact -->
     <header>
-        <h1>Discado Catalog</h1>
-        <div class="header-controls">
-            <div class="filter-section">
-                <label for="categoryFilter">Filter by category :</label>
-                <select id="categoryFilter">
-                    <option value="all">All</option>
-                    <option value="magnet">Magnets</option>
-                    <option value="keyring">Key-Rings</option>
-                    <option value="pens">Pens</option>
-                    <option value="bags">Bags</option>
-                    <option value="hats">Hats</option>
-                    <option value="caps">Caps</option>
-                    <option value="bells">Bells</option>
-                    <option value="softtoy">Soft-Toy</option>  
-                    <option value="tshirt">T-Shirts</option>
-                    <option value="lighter">Lighter</option>
-                </select>
-            </div>
-            <div class="search-section">
-                <input type="text" id="searchInput" placeholder="Rechercher un produit..." aria-label="Rechercher">
-                <button id="searchButton"><i>🔍</i></button>
-            </div>
-            <div class="user-controls">
-                <button id="view-cart" class="cart-btn">
-                    Cart <span class="cart-count">0</span>
+        <div class="header-container">
+            <button id="menuToggle" class="menu-toggle" aria-label="Toggle menu">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+            
+            <h1>Discado Catalog</h1>
+            
+            <div class="header-right">
+                <button id="cartToggle" class="icon-btn" aria-label="Shopping cart">
+                    <i class="fas fa-shopping-cart"></i>
+                    <span id="cartCountBadge" class="cart-count-badge">0</span>
                 </button>
-                <a href="/orders" class="my-orders-link">My orders</a>
-                <a href="/logout" class="logout-btn">Log Out</a>
+                
+                <button id="userMenuToggle" class="icon-btn" aria-label="User menu">
+                    <i class="fas fa-user"></i>
+                </button>
             </div>
         </div>
     </header>
+
+    <!-- Menu déroulant -->
+    <div id="dropdownMenu" class="dropdown-menu">
+        <div class="menu-section">
+            <div class="search-wrapper">
+                <input type="text" id="searchInput" placeholder="Rechercher un produit..." aria-label="Rechercher">
+                <button id="searchButton" aria-label="Search"><i class="fas fa-search"></i></button>
+            </div>
+        </div>
+        
+        <div class="menu-section">
+            <h3>Catégories</h3>
+            <ul class="category-list">
+                <li class="category-item active" data-category="all">Tous les produits</li>
+                <li class="category-item" data-category="magnet">Magnets</li>
+                <li class="category-item" data-category="keyring">Porte-clés</li>
+                <li class="category-item" data-category="pens">Stylos</li>
+                <li class="category-item" data-category="bags">Sacs</li>
+                <li class="category-item" data-category="hats">Chapeaux</li>
+                <li class="category-item" data-category="caps">Casquettes</li>
+                <li class="category-item" data-category="bells">Cloches</li>
+                <li class="category-item" data-category="softtoy">Peluches</li>
+                <li class="category-item" data-category="tshirt">T-Shirts</li>
+                <li class="category-item" data-category="lighter">Briquets</li>
+                <li class="category-item" data-category="gadget">Gadgets</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Menu utilisateur -->
+    <div id="userMenu" class="user-menu">
+        <a href="/orders">Mes commandes</a>
+        <a href="/logout">Déconnexion</a>
+    </div>
+
+    <!-- Overlay pour fermer les menus -->
+    <div id="menuOverlay" class="menu-overlay"></div>
+
+    <!-- Filtre caché pour compatibilité avec JS existant -->
+    <select id="categoryFilter" style="display: none;">
+        <option value="all">All</option>
+        <option value="magnet">Magnets</option>
+        <option value="keyring">Key-Rings</option>
+        <option value="pens">Pens</option>
+        <option value="bags">Bags</option>
+        <option value="hats">Hats</option>
+        <option value="caps">Caps</option>
+        <option value="bells">Bells</option>
+        <option value="softtoy">Soft-Toy</option>  
+        <option value="tshirt">T-Shirts</option>
+        <option value="lighter">Lighter</option>
+        <option value="gadget">Gadget</option>
+    </select>
+
+    <!-- Spacer div pour pousser le contenu plus bas -->
+    <div style="height: 30px;"></div>
 
     <main>
         <ul id="productList"></ul>
     </main>
 
-    <!-- Modal pour le panier (à implémenter plus tard) -->
+    <!-- Modal pour le panier -->
     <div id="cart-modal" class="modal" style="display: none;">
         <div class="modal-content">
             <span class="close-modal">&times;</span>
-            <h2>Your Cart</h2>
+            <h2>Votre Panier</h2>
             <div id="cart-items">
                 <!-- Les articles du panier seront ajoutés ici dynamiquement -->
             </div>
             <div class="cart-total">
                 <strong>Total:</strong> <span id="cart-total-amount">0.00</span> CHF
             </div>
-            <button id="checkout-btn">Order now</button>
+            <button id="checkout-btn">Commander</button>
         </div>
     </div>
 
-    <!-- Import du fichier script.js -->
-    <script src="script.js"></script>
     <!-- Conteneur pour les notifications -->
     <div id="notification-container"></div>
+
+    <!-- Scripts -->
+    <script src="script.js"></script>
+    <script src="header.js"></script>
 </body>
 </html>

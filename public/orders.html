@@ -3,25 +3,61 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>My Orders</title>
     <link rel="stylesheet" href="styles.css">
+    <!-- Font Awesome pour les icônes -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
+    <!-- Header compact -->
     <header>
-        <h1>My Orders</h1>
-        <div class="header-controls">
-            <a href="/catalog" class="back-btn">Back to catalog</a>
-            <a href="/logout" class="logout-btn">Log Out</a>
+        <div class="header-container">
+            <button id="menuToggle" class="menu-toggle" aria-label="Toggle menu">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+            
+            <h1>Discado Catalog</h1>
+            
+            <div class="header-right">
+                <button id="userMenuToggle" class="icon-btn" aria-label="User menu">
+                    <i class="fas fa-user"></i>
+                </button>
+            </div>
         </div>
     </header>
 
+    <!-- Menu déroulant (simplifié pour la page des commandes) -->
+    <div id="dropdownMenu" class="dropdown-menu">
+        <div class="menu-section">
+            <ul class="category-list">
+                <li class="category-item" data-category="all"><a href="/catalog">Retour au catalogue</a></li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Menu utilisateur -->
+    <div id="userMenu" class="user-menu">
+        <a href="/catalog">Catalogue</a>
+        <a href="/logout">Déconnexion</a>
+    </div>
+
+    <!-- Overlay pour fermer les menus -->
+    <div id="menuOverlay" class="menu-overlay"></div>
+
+    <!-- Contenu principal -->
     <main>
+        <div class="order-page-header">
+            <h2>Mes Commandes</h2>
+        </div>
+        
         <div id="ordersList">
-            <p>Loading your orders...</p>
+            <p>Chargement de vos commandes...</p>
         </div>
     </main>
 
+    <script src="header.js"></script>
     <script>
         // Charger les commandes de l'utilisateur
         document.addEventListener('DOMContentLoaded', function() {
@@ -31,7 +67,7 @@
                     const ordersContainer = document.getElementById('ordersList');
                     
                     if (orders.length === 0) {
-                        ordersContainer.innerHTML = '<p>You have not yet placed an order.</p>';
+                        ordersContainer.innerHTML = '<p>Vous n\'avez pas encore passé de commande.</p>';
                         return;
                     }
                     
@@ -46,10 +82,10 @@
                         html += `
                             <div class="order-card">
                                 <h3>
-                                    Order #${index + 1}
+                                    Commande #${index + 1}
                                     <span class="order-date">${orderDate}</span>
                                 </h3>
-                                <div class="order-status">Status: ${order.status}</div>
+                                <div class="order-status">Statut: ${order.status}</div>
                                 <h4>Articles:</h4>
                                 <ul>
                                     ${order.items.map(item => `
