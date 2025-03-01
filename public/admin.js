@@ -214,8 +214,20 @@ document.addEventListener('DOMContentLoaded', function() {
     // Calculate total
     const total = order.items.reduce((sum, item) => sum + (parseFloat(item.prix) * item.quantity), 0).toFixed(2);
     
-    // Format date
-    const orderDate = new Date(order.date).toLocaleDateString('fr-FR', {
+    // Format invoice number in MM/JJ/HH/MM format
+    const orderDate = new Date(order.date);
+    
+    // Format with padding for single digits
+    const month = String(orderDate.getMonth() + 1).padStart(2, '0'); // +1 because months are 0-indexed
+    const day = String(orderDate.getDate()).padStart(2, '0');
+    const hours = String(orderDate.getHours()).padStart(2, '0');
+    const minutes = String(orderDate.getMinutes()).padStart(2, '0');
+    const year = String(orderDate.getFullYear()).padStart(2, '0');
+    
+    const invoiceNumber = `${year}${month}${day}${hours}${minutes}`;
+    
+    // Format date for display
+    const displayDate = orderDate.toLocaleDateString('fr-FR', {
       day: 'numeric',
       month: 'long',
       year: 'numeric',
@@ -318,8 +330,8 @@ document.addEventListener('DOMContentLoaded', function() {
     return `
       <div class="order-card" data-order-id="${order.id || order.date}" data-user-id="${order.userId}">
         <div class="order-header">
-          <div class="order-id">Order #${order.id || order.date.substring(0, 10)}</div>
-          <div class="order-date">${orderDate}</div>
+          <div class="order-id">Invoice #${invoiceNumber}</div>
+          <div class="order-date">${displayDate}</div>
           <div class="order-status ${statusClass}">${statusText}</div>
         </div>
         
@@ -497,21 +509,3 @@ document.addEventListener('DOMContentLoaded', function() {
       notification.remove();
     }, 5000);
   }
-
-  // Fonction pour créer un format HTML mobile pour les items de commande
-function createMobileItemsHTML(order) {
-  return order.items.map(item => `
-      <div class="order-item-mobile">
-          <div class="item-header">
-              <strong>${item.Nom}</strong>
-              <span class="item-category">${item.categorie || 'N/A'}</span>
-          </div>
-          <div class="item-details">
-              <span><strong>Quantité:</strong> ${item.quantity}</span>
-              <span><strong>Prix:</strong> ${item.prix} CHF</span>
-              <span><strong>Total:</strong> ${(item.quantity * parseFloat(item.prix)).toFixed(2)} CHF</span>
-              ${item.shipped ? `<span><strong>Expédié:</strong> ${item.shipped}</span>` : ''}
-          </div>
-      </div>
-  `).join('');
-}

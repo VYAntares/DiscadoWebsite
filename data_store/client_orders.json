@@ -1,0 +1,25 @@
+[
+  {
+    "userId": "client",
+    "items": [
+      {
+        "Nom": "Bells 46 - Ringing bell",
+        "prix": "2.00",
+        "imageUrl": "/images/bells/Bells46.jpg",
+        "categorie": "bells",
+        "quantity": 50,
+        "shipped": 50
+      },
+      {
+        "Nom": "Bells 47 - Traditionnal ringing bell",
+        "prix": "2.00",
+        "imageUrl": "/images/bells/Bells47.jpg",
+        "categorie": "bells",
+        "quantity": 25,
+        "shipped": 25
+      }
+    ],
+    "status": "completed",
+    "date": "2025-03-01T21:29:21.700Z"
+  }
+]
