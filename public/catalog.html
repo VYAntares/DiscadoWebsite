@@ -21,6 +21,18 @@
                 margin-top: 20px;
             }
         }
+        
+        /* Style pour le logo */
+        .logo-container {
+            display: flex;
+            align-items: center;
+            margin-right: 10px;
+        }
+        
+        .logo-container img {
+            height: 40px;
+            width: auto;
+        }
     </style>
 </head>
 <body>
@@ -32,9 +44,14 @@
                 <span></span>
                 <span></span>
             </button>
-            
-            <h1>Discado Catalog</h1>
-            
+                
+            <!-- Logo ajouté ici -->
+            <div class="logo-container">
+                <img src="images/logo_discado_noir.png" alt="Discado Logo" id="logo">
+            </div>
+<!--             
+            <h1>Discado Catalog</h1> -->
+
             <div class="header-right">
                 <button id="cartToggle" class="icon-btn" aria-label="Shopping cart">
                     <i class="fas fa-shopping-cart"></i>
@@ -52,7 +69,7 @@
     <div id="dropdownMenu" class="dropdown-menu">
         <div class="menu-section">
             <div class="search-wrapper">
-                <input type="text" id="searchInput" placeholder="Search for a product..." aria-label="Rechercher">
+                <input type="text" id="searchInput" placeholder="Search for a product..." aria-label="Search">
                 <button id="searchButton" aria-label="Search"><i class="fas fa-search"></i></button>
             </div>
         </div>
@@ -129,5 +146,6 @@
     <!-- Scripts -->
     <script src="script.js"></script>
     <script src="header.js"></script>
+</div>
 </body>
 </html>

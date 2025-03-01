@@ -18,7 +18,9 @@
                 <span></span>
             </button>
             
-            <h1>Discado Catalog</h1>
+        <div class="logo-container">
+            <img src="images/logo_discado_noir.png" alt="Discado Logo" id="logo">
+        </div>
             
             <div class="header-right">
                 <button id="userMenuToggle" class="icon-btn" aria-label="User menu">
@@ -90,7 +92,7 @@
                                 <ul>
                                     ${order.items.map(item => `
                                         <li>
-                                            <span>${item.Nom} - ${item.quantity} × ${item.prix} CHF</span>
+                                            <span>${item.quantity}x | ${item.Nom} - ${item.prix} CHF</span>
                                             <span>${(parseFloat(item.prix) * item.quantity).toFixed(2)} CHF</span>
                                         </li>
                                     `).join('')}

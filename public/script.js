@@ -42,6 +42,9 @@ function showNotification(message, type = 'success') {
     }, 4000);
 }
 
+// Tableau temporaire pour stocker les produits que l'utilisateur souhaite ajouter
+let selectedProducts = [];
+
 function displayProducts(products, category = "all") {
     const list = document.getElementById("productList");
     list.innerHTML = "";
@@ -49,7 +52,7 @@ function displayProducts(products, category = "all") {
     products
         .filter(p => category === "all" || p.categorie === category)
         .filter(p => p.Nom && p.Nom.trim() !== "")
-        .forEach(p => {
+        .forEach((p, index) => {
             // Vérifier si les propriétés essentielles existent, sinon utiliser des valeurs par défaut
             const productName = p.Nom || "Produit sans nom";
             const productPrice = p.prix || "0.00";
@@ -58,6 +61,8 @@ function displayProducts(products, category = "all") {
 
             const li = document.createElement("li");
             li.className = "product-item";
+            // Ajouter un attribut data-product-id pour identifier le produit
+            li.setAttribute('data-product-id', p.id || index);
 
             // Image du produit
             const imgContainer = document.createElement("div");
@@ -111,9 +116,6 @@ function displayProducts(products, category = "all") {
             const actionContainer = document.createElement("div");
             actionContainer.className = "product-actions";
 
-            // Trouve cette section dans ton fichier script.js, dans la fonction displayProducts
-            // Remplace le code qui crée les boutons de quantité par celui-ci:
-
             // Compteur de quantité
             const quantityContainer = document.createElement("div");
             quantityContainer.className = "quantity-container";
@@ -127,6 +129,7 @@ function displayProducts(products, category = "all") {
                 const value = parseInt(input.value);
                 if (value > 0) {
                     input.value = value - 1;
+                    updateSelectedProducts(p, input.value, productImage);
                 }
             };
 
@@ -136,14 +139,11 @@ function displayProducts(products, category = "all") {
             quantityInput.min = "0";
             quantityInput.value = "0";
             quantityInput.className = "quantity-input";
-            // Permettre l'ajout au panier avec Enter
-            quantityInput.addEventListener('keyup', function(event) {
-                if (event.key === 'Enter') {
-                    const addBtn = this.closest('.product-actions').querySelector('.add-to-cart-btn');
-                    if (addBtn) {
-                        addBtn.click();
-                    }
-                }
+            quantityInput.setAttribute('data-product-id', p.id || index);
+            
+            // Mise à jour du tableau selectedProducts quand la quantité change
+            quantityInput.addEventListener('change', function() {
+                updateSelectedProducts(p, parseInt(this.value), productImage);
             });
 
             // Bouton plus
@@ -156,6 +156,7 @@ function displayProducts(products, category = "all") {
                 const currentValue = parseInt(input.value);
                 if (currentValue < 9999) {
                     input.value = currentValue + 1;
+                    updateSelectedProducts(p, currentValue + 1, productImage);
                 }
             };
 
@@ -164,28 +165,12 @@ function displayProducts(products, category = "all") {
             quantityContainer.appendChild(quantityInput);
             quantityContainer.appendChild(plusBtn);
 
-            // Bouton Ajouter au panier
-            const addBtn = document.createElement("button");
-            addBtn.textContent = "Add to Cart";
-            addBtn.className = "add-to-cart-btn";
-            addBtn.onclick = function() {
-                const quantity = parseInt(this.parentNode.querySelector('.quantity-input').value);
-                if (quantity > 0) {
-                    // Récupérer l'URL de l'image actuelle après toutes les tentatives de chargement
-                    const actualImageUrl = this.closest('.product-item').querySelector('.product-img').src;
-                    addToCart({...p, Nom: productName, prix: productPrice, categorie: productCategory}, quantity, actualImageUrl);
-                    updateCartCount();
-                    
-                    // Mettre à jour le badge du panier dans le header
-                    if (typeof updateCartUI === 'function') {
-                        updateCartUI();
-                    }
-                }
-            };
+            // Nous ne créons plus de bouton "Ajouter au panier" ici
+            // car nous utiliserons le bouton flottant à la place
 
             // Ajout des éléments au conteneur d'actions
             actionContainer.appendChild(quantityContainer);
-            actionContainer.appendChild(addBtn);
+            // Nous avons supprimé l'ajout du bouton ici
 
             // Ajout de tous les éléments à l'élément de liste
             li.appendChild(imgContainer);
@@ -194,6 +179,52 @@ function displayProducts(products, category = "all") {
 
             list.appendChild(li);
         });
+}
+
+// Fonction pour mettre à jour le tableau des produits sélectionnés
+function updateSelectedProducts(product, quantity, imageUrl) {
+    // Vérifier si le produit est déjà dans le tableau
+    const existingProductIndex = selectedProducts.findIndex(item => 
+        item.Nom === product.Nom && item.categorie === product.categorie
+    );
+    
+    if (quantity <= 0) {
+        // Si la quantité est 0 ou négative, supprimer du tableau si présent
+        if (existingProductIndex !== -1) {
+            selectedProducts.splice(existingProductIndex, 1);
+        }
+    } else {
+        if (existingProductIndex !== -1) {
+            // Mettre à jour la quantité si le produit existe déjà
+            selectedProducts[existingProductIndex].quantity = quantity;
+        } else {
+            // Ajouter le nouveau produit au tableau
+            selectedProducts.push({
+                ...product,
+                quantity: quantity,
+                imageUrl: imageUrl
+            });
+        }
+    }
+    
+    // Mettre à jour le compteur sur le bouton flottant
+    updateFloatingButtonCounter();
+}
+
+// Fonction pour mettre à jour le compteur sur le bouton flottant
+function updateFloatingButtonCounter() {
+    const totalItems = selectedProducts.reduce((total, item) => total + item.quantity, 0);
+    const counterElement = document.getElementById('floatingButtonCounter');
+    if (counterElement) {
+        counterElement.textContent = totalItems;
+        
+        // Afficher ou masquer le compteur en fonction du nombre d'articles
+        if (totalItems > 0) {
+            counterElement.style.display = 'flex';
+        } else {
+            counterElement.style.display = 'none';
+        }
+    }
 }
 
 // Fonction pour ajouter au panier
@@ -227,10 +258,77 @@ function addToCart(product, quantity, imageUrl) {
     showNotification(`${quantity} × ${product.Nom} added to cart !`, 'success');
 }
 
+// Fonction pour ajouter tous les produits sélectionnés au panier
+function addAllSelectedToCart() {
+    if (selectedProducts.length === 0) {
+        showNotification('Please select at least one product', 'info');
+        return;
+    }
+    
+    // Récupérer le panier actuel du localStorage
+    let cart = JSON.parse(localStorage.getItem('cart')) || [];
+    
+    // Ajouter chaque produit sélectionné au panier
+    selectedProducts.forEach(product => {
+        // Vérifier si le produit est déjà dans le panier
+        const existingProductIndex = cart.findIndex(item => 
+            item.Nom === product.Nom && item.categorie === product.categorie
+        );
+        
+        if (existingProductIndex !== -1) {
+            // Mettre à jour la quantité si le produit existe déjà
+            cart[existingProductIndex].quantity += product.quantity;
+        } else {
+            // Ajouter le nouveau produit au panier
+            cart.push({...product});
+        }
+    });
+    
+    // Sauvegarder le panier mis à jour
+    localStorage.setItem('cart', JSON.stringify(cart));
+    
+    // Afficher une notification
+    const totalItems = selectedProducts.reduce((total, item) => total + item.quantity, 0);
+    showNotification(`${totalItems} items added to cart!`, 'success');
+    
+    // Réinitialiser toutes les quantités à zéro
+    resetAllQuantities();
+    
+    // Mettre à jour le compteur du panier
+    updateCartCount();
+    
+    // Mettre à jour le badge du panier dans le header
+    if (typeof updateCartUI === 'function') {
+        updateCartUI();
+    }
+}
+
+// Fonction pour réinitialiser toutes les quantités à zéro
+function resetAllQuantities() {
+    // Réinitialiser les champs d'entrée
+    document.querySelectorAll('.quantity-input').forEach(input => {
+        input.value = "0";
+    });
+    
+    // Vider le tableau des produits sélectionnés
+    selectedProducts = [];
+    
+    // Mettre à jour le compteur sur le bouton flottant
+    updateFloatingButtonCounter();
+}
+
 // Fonction pour mettre à jour l'affichage du nombre d'articles dans le panier
 function updateCartCount() {
     const cart = JSON.parse(localStorage.getItem('cart')) || [];
     const cartCount = cart.reduce((total, item) => total + item.quantity, 0);
+    
+    // Mettre à jour le badge du compteur sur l'icône du panier
+    const cartCountBadge = document.getElementById('cartCountBadge');
+    if (cartCountBadge) {
+        cartCountBadge.textContent = cartCount;
+    }
+    
+    // Compatibilité avec l'ancien code
     const cartCountElement = document.querySelector('.cart-count');
     if (cartCountElement) {
         cartCountElement.textContent = cartCount;
@@ -261,18 +359,10 @@ function displayCart() {
             const cartItemElement = document.createElement('div');
             cartItemElement.className = 'cart-item';
             cartItemElement.innerHTML = `
-                <div class="cart-item-img">
-                    <img src="${item.imageUrl}" alt="${item.Nom}">
-                </div>
-                <div class="cart-item-details">
-                    <h3>${item.Nom}</h3>
-                    <p>Unit price: ${item.prix} CHF</p>
-                    <p>Quantity: ${item.quantity}</p>
-                </div>
-                <div class="cart-item-total">
-                    <p>${itemTotal.toFixed(2)} CHF</p>
-                    <button class="remove-item-btn" data-index="${index}">Remove</button>
-                </div>
+                <div class="cart-item-quantity">${item.quantity}</div>
+                <div class="cart-item-name">${item.Nom}</div>
+                <div class="cart-item-price">${itemTotal.toFixed(2)} CHF</div>
+                <button class="remove-item-btn" data-index="${index}">×</button>
             `;
             
             cartItemsContainer.appendChild(cartItemElement);
@@ -327,10 +417,152 @@ function searchProducts(query, products) {
     });
 }
 
+// Fonction pour créer et ajouter le bouton flottant
+function createFloatingButton() {
+    // Vérifier si le bouton existe déjà
+    if (document.getElementById('floatingAddToCartBtn')) return;
+    
+    // Créer le bouton flottant
+    const floatingBtn = document.createElement('div');
+    floatingBtn.id = 'floatingAddToCartBtn';
+    floatingBtn.className = 'floating-add-to-cart-btn';
+    floatingBtn.innerHTML = `
+        <span id="floatingButtonCounter" class="floating-button-counter">0</span>
+        <i class="fas fa-shopping-cart"></i>
+        Add to Cart
+    `;
+    
+    // Ajouter l'événement de clic
+    floatingBtn.addEventListener('click', addAllSelectedToCart);
+    
+    // Ajouter le bouton au body
+    document.body.appendChild(floatingBtn);
+    
+    // Ajouter le style pour le bouton flottant si ce n'est pas déjà fait dans le CSS
+    if (!document.getElementById('floating-button-style')) {
+        const style = document.createElement('style');
+        style.id = 'floating-button-style';
+        style.innerHTML = `
+            .floating-add-to-cart-btn {
+                position: fixed;
+                bottom: 20px;
+                right: 20px;
+                background-color: #4CAF50;
+                color: white;
+                padding: 12px 20px;
+                border-radius: 50px;
+                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+                cursor: pointer;
+                z-index: 1000;
+                display: flex;
+                align-items: center;
+                font-weight: bold;
+                transition: all 0.3s ease;
+            }
+            
+            .floating-add-to-cart-btn:hover {
+                background-color: #45a049;
+                transform: translateY(-2px);
+                box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+            }
+            
+            .floating-add-to-cart-btn i {
+                margin-right: 8px;
+            }
+            
+            .floating-button-counter {
+                position: absolute;
+                top: -8px;
+                left: -8px;
+                background-color: #ff6b6b;
+                color: white;
+                width: 24px;
+                height: 24px;
+                border-radius: 50%;
+                display: none;
+                align-items: center;
+                justify-content: center;
+                font-size: 12px;
+                font-weight: bold;
+            }
+            
+            /* Style pour les contrôles de quantité */
+            .quantity-container {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                margin-bottom: 10px;
+            }
+            
+            .quantity-btn {
+                width: 30px;
+                height: 30px;
+                background-color: #f0f0f0;
+                border: 1px solid #ddd;
+                border-radius: 4px;
+                font-size: 16px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                cursor: pointer;
+            }
+            
+            .quantity-input {
+                width: 40px;
+                height: 30px;
+                text-align: center;
+                margin: 0 5px;
+                border: 1px solid #ddd;
+                border-radius: 4px;
+            }
+            
+            /* Style pour les éléments du panier */
+            .cart-item {
+                display: grid;
+                grid-template-columns: 80px 1fr 100px 30px;
+                gap: 16px;
+                align-items: center;
+                padding: 10px 0;
+                border-bottom: 1px solid #eee;
+            }
+            
+            .cart-item-quantity {
+                text-align: left;
+                font-weight: bold;
+            }
+            
+            .cart-item-name {
+                padding-left: 32px;
+                text-align: left;
+            }
+            
+            .cart-item-price {
+                text-align: right;
+                font-weight: bold;
+            }
+            
+            .remove-item-btn {
+                background: none;
+                border: none;
+                color: #ff6b6b;
+                font-size: 18px;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+        `;
+        document.head.appendChild(style);
+    }
+}
+
 // Document ready
 document.addEventListener('DOMContentLoaded', function() {
     // Variable pour stocker tous les produits
     let allProducts = [];
+    
+    // Créer le bouton flottant "Ajouter au panier"
+    createFloatingButton();
     
     // Fonction pour effectuer la recherche
     function performSearch() {
@@ -429,6 +661,18 @@ document.addEventListener('DOMContentLoaded', function() {
                     allProducts = allProducts.filter(p => p.Nom && p.Nom.trim() !== "");
                 }
                 displayProducts(allProducts, selectedCategory);
+            }
+        });
+    }
+    
+    // Afficher le panier quand on clique sur l'icône du panier
+    const cartToggle = document.getElementById('cartToggle');
+    if (cartToggle) {
+        cartToggle.addEventListener('click', function() {
+            const cartModal = document.getElementById('cart-modal');
+            if (cartModal) {
+                displayCart(); // Mettre à jour le contenu du panier
+                cartModal.style.display = 'block';
             }
         });
     }
