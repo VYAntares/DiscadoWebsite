@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>My Profile</title>
+    <link rel="stylesheet" href="styles.css">
+    <!-- Font Awesome pour les icônes -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .profile-form {
+            background-color: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            color: #333;
+        }
+        
+        .form-group input, .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        
+        .form-group input:focus, .form-group textarea:focus {
+            border-color: #2575fc;
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(37, 117, 252, 0.2);
+        }
+        
+        .save-btn {
+            padding: 12px 25px;
+            background-color: #2575fc;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.2s;
+        }
+        
+        .save-btn:hover {
+            background-color: #1a5cb8;
+        }
+        
+        .profile-section {
+            margin-bottom: 30px;
+        }
+        
+        .profile-section h3 {
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #eee;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header compact -->
+    <header>
+        <div class="header-container">
+            <button id="menuToggle" class="menu-toggle" aria-label="Toggle menu">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+            
+            <div class="logo-container">
+                <img src="images/logo_discado_noir.png" alt="Discado Logo" id="logo">
+            </div>
+            
+            <div class="header-right">
+                <button id="userMenuToggle" class="icon-btn" aria-label="User menu">
+                    <i class="fas fa-user"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Menu déroulant -->
+    <div id="dropdownMenu" class="dropdown-menu">
+        <div class="menu-section">
+            <ul class="category-list">
+                <li class="category-item" data-category="all"><a href="/catalog">Back to Catalog</a></li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Menu utilisateur -->
+    <div id="userMenu" class="user-menu">
+        <a href="/catalog">Catalog</a>
+        <a href="/orders">My Orders</a>
+        <a href="/profile" class="active">My Profile</a>
+        <a href="/logout">Log Out</a>
+    </div>
+
+    <!-- Overlay pour fermer les menus -->
+    <div id="menuOverlay" class="menu-overlay"></div>
+
+    <!-- Contenu principal -->
+    <main>
+        <div class="order-page-header">
+            <h2>My Profile</h2>
+        </div>
+        
+        <div class="profile-form">
+            <form id="profileForm">
+                <div class="profile-section">
+                    <h3>Personal Information</h3>
+                    <div class="form-group">
+                        <label for="fullName">Full Name</label>
+                        <input type="text" id="fullName" name="fullName" placeholder="Your full name">
+                    </div>
+                    <div class="form-group">
+                        <label for="email">Email</label>
+                        <input type="email" id="email" name="email" placeholder="Your email address">
+                    </div>
+                    <div class="form-group">
+                        <label for="phone">Phone Number</label>
+                        <input type="tel" id="phone" name="phone" placeholder="Your phone number">
+                    </div>
+                </div>
+                
+                <div class="profile-section">
+                    <h3>Shipping Address</h3>
+                    <div class="form-group">
+                        <label for="address">Street Address</label>
+                        <input type="text" id="address" name="address" placeholder="Street address">
+                    </div>
+                    <div class="form-group">
+                        <label for="city">City</label>
+                        <input type="text" id="city" name="city" placeholder="City">
+                    </div>
+                    <div class="form-group">
+                        <label for="postalCode">Postal Code</label>
+                        <input type="text" id="postalCode" name="postalCode" placeholder="Postal code">
+                    </div>
+                    <div class="form-group">
+                        <label for="country">Country</label>
+                        <input type="text" id="country" name="country" placeholder="Country">
+                    </div>
+                </div>
+                
+                <div class="profile-section">
+                    <h3>Preferences</h3>
+                    <div class="form-group">
+                        <label for="preferences">Additional Information</label>
+                        <textarea id="preferences" name="preferences" rows="4" placeholder="Any additional information or preferences"></textarea>
+                    </div>
+                </div>
+                
+                <button type="submit" class="save-btn">Save Profile</button>
+            </form>
+        </div>
+        
+        <!-- Notification container -->
+        <div id="notification-container"></div>
+    </main>
+
+    <script src="header.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Récupérer le profil utilisateur existant
+            fetchUserProfile();
+            
+            // Gérer la soumission du formulaire
+            document.getElementById('profileForm').addEventListener('submit', function(event) {
+                event.preventDefault();
+                saveUserProfile();
+            });
+        });
+        
+        // Fonction pour récupérer le profil de l'utilisateur
+        function fetchUserProfile() {
+            fetch('/api/user-profile')
+                .then(response => response.json())
+                .then(profileData => {
+                    // Remplir le formulaire avec les données existantes
+                    if (profileData) {
+                        document.getElementById('fullName').value = profileData.fullName || '';
+                        document.getElementById('email').value = profileData.email || '';
+                        document.getElementById('phone').value = profileData.phone || '';
+                        document.getElementById('address').value = profileData.address || '';
+                        document.getElementById('city').value = profileData.city || '';
+                        document.getElementById('postalCode').value = profileData.postalCode || '';
+                        document.getElementById('country').value = profileData.country || '';
+                        document.getElementById('preferences').value = profileData.preferences || '';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching profile:', error);
+                    showNotification('Error loading profile data', 'error');
+                });
+        }
+        
+        // Fonction pour enregistrer le profil
+        function saveUserProfile() {
+            const profileData = {
+                fullName: document.getElementById('fullName').value,
+                email: document.getElementById('email').value,
+                phone: document.getElementById('phone').value,
+                address: document.getElementById('address').value,
+                city: document.getElementById('city').value,
+                postalCode: document.getElementById('postalCode').value,
+                country: document.getElementById('country').value,
+                preferences: document.getElementById('preferences').value
+            };
+            
+            fetch('/api/save-profile', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(profileData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showNotification('Profile saved successfully!', 'success');
+                } else {
+                    showNotification('Error saving profile', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error saving profile:', error);
+                showNotification('Error saving profile', 'error');
+            });
+        }
+        
+        // Fonction pour afficher les notifications
+        function showNotification(message, type = 'success') {
+            const container = document.getElementById('notification-container');
+            
+            // Créer la notification
+            const notification = document.createElement('div');
+            notification.className = `notification notification-${type}`;
+            
+            // Icône selon le type
+            let icon = '✓';
+            if (type === 'error') icon = '✕';
+            if (type === 'info') icon = 'ℹ';
+            
+            // Structure de la notification
+            notification.innerHTML = `
+                <div class="notification-content">
+                    <div class="notification-icon">${icon}</div>
+                    <div class="notification-message">${message}</div>
+                </div>
+                <div class="notification-progress">
+                    <div class="notification-progress-bar"></div>
+                </div>
+            `;
+            
+            // Ajouter au conteneur
+            container.appendChild(notification);
+            
+            // Supprimer après l'animation
+            setTimeout(() => {
+                notification.remove();
+            }, 4000);
+        }
+    </script>
+</body>
+</html>

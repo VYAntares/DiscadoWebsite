@@ -74,6 +74,47 @@ app.get('/logout', (req, res) => {
   });
 });
 
+// Route pour la page de profil
+app.get('/profile', requireLogin, (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'profile.html'));
+});
+
+if (!fs.existsSync('./data_store')) {
+  fs.mkdirSync('./data_store');
+}
+
+// Route pour récupérer le profil de l'utilisateur
+app.get('/api/user-profile', requireLogin, (req, res) => {
+  const userId = req.session.user.username;
+  const userProfilePath = `./data_client/${userId}_profile.json`;
+  
+  if (fs.existsSync(userProfilePath)) {
+    const fileContent = fs.readFileSync(userProfilePath, 'utf8');
+    const profile = JSON.parse(fileContent);
+    res.json(profile);
+  } else {
+    // Retourner un objet vide si le profil n'existe pas encore
+    res.json({});
+  }
+});
+
+// Route pour sauvegarder le profil de l'utilisateur
+app.post('/api/save-profile', requireLogin, (req, res) => {
+  const userId = req.session.user.username;
+  const profileData = req.body;
+  
+  // Ajouter un timestamp pour suivre les mises à jour
+  profileData.lastUpdated = new Date().toISOString();
+  
+  // Chemin du fichier de profil
+  const userProfilePath = `./data_client/${userId}_profile.json`;
+  
+  // Sauvegarder le profil
+  fs.writeFileSync(userProfilePath, JSON.stringify(profileData, null, 2));
+  
+  res.json({ success: true, message: 'Profile saved successfully' });
+});
+
 // Route API pour récupérer les produits depuis les fichiers CSV
 app.get('/api/products', (req, res) => {
   const dataFolder = path.join(__dirname, 'data');
