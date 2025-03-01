@@ -135,11 +135,36 @@ function displayProducts(products, category = "all") {
 
             // Input pour la quantité
             const quantityInput = document.createElement("input");
-            quantityInput.type = "number";
+            quantityInput.type = "text"; // Utiliser "text" au lieu de "number"
+            quantityInput.inputMode = "numeric"; // Affiche le clavier numérique
+            quantityInput.pattern = "[0-9]*"; // Force la saisie de chiffres uniquement
             quantityInput.min = "0";
             quantityInput.value = "0";
             quantityInput.className = "quantity-input";
-            quantityInput.setAttribute('data-product-id', p.id || index);
+
+            // Effacer automatiquement le "0" lorsque l'utilisateur clique sur le champ
+            quantityInput.addEventListener('focus', function() {
+                if (this.value === "0") {
+                    this.value = "";
+                }
+            });
+
+            // Remettre "0" si l'utilisateur quitte le champ sans rien saisir
+            quantityInput.addEventListener('blur', function() {
+                if (this.value === "") {
+                    this.value = "0";
+                }
+            });
+
+            // Permettre l'ajout au panier avec Enter
+            quantityInput.addEventListener('keyup', function(event) {
+                if (event.key === 'Enter') {
+                    const addBtn = this.closest('.product-actions').querySelector('.add-to-cart-btn');
+                    if (addBtn) {
+                        addBtn.click();
+                    }
+                }
+            });
             
             // Mise à jour du tableau selectedProducts quand la quantité change
             quantityInput.addEventListener('change', function() {

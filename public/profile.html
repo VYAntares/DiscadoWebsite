@@ -125,7 +125,6 @@
 
     <!-- Menu utilisateur -->
     <div id="userMenu" class="user-menu">
-        <a href="/catalog">Catalog</a>
         <a href="/orders">My Orders</a>
         <a href="/profile" class="active">My Profile</a>
         <a href="/logout">Log Out</a>
@@ -275,6 +274,14 @@
             .then(data => {
                 if (data.success) {
                     showNotification('Profile saved successfully!', 'success');
+                    
+                    // Si le profil est complet, rediriger vers le catalogue
+                    if (data.isProfileComplete) {
+                        showNotification('Redirecting to catalog...', 'info');
+                        setTimeout(() => {
+                            window.location.href = '/catalog';
+                        }, 1500); // Rediriger après 1.5 secondes
+                    }
                 } else {
                     showNotification('Error saving profile', 'error');
                 }

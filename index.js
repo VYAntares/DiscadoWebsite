@@ -29,7 +29,16 @@ const allowedUsers = [
 // Route de login
 app.get('/', (req, res) => {
   if (req.session.user) {
-    return res.redirect(req.session.user.role === 'admin' ? '/admin' : '/profile');
+    if (req.session.user.role === 'admin') {
+      return res.redirect('/admin');
+    } else {
+      // Pour les clients, vérifier le profil
+      if (isProfileComplete(req.session.user.username)) {
+        return res.redirect('/catalog');
+      } else {
+        return res.redirect('/profile');
+      }
+    }
   }
   res.sendFile(path.join(__dirname, 'public', 'login.html'));
 });
@@ -39,9 +48,19 @@ app.post('/login', (req, res) => {
   const user = allowedUsers.find(u => u.username === username && u.password === password);
   if (user) {
     req.session.user = user;
-    return res.redirect(user.role === 'admin' ? '/admin' : '/profile');
+    
+    if (user.role === 'admin') {
+      return res.redirect('/admin');
+    } else {
+      // Pour les clients, vérifier le profil
+      if (isProfileComplete(user.username)) {
+        return res.redirect('/catalog');
+      } else {
+        return res.redirect('/profile');
+      }
+    }
   }
-  res.send('Incorrect indentifier. <a href="/">Please retry</a>');
+  res.send('Incorrect Identifier. <a href="/">Please retry.</a>');
 });
 
 // Middleware pour vérifier la connexion
@@ -56,8 +75,46 @@ function requireAdmin(req, res, next) {
   res.send('Accès refusé. <a href="/logout">Se déconnecter</a>');
 }
 
+// Fonction pour vérifier si un profil est complet
+function isProfileComplete(username) {
+  const userProfilePath = `./data_client/${username}_profile.json`;
+  
+  if (!fs.existsSync(userProfilePath)) {
+    return false;
+  }
+  
+  try {
+    const profileData = JSON.parse(fs.readFileSync(userProfilePath, 'utf8'));
+    const requiredFields = ['fullName', 'email', 'phone', 'address', 'city', 'postalCode'];
+    return requiredFields.every(field => 
+      profileData[field] && profileData[field].trim() !== ''
+    );
+  } catch (error) {
+    console.error('Erreur lors de la lecture du profil:', error);
+    return false;
+  }
+}
+
+// Middleware pour vérifier si le profil est complet
+function requireCompleteProfile(req, res, next) {
+  if (!req.session.user) {
+    return res.redirect('/');
+  }
+  
+  if (req.session.user.role === 'admin') {
+    // Les administrateurs n'ont pas besoin de profil complet
+    return next();
+  }
+  
+  if (!isProfileComplete(req.session.user.username)) {
+    return res.redirect('/profile');
+  }
+  
+  next();
+}
+
 // Route pour le catalogue client
-app.get('/catalog', requireLogin, (req, res) => {
+app.get('/catalog', requireLogin, requireCompleteProfile, (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'catalog.html'));
 });
 
@@ -98,7 +155,6 @@ app.get('/api/user-profile', requireLogin, (req, res) => {
   }
 });
 
-// Route pour sauvegarder le profil de l'utilisateur
 app.post('/api/save-profile', requireLogin, (req, res) => {
   const userId = req.session.user.username;
   const profileData = req.body;
@@ -112,7 +168,17 @@ app.post('/api/save-profile', requireLogin, (req, res) => {
   // Sauvegarder le profil
   fs.writeFileSync(userProfilePath, JSON.stringify(profileData, null, 2));
   
-  res.json({ success: true, message: 'Profile saved successfully' });
+  // Vérifier si le profil est complet
+  const requiredFields = ['fullName', 'email', 'phone', 'address', 'city', 'postalCode'];
+  const isComplete = requiredFields.every(field => 
+    profileData[field] && profileData[field].trim() !== ''
+  );
+  
+  res.json({ 
+    success: true, 
+    message: 'Profile saved successfully',
+    isProfileComplete: isComplete 
+  });
 });
 
 // Route API pour récupérer les produits depuis les fichiers CSV

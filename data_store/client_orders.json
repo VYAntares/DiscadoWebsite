@@ -3,147 +3,70 @@
     "userId": "client",
     "items": [
       {
-        "Nom": "Bells 46 - Ringing bell",
-        "prix": "2.00",
-        "imageUrl": "http://192.168.1.252:3000/images/product-default.jpg",
-        "categorie": "bells",
-        "quantity": 5
-      }
-    ],
-    "status": "in progress",
-    "date": "2025-03-01T18:44:21.560Z"
-  },
-  {
-    "userId": "client",
-    "items": [
-      {
-        "Nom": "Caps 1 C - Casquette rouge avec croix Suisse",
-        "prix": "3.80",
-        "imageUrl": "http://192.168.1.252:3000/images/product-default.jpg",
-        "categorie": "caps",
-        "quantity": 5
-      },
-      {
-        "Nom": "Caps 4 C - Swiss Mountains burgundy",
-        "prix": "3.80",
-        "imageUrl": "http://192.168.1.252:3000/images/product-default.jpg",
-        "categorie": "caps",
-        "quantity": 15
-      },
-      {
-        "Nom": "Caps 3 C - Switzerland Original red/white",
-        "prix": "3.80",
-        "imageUrl": "http://192.168.1.252:3000/images/product-default.jpg",
-        "categorie": "caps",
-        "quantity": 50
-      },
-      {
-        "Nom": "Caps 2 C - Casquette grise. Switzerland",
-        "prix": "3.80",
-        "imageUrl": "http://192.168.1.252:3000/images/product-default.jpg",
-        "categorie": "caps",
-        "quantity": 10
-      }
-    ],
-    "status": "in progress",
-    "date": "2025-03-01T18:59:12.819Z"
-  },
-  {
-    "userId": "client",
-    "items": [
-      {
-        "Nom": "Bags 312 - Small backpack Switzerland",
-        "prix": "4.00",
-        "imageUrl": "http://192.168.1.252:3000/images/bags/Bags312.jpg",
-        "categorie": "bags",
-        "quantity": 4
-      },
-      {
-        "Nom": "Bags 314 - Big bag with cities in blue",
-        "prix": "5.00",
-        "imageUrl": "http://192.168.1.252:3000/images/product-default.jpg",
-        "categorie": "bags",
-        "quantity": 5
-      },
-      {
-        "Nom": "Bags 316 - Shoulder bag Switzerland",
-        "prix": "3.00",
-        "imageUrl": "http://192.168.1.252:3000/images/product-default.jpg",
-        "categorie": "bags",
-        "quantity": 11
-      },
-      {
-        "Nom": "Magnet 3 - Genève boat relief",
-        "prix": "1.70",
-        "imageUrl": "http://192.168.1.252:3000/images/product-default.jpg",
-        "categorie": "magnet",
-        "quantity": 120
-      }
-    ],
-    "status": "in progress",
-    "date": "2025-03-01T18:59:13.399Z"
-  },
-  {
-    "userId": "client",
-    "items": [
-      {
-        "Nom": "Bells 47 - Traditionnal ringing bell",
-        "prix": "2.00",
-        "imageUrl": "/images/bells/Bells47.jpg",
-        "categorie": "bells",
-        "quantity": 10
-      },
-      {
-        "Nom": "Bells 74 - Edelweiss. cow and bell",
-        "prix": "1.90",
-        "imageUrl": "/images/bells/Bells74.jpg",
-        "categorie": "bells",
-        "quantity": 500
-      }
-    ],
-    "status": "in progress",
-    "date": "2025-03-01T19:22:00.278Z"
-  },
-  {
-    "userId": "client",
-    "items": [
-      {
-        "Nom": "Bells 46 - Ringing bell",
-        "prix": "2.00",
-        "imageUrl": "/images/bells/Bells46.jpg",
-        "categorie": "bells",
-        "quantity": 50
-      },
-      {
-        "Nom": "Bells 47 - Traditionnal ringing bell",
-        "prix": "2.00",
-        "imageUrl": "/images/bells/Bells47.jpg",
-        "categorie": "bells",
-        "quantity": 60
-      },
-      {
-        "Nom": "Bells 74 - Edelweiss. cow and bell",
-        "prix": "1.90",
-        "imageUrl": "/images/bells/Bells74.jpg",
-        "categorie": "bells",
-        "quantity": 1000
-      }
-    ],
-    "status": "in progress",
-    "date": "2025-03-01T19:28:10.351Z"
-  },
-  {
-    "userId": "client",
-    "items": [
-      {
         "Nom": "Bags 312 - Small backpack Switzerland",
         "prix": "4.00",
         "imageUrl": "/images/bags/Bags312.jpg",
         "categorie": "bags",
-        "quantity": 2
+        "quantity": 5000
+      },
+      {
+        "Nom": "Bags 313 - Big bag with cities in beige",
+        "prix": "5.00",
+        "imageUrl": "/images/bags/Bags313.jpg",
+        "categorie": "bags",
+        "quantity": 50
+      },
+      {
+        "Nom": "Bags 314 - Big bag with cities in blue",
+        "prix": "5.00",
+        "imageUrl": "/images/bags/Bags314.jpg",
+        "categorie": "bags",
+        "quantity": 10
+      },
+      {
+        "Nom": "Bags 315 - Banana bag Switzerland",
+        "prix": "3.00",
+        "imageUrl": "/images/bags/Bags315.jpg",
+        "categorie": "bags",
+        "quantity": 25
+      },
+      {
+        "Nom": "Bags 316 - Shoulder bag Switzerland",
+        "prix": "3.00",
+        "imageUrl": "/images/bags/Bags316.jpg",
+        "categorie": "bags",
+        "quantity": 60
+      },
+      {
+        "Nom": "Bags 324 - Backpack Switzerland",
+        "prix": "6.00",
+        "imageUrl": "/images/bags/Bags324.jpg",
+        "categorie": "bags",
+        "quantity": 70
+      },
+      {
+        "Nom": "Bags 350 - Tote bag I love Bern off-white",
+        "prix": "2.00",
+        "imageUrl": "/images/bags/Bags350.jpg",
+        "categorie": "bags",
+        "quantity": 50
+      },
+      {
+        "Nom": "Bags 351 - Tote bag I love Crans-Montana off-white",
+        "prix": "2.00",
+        "imageUrl": "/images/bags/Bags351.jpg",
+        "categorie": "bags",
+        "quantity": 20
+      },
+      {
+        "Nom": "Bags 352 - Tote bag I love Genève off-white",
+        "prix": "2.00",
+        "imageUrl": "/images/bags/Bags352.jpg",
+        "categorie": "bags",
+        "quantity": 35
       }
     ],
     "status": "in progress",
-    "date": "2025-03-01T19:28:49.981Z"
+    "date": "2025-03-01T20:17:30.854Z"
   }
 ]
