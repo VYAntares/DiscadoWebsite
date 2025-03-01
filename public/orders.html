@@ -4,21 +4,21 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mes Commandes</title>
+    <title>My Orders</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <header>
-        <h1>Mes Commandes</h1>
+        <h1>My Orders</h1>
         <div class="header-controls">
-            <a href="/catalog" class="back-btn">Retour au catalogue</a>
-            <a href="/logout" class="logout-btn">Déconnexion</a>
+            <a href="/catalog" class="back-btn">Back to catalog</a>
+            <a href="/logout" class="logout-btn">Log Out</a>
         </div>
     </header>
 
     <main>
         <div id="ordersList">
-            <p>Chargement de vos commandes...</p>
+            <p>Loading your orders...</p>
         </div>
     </main>
 
@@ -31,7 +31,7 @@
                     const ordersContainer = document.getElementById('ordersList');
                     
                     if (orders.length === 0) {
-                        ordersContainer.innerHTML = '<p>Vous n\'avez pas encore passé de commande.</p>';
+                        ordersContainer.innerHTML = '<p>You have not yet placed an order.</p>';
                         return;
                     }
                     
@@ -46,10 +46,10 @@
                         html += `
                             <div class="order-card">
                                 <h3>
-                                    Commande #${index + 1}
+                                    Order #${index + 1}
                                     <span class="order-date">${orderDate}</span>
                                 </h3>
-                                <div class="order-status">Statut: ${order.status}</div>
+                                <div class="order-status">Status: ${order.status}</div>
                                 <h4>Articles:</h4>
                                 <ul>
                                     ${order.items.map(item => `

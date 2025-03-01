@@ -9,6 +9,39 @@ async function fetchProducts() {
     }
 }
 
+// Fonction pour afficher une notification
+function showNotification(message, type = 'success') {
+    const container = document.getElementById('notification-container');
+    
+    // Créer la notification
+    const notification = document.createElement('div');
+    notification.className = `notification notification-${type}`;
+    
+    // Icône selon le type
+    let icon = '✓';
+    if (type === 'error') icon = '✕';
+    if (type === 'info') icon = 'ℹ';
+    
+    // Structure de la notification
+    notification.innerHTML = `
+        <div class="notification-content">
+            <div class="notification-icon">${icon}</div>
+            <div class="notification-message">${message}</div>
+        </div>
+        <div class="notification-progress">
+            <div class="notification-progress-bar"></div>
+        </div>
+    `;
+    
+    // Ajouter au conteneur
+    container.appendChild(notification);
+    
+    // Supprimer après l'animation
+    setTimeout(() => {
+        notification.remove();
+    }, 4000);
+}
+
 // Fonction pour obtenir l'URL de l'image en fonction de la catégorie
 function getImageUrl(category) {
     // Ici, vous pourriez remplacer par de vraies images spécifiques à chaque produit
@@ -138,7 +171,7 @@ function displayProducts(products, category = "all") {
 
             // Bouton Ajouter au panier
             const addBtn = document.createElement("button");
-            addBtn.textContent = "Ajouter au panier";
+            addBtn.textContent = "Add to Cart";
             addBtn.className = "add-to-cart-btn";
             addBtn.onclick = function() {
                 const quantity = parseInt(this.parentNode.querySelector('.quantity-input').value);
@@ -190,8 +223,8 @@ function addToCart(product, quantity, imageUrl) {
     // Sauvegarder dans localStorage
     localStorage.setItem('cart', JSON.stringify(cart));
     
-    // Afficher un message de confirmation
-    alert(`${quantity} ${product.Nom} ajouté(s) au panier`);
+    // Afficher une notification au lieu d'une alerte
+    showNotification(`${quantity} × ${product.Nom} added to cart !`, 'success');
 }
 
 // Fonction pour mettre à jour l'affichage du nombre d'articles dans le panier
@@ -211,7 +244,7 @@ function displayCart() {
     let totalAmount = 0;
     
     if (cart.length === 0) {
-        cartItemsContainer.innerHTML = '<p class="empty-cart">Votre panier est vide</p>';
+        cartItemsContainer.innerHTML = '<p class="empty-cart">Empty Cart</p>';
     } else {
         cart.forEach((item, index) => {
             const itemTotal = parseFloat(item.prix) * item.quantity;
@@ -225,12 +258,12 @@ function displayCart() {
                 </div>
                 <div class="cart-item-details">
                     <h3>${item.Nom}</h3>
-                    <p>Prix unitaire: ${item.prix} CHF</p>
-                    <p>Quantité: ${item.quantity}</p>
+                    <p>Unit price: ${item.prix} CHF</p>
+                    <p>Quantity: ${item.quantity}</p>
                 </div>
                 <div class="cart-item-total">
                     <p>${itemTotal.toFixed(2)} CHF</p>
-                    <button class="remove-item-btn" data-index="${index}">Supprimer</button>
+                    <button class="remove-item-btn" data-index="${index}">Remove</button>
                 </div>
             `;
             
@@ -350,7 +383,7 @@ document.addEventListener('DOMContentLoaded', function() {
             // Optionnel: Remettre la sélection de catégorie à "Toutes catégories"
             document.getElementById('categoryFilter').value = "all";
         }
-}
+    }
     
     // Écouteur d'événement pour la touche Entrée dans le champ de recherche
     document.getElementById('searchInput').addEventListener('keyup', function(event) {
@@ -414,12 +447,12 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
     
-    // Bouton passer la commande
+    // Dans l'écouteur d'événements pour checkout-btn
     document.getElementById('checkout-btn').addEventListener('click', function() {
         const cart = JSON.parse(localStorage.getItem('cart')) || [];
         
         if (cart.length === 0) {
-            alert('Votre panier est vide');
+            showNotification('Empty Cart', 'error');
             return;
         }
         
@@ -434,7 +467,7 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                alert('Commande passée avec succès!');
+                showNotification('Order placed successfully !', 'success');
                 // Vider le panier après la commande
                 localStorage.removeItem('cart');
                 updateCartCount();
@@ -444,7 +477,7 @@ document.addEventListener('DOMContentLoaded', function() {
         })
         .catch(error => {
             console.error('Erreur:', error);
-            alert('Erreur lors de la commande');
+            showNotification('Erreur lors de la commande', 'error');
         });
     });
     

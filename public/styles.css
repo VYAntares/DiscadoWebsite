@@ -76,6 +76,112 @@ h1 {
     color: #2575fc;
 }
 
+/* Système de notification */
+#notification-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 9999;
+    width: 300px;
+}
+
+.notification {
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+    margin-bottom: 10px;
+    overflow: hidden;
+    animation: slideIn 0.5s ease forwards, fadeOut 0.5s ease 3.5s forwards;
+    transform: translateX(120%);
+    max-width: 300px;
+}
+
+.notification-success {
+    border-left: 4px solid #4CAF50;
+}
+
+.notification-error {
+    border-left: 4px solid #F44336;
+}
+
+.notification-info {
+    border-left: 4px solid #2196F3;
+}
+
+.notification-content {
+    display: flex;
+    align-items: center;
+    padding: 15px;
+}
+
+.notification-icon {
+    flex-shrink: 0;
+    width: 24px;
+    height: 24px;
+    margin-right: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+}
+
+.notification-success .notification-icon {
+    color: #4CAF50;
+}
+
+.notification-error .notification-icon {
+    color: #F44336;
+}
+
+.notification-info .notification-icon {
+    color: #2196F3;
+}
+
+.notification-message {
+    flex-grow: 1;
+    color: #333;
+    font-size: 14px;
+}
+
+.notification-progress {
+    height: 3px;
+    background-color: #e0e0e0;
+    width: 100%;
+}
+
+.notification-progress-bar {
+    height: 100%;
+    width: 100%;
+    animation: progress 4s linear forwards;
+}
+
+.notification-success .notification-progress-bar {
+    background-color: #4CAF50;
+}
+
+.notification-error .notification-progress-bar {
+    background-color: #F44336;
+}
+
+.notification-info .notification-progress-bar {
+    background-color: #2196F3;
+}
+
+@keyframes slideIn {
+    from { transform: translateX(120%); }
+    to { transform: translateX(0); }
+}
+
+@keyframes fadeOut {
+    from { opacity: 1; transform: translateX(0); }
+    to { opacity: 0; transform: translateX(120%); }
+}
+
+@keyframes progress {
+    from { width: 100%; }
+    to { width: 0%; }
+}
+
 .user-controls {
     display: flex;
     align-items: center;

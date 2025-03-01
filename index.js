@@ -173,7 +173,7 @@ app.post('/api/save-order', requireLogin, (req, res) => {
   const order = {
     userId: userId,
     items: cartItems,
-    status: 'en cours',
+    status: 'in progress',
     date: new Date().toISOString()
   };
   
