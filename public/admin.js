@@ -497,3 +497,21 @@ document.addEventListener('DOMContentLoaded', function() {
       notification.remove();
     }, 5000);
   }
+
+  // Fonction pour créer un format HTML mobile pour les items de commande
+function createMobileItemsHTML(order) {
+  return order.items.map(item => `
+      <div class="order-item-mobile">
+          <div class="item-header">
+              <strong>${item.Nom}</strong>
+              <span class="item-category">${item.categorie || 'N/A'}</span>
+          </div>
+          <div class="item-details">
+              <span><strong>Quantité:</strong> ${item.quantity}</span>
+              <span><strong>Prix:</strong> ${item.prix} CHF</span>
+              <span><strong>Total:</strong> ${(item.quantity * parseFloat(item.prix)).toFixed(2)} CHF</span>
+              ${item.shipped ? `<span><strong>Expédié:</strong> ${item.shipped}</span>` : ''}
+          </div>
+      </div>
+  `).join('');
+}
