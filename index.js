@@ -29,7 +29,7 @@ const allowedUsers = [
 // Route de login
 app.get('/', (req, res) => {
   if (req.session.user) {
-    return res.redirect(req.session.user.role === 'admin' ? '/admin' : '/catalog');
+    return res.redirect(req.session.user.role === 'admin' ? '/admin' : '/profile');
   }
   res.sendFile(path.join(__dirname, 'public', 'login.html'));
 });
@@ -39,9 +39,9 @@ app.post('/login', (req, res) => {
   const user = allowedUsers.find(u => u.username === username && u.password === password);
   if (user) {
     req.session.user = user;
-    return res.redirect(user.role === 'admin' ? '/admin' : '/catalog');
+    return res.redirect(user.role === 'admin' ? '/admin' : '/profile');
   }
-  res.send('Identifiants incorrects. <a href="/">Réessayer</a>');
+  res.send('Incorrect indentifier. <a href="/">Please retry</a>');
 });
 
 // Middleware pour vérifier la connexion
