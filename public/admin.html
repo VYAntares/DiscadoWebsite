@@ -23,6 +23,7 @@
     <div class="tab-container">
       <div class="tabs">
         <div class="tab active" data-tab="orders">Order Management</div>
+        <div class="tab" data-tab="consolidated">Consolidated Shipping</div>
         <div class="tab" data-tab="customers">Customer Management</div>
       </div>
       
@@ -58,6 +59,17 @@
           <div id="completed-orders-container" class="loading">
             <!-- Completed orders will be loaded here -->
           </div>
+        </div>
+      </div>
+      
+      <!-- Consolidated Shipping Tab Content -->
+      <div id="consolidated-tab" class="tab-content">
+        <h3><i class="fas fa-boxes"></i> Consolidated Shipping</h3>
+        <div class="alert alert-info">
+          <i class="fas fa-info-circle"></i> This view consolidates all pending shipments by client. For duplicate products, the higher quantity is shown.
+        </div>
+        <div id="consolidated-orders-container" class="loading">
+          <!-- Consolidated orders will be loaded here -->
         </div>
       </div>
       

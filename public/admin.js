@@ -3,8 +3,9 @@ document.addEventListener('DOMContentLoaded', function() {
     const tabs = document.querySelectorAll('.tab');
     const tabContents = document.querySelectorAll('.tab-content');
     
+    // Existing tab switching code
     tabs.forEach(tab => {
-      tab.addEventListener('click', function() {
+        tab.addEventListener('click', function() {
         const tabId = this.getAttribute('data-tab');
         
         // Update active tab
@@ -17,11 +18,13 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Load content based on tab
         if (tabId === 'orders') {
-          loadOrders();
+            loadOrders();
         } else if (tabId === 'customers') {
-          loadCustomers();
+            loadCustomers();
+        } else if (tabId === 'consolidated') {
+            loadConsolidatedOrders(); // Add this line
         }
-      });
+        });
     });
     
     // Order category tab switching functionality
@@ -568,4 +571,409 @@ document.addEventListener('DOMContentLoaded', function() {
     setTimeout(() => {
       notification.remove();
     }, 5000);
+  }
+
+  function generateConsolidatedOrders(orderData) {
+    const clientOrders = {};
+    
+    // Group orders by client
+    Object.entries(orderData).forEach(([userId, orders]) => {
+      // Filter out orders that have items that need to be shipped
+      const ordersToProcess = orders.filter(order => {
+        return order.status === 'partially_shipped' || order.status === 'in progress';
+      });
+      
+      if (ordersToProcess.length > 0) {
+        // Initialize consolidated items map to track highest quantities
+        const consolidatedItems = new Map();
+        
+        // Process each order
+        ordersToProcess.forEach(order => {
+          order.items.forEach(item => {
+            // Calculate remaining quantity to ship
+            const shippedQuantity = item.shipped || 0;
+            const remainingQuantity = item.quantity - shippedQuantity;
+            
+            if (remainingQuantity > 0) {
+              const itemKey = `${item.Nom}-${item.categorie}`;
+              
+              // If item already exists in consolidated map, keep the higher quantity
+              if (consolidatedItems.has(itemKey)) {
+                const existingItem = consolidatedItems.get(itemKey);
+                if (remainingQuantity > existingItem.remainingQuantity) {
+                  consolidatedItems.set(itemKey, {
+                    ...item,
+                    remainingQuantity: remainingQuantity,
+                    originalOrders: [...existingItem.originalOrders, { 
+                      orderId: order.id || order.date,
+                      quantity: remainingQuantity
+                    }]
+                  });
+                }
+              } else {
+                // Add new item to consolidated map
+                consolidatedItems.set(itemKey, {
+                  ...item,
+                  remainingQuantity: remainingQuantity,
+                  originalOrders: [{ 
+                    orderId: order.id || order.date,
+                    quantity: remainingQuantity
+                  }]
+                });
+              }
+            }
+          });
+        });
+        
+        // Only add client if they have items to ship
+        if (consolidatedItems.size > 0) {
+          clientOrders[userId] = {
+            items: Array.from(consolidatedItems.values()),
+            originalOrders: ordersToProcess.map(o => o.id || o.date)
+          };
+        }
+      }
+    });
+    
+    return clientOrders;
+  }
+
+  // Add these functions to your admin.js file
+
+// Function to load consolidated orders
+function loadConsolidatedOrders() {
+    const consolidatedContainer = document.getElementById('consolidated-orders-container');
+    
+    // Show loading state
+    consolidatedContainer.className = 'loading';
+    
+    // Fetch orders from server
+    fetch('/api/admin/orders')
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('Network response was not ok');
+        }
+        return response.json();
+      })
+      .then(data => {
+        // Generate consolidated shipping orders
+        const consolidatedOrders = generateConsolidatedOrders(data);
+        
+        // Render consolidated orders
+        consolidatedContainer.className = '';
+        if (Object.keys(consolidatedOrders).length === 0) {
+          consolidatedContainer.innerHTML = '<div class="no-orders">No pending shipments found</div>';
+        } else {
+          const consolidatedHtml = Object.entries(consolidatedOrders).map(([clientId, orderData]) => {
+            return createConsolidatedOrderCard(clientId, orderData);
+          }).join('');
+          
+          consolidatedContainer.innerHTML = `
+            <div class="alert alert-info">
+              <i class="fas fa-info-circle"></i> This view consolidates all pending shipments by client. For duplicate products, the higher quantity is shown.
+            </div>
+            <div class="consolidated-orders">
+              ${consolidatedHtml}
+            </div>
+            <div class="refresh-action">
+              <button class="btn btn-secondary" onclick="loadConsolidatedOrders()">
+                <i class="fas fa-sync-alt"></i> Refresh Orders
+              </button>
+            </div>
+          `;
+          
+          // Add event listeners for processing buttons
+          document.querySelectorAll('.process-consolidated-btn').forEach(button => {
+            button.addEventListener('click', function() {
+              const clientId = this.getAttribute('data-client-id');
+              toggleConsolidatedProcessingForm(clientId);
+            });
+          });
+          
+          document.querySelectorAll('.complete-consolidated-btn').forEach(button => {
+            button.addEventListener('click', function() {
+              const clientId = this.getAttribute('data-client-id');
+              processConsolidatedShipment(clientId, consolidatedOrders[clientId].items);
+            });
+          });
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        consolidatedContainer.className = '';
+        consolidatedContainer.innerHTML = `<div class="no-orders">Error loading orders: ${error.message}</div>`;
+        showNotification('Error loading orders: ' + error.message, 'error');
+      });
+  }
+  
+  // Function to generate consolidated orders
+  function generateConsolidatedOrders(orderData) {
+    const clientOrders = {};
+    
+    // Group orders by client
+    Object.entries(orderData).forEach(([userId, orders]) => {
+      // Filter out orders that have items that need to be shipped
+      const ordersToProcess = orders.filter(order => {
+        return order.status === 'partially_shipped' || order.status === 'in progress';
+      });
+      
+      if (ordersToProcess.length > 0) {
+        // Initialize consolidated items map to track highest quantities
+        const consolidatedItems = new Map();
+        
+        // Process each order
+        ordersToProcess.forEach(order => {
+          order.items.forEach(item => {
+            // Calculate remaining quantity to ship
+            const shippedQuantity = item.shipped || 0;
+            const remainingQuantity = item.quantity - shippedQuantity;
+            
+            if (remainingQuantity > 0) {
+              const itemKey = `${item.Nom}-${item.categorie}`;
+              
+              // If item already exists in consolidated map, keep the higher quantity
+              if (consolidatedItems.has(itemKey)) {
+                const existingItem = consolidatedItems.get(itemKey);
+                if (remainingQuantity > existingItem.remainingQuantity) {
+                  consolidatedItems.set(itemKey, {
+                    ...item,
+                    remainingQuantity: remainingQuantity,
+                    originalOrders: [...existingItem.originalOrders, { 
+                      orderId: order.id || order.date,
+                      quantity: remainingQuantity
+                    }]
+                  });
+                }
+              } else {
+                // Add new item to consolidated map
+                consolidatedItems.set(itemKey, {
+                  ...item,
+                  remainingQuantity: remainingQuantity,
+                  originalOrders: [{ 
+                    orderId: order.id || order.date,
+                    quantity: remainingQuantity
+                  }]
+                });
+              }
+            }
+          });
+        });
+        
+        // Only add client if they have items to ship
+        if (consolidatedItems.size > 0) {
+          clientOrders[userId] = {
+            items: Array.from(consolidatedItems.values()),
+            originalOrders: ordersToProcess.map(o => o.id || o.date)
+          };
+        }
+      }
+    });
+    
+    return clientOrders;
+  }
+  
+  // Function to create an order card for consolidated shipments
+  function createConsolidatedOrderCard(clientId, orderData) {
+    // Calculate total
+    const total = orderData.items.reduce((sum, item) => {
+      return sum + (parseFloat(item.prix) * item.remainingQuantity);
+    }, 0).toFixed(2);
+    
+    // Create HTML for order items
+    const itemsHtml = orderData.items.map(item => {
+      const itemTotal = (item.remainingQuantity * parseFloat(item.prix)).toFixed(2);
+      return `
+        <tr>
+          <td>${item.Nom}</td>
+          <td>${item.categorie}</td>
+          <td class="text-center">${item.remainingQuantity}</td>
+          <td>${item.prix} CHF</td>
+          <td>${itemTotal} CHF</td>
+        </tr>
+      `;
+    }).join('');
+    
+    // Create HTML for processing form items
+    const formItemsHtml = orderData.items.map(item => {
+      return `
+        <div class="form-row">
+          <div class="item-name">${item.Nom}</div>
+          <div class="ordered-qty">${item.remainingQuantity}</div>
+          <div class="shipped-qty">
+            <input id="shipped-${clientId}-${item.Nom.replace(/ /g, '-')}" 
+                   type="number" 
+                   min="0" 
+                   max="${item.remainingQuantity}" 
+                   value="${item.remainingQuantity}" />
+          </div>
+        </div>
+      `;
+    }).join('');
+    
+    // Create the card HTML
+    return `
+      <div class="order-card consolidated-order" data-client-id="${clientId}">
+        <div class="order-header">
+          <div class="order-id">Client: ${clientId}</div>
+          <div class="order-status status-partial">Consolidated Shipment</div>
+        </div>
+        
+        <div class="customer-info">
+          <div><strong>Items to ship:</strong> ${orderData.items.length}</div>
+          <div><strong>Original orders:</strong> ${orderData.originalOrders.length}</div>
+        </div>
+        
+        <table class="order-items">
+          <thead>
+            <tr>
+              <th>Product</th>
+              <th>Category</th>
+              <th>To Ship</th>
+              <th>Price</th>
+              <th>Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${itemsHtml}
+          </tbody>
+        </table>
+        
+        <div class="order-total">
+          Total: ${total} CHF
+        </div>
+        
+        <div class="order-actions">
+          <button class="btn btn-primary process-consolidated-btn" data-client-id="${clientId}">
+            Process Consolidated Shipment
+          </button>
+        </div>
+        
+        <div class="processing-form" id="processing-form-${clientId}">
+          <h4>Process Consolidated Shipment</h4>
+          <div class="form-header form-row">
+            <div class="item-name"><strong>Product</strong></div>
+            <div class="ordered-qty"><strong>To Ship</strong></div>
+            <div class="shipped-qty"><strong>Ship Now</strong></div>
+          </div>
+          
+          ${formItemsHtml}
+          
+          <div class="form-actions">
+            <button class="btn btn-secondary cancel-consolidated-btn" data-client-id="${clientId}">
+              Cancel
+            </button>
+            <button class="btn btn-success complete-consolidated-btn" data-client-id="${clientId}">
+              Complete Shipment
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+  
+  // Function to toggle processing form visibility
+  function toggleConsolidatedProcessingForm(clientId) {
+    const processingForm = document.getElementById(`processing-form-${clientId}`);
+    
+    // Close all other open forms
+    document.querySelectorAll('.processing-form.active').forEach(form => {
+      if (form.id !== `processing-form-${clientId}`) {
+        form.classList.remove('active');
+      }
+    });
+    
+    // Toggle this form
+    processingForm.classList.toggle('active');
+    
+    // Add event listener to cancel button if form is active
+    if (processingForm.classList.contains('active')) {
+      const cancelBtn = processingForm.querySelector('.cancel-consolidated-btn');
+      if (cancelBtn) {
+        cancelBtn.addEventListener('click', function() {
+          processingForm.classList.remove('active');
+        });
+      }
+    }
+  }
+  
+  // Function to process consolidated shipment
+  function processConsolidatedShipment(clientId, items) {
+    // Group items by original order
+    const orderItemsMap = new Map();
+    
+    // Get consolidated order data from the DOM
+    const orderCard = document.querySelector(`.order-card[data-client-id="${clientId}"]`);
+    
+    // Get all original order IDs (stored as data attribute)
+    const originalOrderIds = Array.from(orderCard.querySelectorAll('[data-original-order-id]'))
+      .map(el => el.getAttribute('data-original-order-id'));
+    
+    // Initialize with all original orders
+    originalOrderIds.forEach(orderId => {
+      orderItemsMap.set(orderId, []);
+    });
+    
+    // Assign items to their original orders
+    items.forEach(item => {
+      item.originalOrders.forEach(orderInfo => {
+        const items = orderItemsMap.get(orderInfo.orderId) || [];
+        // Get the input value for this item
+        const inputElement = document.getElementById(`shipped-${clientId}-${item.Nom.replace(/ /g, '-')}`);
+        const shippedQty = parseInt(inputElement.value);
+        
+        if (shippedQty > 0) {
+          items.push({
+            name: item.Nom,
+            orderedQty: orderInfo.quantity,
+            shippedQty: shippedQty
+          });
+          orderItemsMap.set(orderInfo.orderId, items);
+        }
+      });
+    });
+    
+    // Process each order update
+    const promises = [];
+    
+    orderItemsMap.forEach((orderItems, orderId) => {
+      if (orderItems.length > 0) {
+        const promise = fetch('/api/update-order', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            orderId: orderId,
+            userId: clientId,
+            items: orderItems,
+            status: 'partially_shipped'
+          })
+        });
+        
+        promises.push(promise);
+      }
+    });
+    
+    // Wait for all order updates to complete
+    Promise.all(promises)
+      .then(responses => {
+        // Check if all responses are ok
+        const allSuccessful = responses.every(response => response.ok);
+        if (!allSuccessful) {
+          throw new Error('One or more order updates failed');
+        }
+        
+        showNotification('Orders processed successfully', 'success');
+        
+        // Hide the processing form
+        document.getElementById(`processing-form-${clientId}`).classList.remove('active');
+        
+        // Reload orders
+        loadConsolidatedOrders();
+        loadOrders(); // Also reload regular orders
+      })
+      .catch(error => {
+        console.error('Error processing orders:', error);
+        showNotification('Error processing orders: ' + error.message, 'error');
+      });
   }

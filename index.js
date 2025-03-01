@@ -22,6 +22,7 @@ app.use(session({
 // Liste des utilisateurs avec rôles (exemple)
 const allowedUsers = [
   { username: 'admin', password: 'admin123', role: 'admin' },
+  { username: 'admin2', password: 'admin124', role: 'admin' },
   { username: 'client', password: 'client123', role: 'client' },
   { username: 'client2', password: 'client123', role: 'client' },
   { username: 'luca', password: 'lumattei', role: 'client' }
