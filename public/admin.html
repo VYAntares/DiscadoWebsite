@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Admin Dashboard</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link rel="stylesheet" href="admin.css">
@@ -28,15 +28,33 @@
       
       <!-- Orders Tab Content -->
       <div id="orders-tab" class="tab-content active">
-        <div class="order-section">
-          <h3><i class="fas fa-clock"></i> Pending Orders</h3>
+        <!-- Order category tabs -->
+        <div class="order-tabs">
+          <div class="order-tab active" data-order-category="pending">
+            <i class="fas fa-clock"></i> Pending Orders
+          </div>
+          <div class="order-tab" data-order-category="partial">
+            <i class="fas fa-shipping-fast"></i> Partial Orders (To Ship)
+          </div>
+          <div class="order-tab" data-order-category="completed">
+            <i class="fas fa-check-circle"></i> Completed Orders
+          </div>
+        </div>
+        
+        <!-- Order containers - only one will be visible at a time -->
+        <div id="pending-orders-content" class="order-content active">
           <div id="pending-orders-container" class="loading">
             <!-- Pending orders will be loaded here -->
           </div>
         </div>
         
-        <div class="order-section">
-          <h3><i class="fas fa-check-circle"></i> Completed Orders</h3>
+        <div id="partial-orders-content" class="order-content">
+          <div id="partial-orders-container" class="loading">
+            <!-- Partial orders will be loaded here -->
+          </div>
+        </div>
+        
+        <div id="completed-orders-content" class="order-content">
           <div id="completed-orders-container" class="loading">
             <!-- Completed orders will be loaded here -->
           </div>

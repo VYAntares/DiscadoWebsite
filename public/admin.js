@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', function() {
-    // Tab switching functionality
+    // Main tab switching functionality
     const tabs = document.querySelectorAll('.tab');
     const tabContents = document.querySelectorAll('.tab-content');
     
@@ -24,16 +24,36 @@ document.addEventListener('DOMContentLoaded', function() {
       });
     });
     
+    // Order category tab switching functionality
+    const orderTabs = document.querySelectorAll('.order-tab');
+    const orderContents = document.querySelectorAll('.order-content');
+    
+    orderTabs.forEach(tab => {
+      tab.addEventListener('click', function() {
+        const category = this.getAttribute('data-order-category');
+        
+        // Update active tab
+        orderTabs.forEach(t => t.classList.remove('active'));
+        this.classList.add('active');
+        
+        // Update active content
+        orderContents.forEach(content => content.classList.remove('active'));
+        document.getElementById(`${category}-orders-content`).classList.add('active');
+      });
+    });
+    
     // Load orders initially
     loadOrders();
     
     // Function to load orders
     function loadOrders() {
       const pendingContainer = document.getElementById('pending-orders-container');
+      const partialContainer = document.getElementById('partial-orders-container');
       const completedContainer = document.getElementById('completed-orders-container');
       
       // Show loading state
       pendingContainer.className = 'loading';
+      partialContainer.className = 'loading';
       completedContainer.className = 'loading';
       
       // Fetch orders from server
@@ -47,6 +67,7 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(data => {
           // Process the data
           const pendingOrders = [];
+          const partialOrders = [];
           const completedOrders = [];
           
           // Process each user's orders
@@ -55,6 +76,8 @@ document.addEventListener('DOMContentLoaded', function() {
               order.userId = userId;
               if (order.status === 'completed') {
                 completedOrders.push(order);
+              } else if (order.status === 'partially_shipped') {
+                partialOrders.push(order);
               } else {
                 pendingOrders.push(order);
               }
@@ -63,6 +86,7 @@ document.addEventListener('DOMContentLoaded', function() {
           
           // Sort orders by date, newest first
           pendingOrders.sort((a, b) => new Date(b.date) - new Date(a.date));
+          partialOrders.sort((a, b) => new Date(b.date) - new Date(a.date));
           completedOrders.sort((a, b) => new Date(b.date) - new Date(a.date));
           
           // Render pending orders
@@ -70,7 +94,15 @@ document.addEventListener('DOMContentLoaded', function() {
           if (pendingOrders.length === 0) {
             pendingContainer.innerHTML = '<div class="no-orders">No pending orders</div>';
           } else {
-            pendingContainer.innerHTML = pendingOrders.map(order => createOrderCard(order, true)).join('');
+            pendingContainer.innerHTML = pendingOrders.map(order => createOrderCard(order, 'pending')).join('');
+          }
+          
+          // Render partial orders
+          partialContainer.className = '';
+          if (partialOrders.length === 0) {
+            partialContainer.innerHTML = '<div class="no-orders">No partial orders</div>';
+          } else {
+            partialContainer.innerHTML = partialOrders.map(order => createOrderCard(order, 'partial')).join('');
           }
           
           // Render completed orders
@@ -78,14 +110,37 @@ document.addEventListener('DOMContentLoaded', function() {
           if (completedOrders.length === 0) {
             completedContainer.innerHTML = '<div class="no-orders">No completed orders</div>';
           } else {
-            completedContainer.innerHTML = completedOrders.map(order => createOrderCard(order, false)).join('');
+            completedContainer.innerHTML = completedOrders.map(order => createOrderCard(order, 'completed')).join('');
           }
+          
+          // Update orders count in the tabs
+          document.querySelectorAll('.order-tab').forEach(tab => {
+            const category = tab.getAttribute('data-order-category');
+            let count = 0;
+            
+            if (category === 'pending') count = pendingOrders.length;
+            else if (category === 'partial') count = partialOrders.length;
+            else if (category === 'completed') count = completedOrders.length;
+            
+            // Add count badge
+            const existingBadge = tab.querySelector('.count-badge');
+            if (existingBadge) {
+              existingBadge.textContent = count;
+            } else {
+              const badge = document.createElement('span');
+              badge.className = 'count-badge';
+              badge.textContent = count;
+              tab.appendChild(badge);
+            }
+          });
         })
         .catch(error => {
           console.error('Error:', error);
           pendingContainer.className = '';
+          partialContainer.className = '';
           completedContainer.className = '';
           pendingContainer.innerHTML = `<div class="no-orders">Error loading orders: ${error.message}</div>`;
+          partialContainer.innerHTML = '';
           completedContainer.innerHTML = '';
           showNotification('Error loading orders: ' + error.message, 'error');
         });
@@ -149,10 +204,13 @@ document.addEventListener('DOMContentLoaded', function() {
           showNotification('Error loading customers: ' + error.message, 'error');
         });
     }
+    
+    // Make loadOrders available globally
+    window.loadOrders = loadOrders;
   });
   
   // Function to create an order card
-  function createOrderCard(order, isPending) {
+  function createOrderCard(order, orderType) {
     // Calculate total
     const total = order.items.reduce((sum, item) => sum + (parseFloat(item.prix) * item.quantity), 0).toFixed(2);
     
@@ -165,34 +223,96 @@ document.addEventListener('DOMContentLoaded', function() {
       minute: '2-digit'
     });
     
-    // Create HTML for order items
-    const itemsHtml = order.items.map(item => `
-      <tr>
-        <td>${item.Nom}</td>
-        <td>${item.categorie}</td>
-        <td class="text-center">${item.quantity}</td>
-        <td>${item.prix} CHF</td>
-        <td>${(item.quantity * parseFloat(item.prix)).toFixed(2)} CHF</td>
-      </tr>
-    `).join('');
+    // Create HTML for order items based on order type
+    let itemsHtml = '';
+    
+    if (orderType === 'completed') {
+      // For completed orders, show only shipped items
+      itemsHtml = order.items
+        .filter(item => item.shipped && item.shipped > 0)
+        .map(item => `
+          <tr>
+            <td>${item.Nom}</td>
+            <td>${item.categorie}</td>
+            <td class="text-center">${item.shipped}</td>
+            <td>${item.prix} CHF</td>
+            <td>${(item.shipped * parseFloat(item.prix)).toFixed(2)} CHF</td>
+          </tr>
+        `).join('');
+    } else if (orderType === 'partial') {
+      // For partial orders, show remaining items to be shipped
+      itemsHtml = order.items
+        .filter(item => (!item.shipped && item.quantity > 0) || (item.shipped < item.quantity))
+        .map(item => {
+          const remaining = item.shipped ? item.quantity - item.shipped : item.quantity;
+          return `
+            <tr>
+              <td>${item.Nom}</td>
+              <td>${item.categorie}</td>
+              <td class="text-center">${remaining}</td>
+              <td>${item.prix} CHF</td>
+              <td>${(remaining * parseFloat(item.prix)).toFixed(2)} CHF</td>
+            </tr>
+          `;
+        }).join('');
+    } else {
+      // For pending orders, show all items
+      itemsHtml = order.items.map(item => `
+        <tr>
+          <td>${item.Nom}</td>
+          <td>${item.categorie}</td>
+          <td class="text-center">${item.quantity}</td>
+          <td>${item.prix} CHF</td>
+          <td>${(item.quantity * parseFloat(item.prix)).toFixed(2)} CHF</td>
+        </tr>
+      `).join('');
+    }
     
     // Create HTML for processing form items
-    const formItemsHtml = order.items.map(item => `
-      <div class="form-row">
-        <div class="item-name">${item.Nom}</div>
-        <div class="ordered-qty">${item.quantity}</div>
-        <div class="shipped-qty">
-          <input type="number" min="0" max="${item.quantity}" value="${item.shipped || 0}" />
-        </div>
-        ${item.shipped && item.shipped < item.quantity ? 
-          `<div class="remaining-qty">Remaining: ${item.quantity - item.shipped}</div>` : ''}
-      </div>
-    `).join('');
+    let formItemsHtml = '';
     
-    // Status badge
-    const statusClass = order.status === 'completed' ? 'status-completed' : 'status-pending';
-    const statusText = order.status === 'completed' ? 'Completed' : 
-                       order.status === 'partially_shipped' ? 'Partially Shipped' : 'In Progress';
+    if (orderType === 'partial') {
+      // For partial orders, only show items that still need shipping
+      formItemsHtml = order.items
+        .filter(item => (!item.shipped && item.quantity > 0) || (item.shipped < item.quantity))
+        .map(item => {
+          const remaining = item.shipped ? item.quantity - item.shipped : item.quantity;
+          return `
+            <div class="form-row">
+              <div class="item-name">${item.Nom}</div>
+              <div class="ordered-qty">${remaining}</div>
+              <div class="shipped-qty">
+                <input type="number" min="0" max="${remaining}" value="0" />
+              </div>
+            </div>
+          `;
+        }).join('');
+    } else {
+      // For pending orders, show all items
+      formItemsHtml = order.items.map(item => `
+        <div class="form-row">
+          <div class="item-name">${item.Nom}</div>
+          <div class="ordered-qty">${item.quantity}</div>
+          <div class="shipped-qty">
+            <input type="number" min="0" max="${item.quantity}" value="0" />
+          </div>
+        </div>
+      `).join('');
+    }
+    
+    // Status badge and text
+    let statusClass, statusText;
+    
+    if (orderType === 'completed') {
+      statusClass = 'status-completed';
+      statusText = 'Completed';
+    } else if (orderType === 'partial') {
+      statusClass = 'status-partial';
+      statusText = 'Partially Shipped';
+    } else {
+      statusClass = 'status-pending';
+      statusText = 'In Progress';
+    }
     
     // Create the card HTML
     return `
@@ -227,26 +347,26 @@ document.addEventListener('DOMContentLoaded', function() {
           Total: ${total} CHF
         </div>
         
-        ${isPending ? `
+        ${orderType !== 'completed' ? `
           <div class="order-actions">
-            <button class="btn btn-primary" onclick="processOrder('${order.id || order.date}', '${order.userId}')">
-              Process Order
+            <button class="btn btn-primary" onclick="processOrder('${order.id || order.date}', '${order.userId}', '${orderType}')">
+              ${orderType === 'partial' ? 'Complete Shipping' : 'Process Order'}
             </button>
           </div>
           
           <div class="processing-form">
-            <h4>Process Order</h4>
+            <h4>${orderType === 'partial' ? 'Complete Shipping' : 'Process Order'}</h4>
             <div class="form-header form-row">
               <div class="item-name"><strong>Product</strong></div>
               <div class="ordered-qty"><strong>Ordered</strong></div>
-              <div class="shipped-qty"><strong>Shipped</strong></div>
+              <div class="shipped-qty"><strong>Ship Now</strong></div>
             </div>
             ${formItemsHtml}
             <div class="form-actions">
-              <button class="btn btn-secondary" onclick="processOrder('${order.id || order.date}', '${order.userId}')">
+              <button class="btn btn-secondary" onclick="processOrder('${order.id || order.date}', '${order.userId}', '${orderType}')">
                 Cancel
               </button>
-              <button class="btn btn-success" onclick="saveProcessedOrder('${order.id || order.date}', '${order.userId}')">
+              <button class="btn btn-success" onclick="saveProcessedOrder('${order.id || order.date}', '${order.userId}', '${orderType}')">
                 Save & Complete
               </button>
             </div>
@@ -257,7 +377,7 @@ document.addEventListener('DOMContentLoaded', function() {
   }
   
   // Process order function
-  function processOrder(orderId, userId) {
+  function processOrder(orderId, userId, orderType) {
     // Find the order card and processing form
     const orderCard = document.querySelector(`[data-order-id="${orderId}"]`);
     const processingForm = orderCard.querySelector('.processing-form');
@@ -278,13 +398,16 @@ document.addEventListener('DOMContentLoaded', function() {
   }
   
   // Save processed order function
-  function saveProcessedOrder(orderId, userId) {
+  function saveProcessedOrder(orderId, userId, orderType) {
     const orderCard = document.querySelector(`[data-order-id="${orderId}"]`);
     const processingForm = orderCard.querySelector('.processing-form');
     
     // Collect the shipped quantities
     const items = [];
     processingForm.querySelectorAll('.form-row').forEach(row => {
+      // Skip header row
+      if (row.classList.contains('form-header')) return;
+      
       const itemName = row.querySelector('.item-name').textContent;
       const orderedQty = parseInt(row.querySelector('.ordered-qty').textContent);
       const shippedQty = parseInt(row.querySelector('.shipped-qty input').value);
@@ -333,7 +456,9 @@ document.addEventListener('DOMContentLoaded', function() {
       if (data.success) {
         showNotification('Order updated successfully', 'success');
         // Reload orders to see the updated status
-        location.reload();
+        setTimeout(() => {
+          window.loadOrders();
+        }, 1000);
       } else {
         showNotification(data.message || 'Error updating order', 'error');
       }

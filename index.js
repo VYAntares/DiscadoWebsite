@@ -319,6 +319,8 @@ app.get('/api/user-orders', requireLogin, (req, res) => {
 
 // Add these routes to your index.js file
 
+// Add these routes to your index.js file
+
 // Route to get all orders for admin
 app.get('/api/admin/orders', requireLogin, requireAdmin, (req, res) => {
   try {
@@ -430,26 +432,43 @@ app.post('/api/update-order', requireLogin, requireAdmin, (req, res) => {
     order.status = status;
     
     // Update shipped quantities for each item
-    order.items.forEach(orderItem => {
-      const updatedItem = items.find(item => item.name === orderItem.Nom);
-      if (updatedItem) {
-        orderItem.shipped = updatedItem.shippedQty;
+    items.forEach(updatedItem => {
+      const orderItem = order.items.find(item => item.Nom === updatedItem.name);
+      
+      if (orderItem) {
+        // Calculate total shipped (including previous shipments)
+        const previouslyShipped = orderItem.shipped || 0;
+        const newShipped = updatedItem.shippedQty;
+        const totalShipped = previouslyShipped + newShipped;
         
-        // Optional: Add a remainingQty field if it's a partial shipment
-        if (updatedItem.shippedQty < updatedItem.orderedQty) {
-          orderItem.remainingQty = updatedItem.orderedQty - updatedItem.shippedQty;
+        // Update the shipped quantity
+        orderItem.shipped = totalShipped;
+        
+        // If this is a partial shipment, track what remains to be shipped
+        if (totalShipped < orderItem.quantity) {
+          orderItem.remainingQty = orderItem.quantity - totalShipped;
         } else {
+          // If fully shipped, remove the remaining quantity field
           delete orderItem.remainingQty;
         }
       }
     });
+    
+    // Double check if the order is truly complete or partial
+    const hasRemainingItems = order.items.some(item => 
+      (item.shipped || 0) < item.quantity
+    );
+    
+    // Update the status based on the item quantities
+    order.status = hasRemainingItems ? 'partially_shipped' : 'completed';
     
     // Save the updated orders back to the file
     fs.writeFileSync(userOrdersPath, JSON.stringify(orders, null, 2));
     
     res.json({ 
       success: true, 
-      message: 'Order updated successfully' 
+      message: 'Order updated successfully',
+      status: order.status
     });
   } catch (err) {
     console.error('Error updating order:', err);
