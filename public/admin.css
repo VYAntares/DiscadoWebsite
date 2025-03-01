@@ -625,3 +625,238 @@
   .order-card[data-is-partial="true"] .order-items tbody tr {
     background-color: #fff3e0;
   }
+
+  /* Mobile Responsive Fixes for Admin Page */
+
+/* Adjust base mobile styles first */
+@media (max-width: 768px) {
+    /* Improve overall spacing */
+    main {
+      padding: 0.5rem;
+    }
+    
+    /* Order card adjustments */
+    .order-card {
+      padding: 12px;
+      margin-bottom: 20px;
+    }
+    
+    /* Fix header area */
+    .order-header {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 8px;
+      padding-bottom: 10px;
+    }
+    
+    /* Customer info */
+    .customer-info {
+      padding: 8px;
+      font-size: 0.9rem;
+    }
+    
+    /* Tables need special handling on mobile */
+    .order-items {
+      display: block;
+      width: 100%;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    
+    /* Transform table for better mobile view */
+    .order-items th,
+    .order-items td {
+      padding: 6px 4px;
+      font-size: 0.85rem;
+      white-space: nowrap;
+    }
+    
+    /* Order status badges */
+    .order-status {
+      padding: 4px 8px;
+      font-size: 0.8rem;
+    }
+    
+    /* Form rows in processing form */
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 40px 60px;
+      padding: 8px 4px;
+      font-size: 0.9rem;
+      gap: 8px;
+    }
+    
+    .form-row .item-name {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    
+    .form-row input {
+      width: 100%;
+    }
+    
+    /* Processing form actions */
+    .form-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    
+    .form-actions button {
+      width: 100%;
+    }
+    
+    /* Keyframes display and buttons */
+    .order-card[data-order-id] {
+      display: flex;
+      flex-direction: column;
+    }
+    
+    /* Order table optimization for small screens */
+    .order-items thead {
+      display: none; /* Hide table headers on very small screens */
+    }
+    
+    .order-items tbody tr {
+      display: grid;
+      grid-template-columns: 3fr 1fr;
+      grid-template-rows: auto auto;
+      gap: 4px;
+      padding: 8px 0;
+      border-bottom: 1px solid #eee;
+    }
+    
+    .order-items tbody td {
+      border: none;
+      padding: 2px;
+    }
+    
+    /* First cell - Product name */
+    .order-items tbody td:nth-child(1) {
+      grid-column: 1;
+      grid-row: 1;
+      font-weight: 500;
+    }
+    
+    /* Second cell - Category */
+    .order-items tbody td:nth-child(2) {
+      grid-column: 1;
+      grid-row: 2;
+      color: #666;
+      font-size: 0.8rem;
+    }
+    
+    /* Third cell - Quantity */
+    .order-items tbody td:nth-child(3) {
+      grid-column: 2;
+      grid-row: 1;
+      text-align: right;
+      font-weight: bold;
+    }
+    
+    /* Fourth cell - Price */
+    .order-items tbody td:nth-child(4) {
+      display: none; /* Hide individual price on small screens */
+    }
+    
+    /* Fifth cell - Total */
+    .order-items tbody td:nth-child(5) {
+      grid-column: 2;
+      grid-row: 2;
+      text-align: right;
+      font-weight: bold;
+      color: #2575fc;
+    }
+    
+    /* Fix order buttons on mobile */
+    .order-actions {
+      flex-direction: column;
+      width: 100%;
+    }
+    
+    .order-actions button {
+      width: 100%;
+      margin-top: 8px;
+    }
+    
+    /* Fix notification position for mobile */
+    #notification-container {
+      width: 90%;
+      left: 50%;
+      transform: translateX(-50%);
+      right: auto;
+    }
+    
+    /* Fix tab navigation */
+    .tabs {
+      flex-wrap: wrap;
+    }
+    
+    .tab {
+      flex-grow: 1;
+      text-align: center;
+      font-size: 0.9rem;
+      padding: 8px;
+    }
+    
+    /* Fix order tabs */
+    .order-tabs {
+      flex-direction: column;
+    }
+    
+    .order-tab {
+      border-right: none;
+      border-bottom: 1px solid #e9ecef;
+    }
+  }
+  
+  /* Additional styles for iPhone specifically */
+  @media (max-width: 414px) {
+    /* Make font sizes slightly smaller */
+    body {
+      font-size: 13px;
+    }
+    
+    /* Reduce padding further */
+    .order-card {
+      padding: 10px;
+    }
+    
+    /* Make invoice number and status more compact */
+    .order-id, .order-date {
+      font-size: 0.85rem;
+    }
+    
+    /* Allow order-items to scroll horizontally if needed */
+    .order-items-container {
+      width: 100%;
+      overflow-x: auto;
+    }
+    
+    /* Further optimize table for iPhone */
+    .order-items tbody tr {
+      padding: 6px 0;
+    }
+    
+    /* Fix the keyring and swiss label display specifically */
+    .order-items tbody td:nth-child(1) {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: normal; /* Allow wrapping */
+      font-size: 0.85rem;
+      line-height: 1.2;
+    }
+    
+    /* Fix CHF price display */
+    .order-items tbody td:nth-child(5) {
+      white-space: nowrap;
+      font-size: 0.85rem;
+    }
+    
+    /* Ensure key info is visible */
+    .order-total {
+      font-size: 1rem;
+      padding: 8px 0;
+    }
+  }
