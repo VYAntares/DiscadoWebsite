@@ -359,7 +359,7 @@ function displayCart() {
             const cartItemElement = document.createElement('div');
             cartItemElement.className = 'cart-item';
             cartItemElement.innerHTML = `
-                <div class="cart-item-quantity">${item.quantity}</div>
+                <div class="cart-item-quantity">${item.quantity}x</div>
                 <div class="cart-item-name">${item.Nom}</div>
                 <div class="cart-item-price">${itemTotal.toFixed(2)} CHF</div>
                 <button class="remove-item-btn" data-index="${index}">×</button>

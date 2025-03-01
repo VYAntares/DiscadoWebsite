@@ -56,6 +56,31 @@ h2, h3, h4 {
     gap: 10px;
 }
 
+.logo-container {
+    height: 40px;
+    display: flex;
+    align-items: center;
+  }
+
+  /* Style pour le logo */
+  .logo-container {
+    display: flex;
+    align-items: center;
+    margin-right: 10px;
+}
+
+.logo-container img {
+    height: 40px;
+    width: auto;
+}
+
+/* Pour les écrans plus petits si nécessaire */
+@media (max-width: 768px) {
+    .logo-container img, #logo {
+        height: 35px;
+    }
+}
+
 /* Mobile menu button */
 .menu-toggle {
     display: flex;
