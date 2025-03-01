@@ -23,7 +23,7 @@ app.use(session({
 const allowedUsers = [
   { username: 'admin', password: 'admin123', role: 'admin' },
   { username: 'client', password: 'client123', role: 'client' },
-  { username: '42', password: 'simon', role: 'client'}
+  { username: 'client2', password: 'client123', role: 'client' }
 ];
 
 // Route de login
@@ -217,5 +217,5 @@ app.get('/orders', requireLogin, (req, res) => {
 
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Serveur démarré sur http://localhost:${PORT}`);
-  console.log(`Accessible sur le réseau à l'adresse http://192.168.0.187:${PORT}`);
+  console.log(`Accessible sur le réseau à l'adresse http://192.168.1.252:${PORT}`);
 });

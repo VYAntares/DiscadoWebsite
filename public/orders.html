@@ -32,15 +32,15 @@
     <div id="dropdownMenu" class="dropdown-menu">
         <div class="menu-section">
             <ul class="category-list">
-                <li class="category-item" data-category="all"><a href="/catalog">Retour au catalogue</a></li>
+                <li class="category-item" data-category="all"><a href="/catalog">Back to Catalog</a></li>
             </ul>
         </div>
     </div>
 
     <!-- Menu utilisateur -->
     <div id="userMenu" class="user-menu">
-        <a href="/catalog">Catalogue</a>
-        <a href="/logout">Déconnexion</a>
+        <a href="/catalog">Catalog</a>
+        <a href="/logout">Log Out</a>
     </div>
 
     <!-- Overlay pour fermer les menus -->
@@ -49,11 +49,11 @@
     <!-- Contenu principal -->
     <main>
         <div class="order-page-header">
-            <h2>Mes Commandes</h2>
+            <h2>My Orders</h2>
         </div>
         
         <div id="ordersList">
-            <p>Chargement de vos commandes...</p>
+            <p>Charging your orders...</p>
         </div>
     </main>
 
@@ -67,7 +67,7 @@
                     const ordersContainer = document.getElementById('ordersList');
                     
                     if (orders.length === 0) {
-                        ordersContainer.innerHTML = '<p>Vous n\'avez pas encore passé de commande.</p>';
+                        ordersContainer.innerHTML = '<p>You have not yet placed an order.</p>';
                         return;
                     }
                     
@@ -82,10 +82,10 @@
                         html += `
                             <div class="order-card">
                                 <h3>
-                                    Commande #${index + 1}
+                                    Order #${index + 1}
                                     <span class="order-date">${orderDate}</span>
                                 </h3>
-                                <div class="order-status">Statut: ${order.status}</div>
+                                <div class="order-status">Status: ${order.status}</div>
                                 <h4>Articles:</h4>
                                 <ul>
                                     ${order.items.map(item => `
@@ -105,7 +105,7 @@
                 .catch(error => {
                     console.error('Erreur:', error);
                     document.getElementById('ordersList').innerHTML = 
-                        '<p>Erreur lors du chargement des commandes.</p>';
+                        '<p>Error loading orders.</p>';
                 });
         });
         
