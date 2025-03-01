@@ -317,6 +317,149 @@ app.get('/api/user-orders', requireLogin, (req, res) => {
   }
 });
 
+// Add these routes to your index.js file
+
+// Route to get all orders for admin
+app.get('/api/admin/orders', requireLogin, requireAdmin, (req, res) => {
+  try {
+    const orderFiles = {};
+    
+    // Read the data_store directory
+    const files = fs.readdirSync('./data_store');
+    
+    // Filter for order files
+    const orderFileNames = files.filter(file => file.endsWith('_orders.json'));
+    
+    // Read each order file
+    orderFileNames.forEach(fileName => {
+      const userId = fileName.replace('_orders.json', '');
+      const filePath = path.join('./data_store', fileName);
+      
+      try {
+        const fileContent = fs.readFileSync(filePath, 'utf8');
+        orderFiles[userId] = JSON.parse(fileContent);
+      } catch (err) {
+        console.error(`Error reading order file ${fileName}:`, err);
+        orderFiles[userId] = [];
+      }
+    });
+    
+    res.json(orderFiles);
+  } catch (err) {
+    console.error('Error getting orders:', err);
+    res.status(500).json({ error: 'Failed to get orders' });
+  }
+});
+
+// Route to get all customers for admin
+app.get('/api/admin/customers', requireLogin, requireAdmin, (req, res) => {
+  try {
+    const customers = {};
+    
+    // Read the data_client directory
+    const files = fs.readdirSync('./data_client');
+    
+    // Filter for profile files
+    const profileFileNames = files.filter(file => file.endsWith('_profile.json'));
+    
+    // Read each profile file
+    profileFileNames.forEach(fileName => {
+      const userId = fileName.replace('_profile.json', '');
+      const filePath = path.join('./data_client', fileName);
+      
+      try {
+        const fileContent = fs.readFileSync(filePath, 'utf8');
+        customers[userId] = JSON.parse(fileContent);
+      } catch (err) {
+        console.error(`Error reading profile file ${fileName}:`, err);
+        customers[userId] = {};
+      }
+    });
+    
+    res.json(customers);
+  } catch (err) {
+    console.error('Error getting customers:', err);
+    res.status(500).json({ error: 'Failed to get customers' });
+  }
+});
+
+// Route to update an order
+app.post('/api/update-order', requireLogin, requireAdmin, (req, res) => {
+  try {
+    const { userId, orderId, items, status } = req.body;
+    
+    // Validate inputs
+    if (!userId || !orderId || !items || !status) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Missing required fields' 
+      });
+    }
+    
+    // Read the user's order file
+    const userOrdersPath = `./data_store/${userId}_orders.json`;
+    
+    if (!fs.existsSync(userOrdersPath)) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'User orders not found' 
+      });
+    }
+    
+    // Parse the file content
+    const fileContent = fs.readFileSync(userOrdersPath, 'utf8');
+    const orders = JSON.parse(fileContent);
+    
+    // Find the specific order
+    const orderIndex = orders.findIndex(order => {
+      // Use either the ID or the date string to identify the order
+      return (order.id && order.id === orderId) || order.date === orderId;
+    });
+    
+    if (orderIndex === -1) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Order not found' 
+      });
+    }
+    
+    // Update the order
+    const order = orders[orderIndex];
+    
+    // Update the status
+    order.status = status;
+    
+    // Update shipped quantities for each item
+    order.items.forEach(orderItem => {
+      const updatedItem = items.find(item => item.name === orderItem.Nom);
+      if (updatedItem) {
+        orderItem.shipped = updatedItem.shippedQty;
+        
+        // Optional: Add a remainingQty field if it's a partial shipment
+        if (updatedItem.shippedQty < updatedItem.orderedQty) {
+          orderItem.remainingQty = updatedItem.orderedQty - updatedItem.shippedQty;
+        } else {
+          delete orderItem.remainingQty;
+        }
+      }
+    });
+    
+    // Save the updated orders back to the file
+    fs.writeFileSync(userOrdersPath, JSON.stringify(orders, null, 2));
+    
+    res.json({ 
+      success: true, 
+      message: 'Order updated successfully' 
+    });
+  } catch (err) {
+    console.error('Error updating order:', err);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to update order: ' + err.message 
+    });
+  }
+});
+
 // Route pour la page des commandes
 app.get('/orders', requireLogin, (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'orders.html'));

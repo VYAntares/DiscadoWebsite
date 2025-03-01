@@ -2,13 +2,60 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <title>Interface Admin</title>
-  <link rel="stylesheet" href="styles.css">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Dashboard</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="admin.css">
 </head>
 <body>
-  <h1>Interface Admin</h1>
-  <!-- Afficher ici vos commandes et la liste des clients -->
-  <p>Gestion des commandes et des utilisateurs...</p>
-  <a href="/logout">Se déconnecter</a>
+  <header>
+    <div class="logo-container">
+      <img src="/images/logo_discado_noir.png" alt="Discado Logo">
+      <h1>Admin Dashboard</h1>
+    </div>
+    <div class="user-info">
+      <i class="fas fa-user-circle"></i>
+      <span>Admin</span>
+    </div>
+  </header>
+  
+  <main>
+    <div class="tab-container">
+      <div class="tabs">
+        <div class="tab active" data-tab="orders">Order Management</div>
+        <div class="tab" data-tab="customers">Customer Management</div>
+      </div>
+      
+      <!-- Orders Tab Content -->
+      <div id="orders-tab" class="tab-content active">
+        <div class="order-section">
+          <h3><i class="fas fa-clock"></i> Pending Orders</h3>
+          <div id="pending-orders-container" class="loading">
+            <!-- Pending orders will be loaded here -->
+          </div>
+        </div>
+        
+        <div class="order-section">
+          <h3><i class="fas fa-check-circle"></i> Completed Orders</h3>
+          <div id="completed-orders-container" class="loading">
+            <!-- Completed orders will be loaded here -->
+          </div>
+        </div>
+      </div>
+      
+      <!-- Customers Tab Content -->
+      <div id="customers-tab" class="tab-content">
+        <h3><i class="fas fa-users"></i> Customer List</h3>
+        <div id="customers-container" class="loading">
+          <!-- Customers will be loaded here -->
+        </div>
+      </div>
+    </div>
+  </main>
+  
+  <!-- Notification Container -->
+  <div id="notification-container"></div>
+  
+  <script src="admin.js"></script>
 </body>
 </html>

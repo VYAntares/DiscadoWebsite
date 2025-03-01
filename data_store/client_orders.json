@@ -7,66 +7,52 @@
         "prix": "4.00",
         "imageUrl": "/images/bags/Bags312.jpg",
         "categorie": "bags",
-        "quantity": 5000
-      },
-      {
-        "Nom": "Bags 313 - Big bag with cities in beige",
-        "prix": "5.00",
-        "imageUrl": "/images/bags/Bags313.jpg",
-        "categorie": "bags",
         "quantity": 50
-      },
-      {
-        "Nom": "Bags 314 - Big bag with cities in blue",
-        "prix": "5.00",
-        "imageUrl": "/images/bags/Bags314.jpg",
-        "categorie": "bags",
-        "quantity": 10
-      },
+      }
+    ],
+    "status": "in progress",
+    "date": "2025-03-01T20:24:57.266Z"
+  },
+  {
+    "userId": "client",
+    "items": [
       {
         "Nom": "Bags 315 - Banana bag Switzerland",
         "prix": "3.00",
         "imageUrl": "/images/bags/Bags315.jpg",
         "categorie": "bags",
-        "quantity": 25
-      },
-      {
-        "Nom": "Bags 316 - Shoulder bag Switzerland",
-        "prix": "3.00",
-        "imageUrl": "/images/bags/Bags316.jpg",
-        "categorie": "bags",
-        "quantity": 60
-      },
-      {
-        "Nom": "Bags 324 - Backpack Switzerland",
-        "prix": "6.00",
-        "imageUrl": "/images/bags/Bags324.jpg",
-        "categorie": "bags",
-        "quantity": 70
-      },
-      {
-        "Nom": "Bags 350 - Tote bag I love Bern off-white",
-        "prix": "2.00",
-        "imageUrl": "/images/bags/Bags350.jpg",
-        "categorie": "bags",
-        "quantity": 50
-      },
-      {
-        "Nom": "Bags 351 - Tote bag I love Crans-Montana off-white",
-        "prix": "2.00",
-        "imageUrl": "/images/bags/Bags351.jpg",
-        "categorie": "bags",
-        "quantity": 20
-      },
-      {
-        "Nom": "Bags 352 - Tote bag I love Genève off-white",
-        "prix": "2.00",
-        "imageUrl": "/images/bags/Bags352.jpg",
-        "categorie": "bags",
-        "quantity": 35
+        "quantity": 100
       }
     ],
     "status": "in progress",
-    "date": "2025-03-01T20:17:30.854Z"
+    "date": "2025-03-01T20:25:06.570Z"
+  },
+  {
+    "userId": "client",
+    "items": [
+      {
+        "Nom": "Pens 21 - Pen switzerland display",
+        "prix": "1.20",
+        "imageUrl": "/images/pens/Pens21.jpg",
+        "categorie": "pens",
+        "quantity": 120
+      },
+      {
+        "Nom": "Pens 24 - Color pencils set Switzerland",
+        "prix": "1.60",
+        "imageUrl": "/images/pens/Pens24.jpg",
+        "categorie": "pens",
+        "quantity": 24
+      },
+      {
+        "Nom": "Pens 291 - stylo Switzerland",
+        "prix": "0.50",
+        "imageUrl": "/images/pens/Pens291.jpg",
+        "categorie": "pens",
+        "quantity": 48
+      }
+    ],
+    "status": "in progress",
+    "date": "2025-03-01T20:45:25.400Z"
   }
 ]
