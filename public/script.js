@@ -36,6 +36,7 @@ function displayProducts(products, category = "all") {
 
     products
         .filter(p => category === "all" || p.categorie === category)
+        .filter(p => p.Nom && p.Nom.trim() !== "")
         .forEach(p => {
             // Vérifier si les propriétés essentielles existent, sinon utiliser des valeurs par défaut
             const productName = p.Nom || "Produit sans nom";
@@ -262,11 +263,129 @@ function removeCartItem(index) {
 
 // Attacher les écouteurs d'événements
 document.addEventListener('DOMContentLoaded', function() {
+    // Variable pour stocker tous les produits
+    let allProducts = [];
+    
+    // Fonction pour ajuster la marge supérieure du main en fonction de la hauteur réelle du header
+    function adjustMainMargin() {
+        const header = document.querySelector('header');
+        const main = document.querySelector('main');
+        if (header && main) {
+            const headerHeight = header.offsetHeight;
+            main.style.marginTop = (headerHeight - 140) + 'px'; // Utilisation de votre valeur d'offset
+        }
+    }
+    
+    // Appel initial pour régler la marge
+    adjustMainMargin();
+    
+    // Réajuster en cas de redimensionnement
+    window.addEventListener('resize', adjustMainMargin);
+    
+    // Gestion du scroll pour l'en-tête sur mobile
+    let lastScrollTop = 0;
+    window.addEventListener('scroll', function() {
+        const currentScrollTop = window.pageYOffset || document.documentElement.scrollTop;
+        const header = document.querySelector('header');
+        
+        // Si on est tout en haut de la page OU si on remonte
+        if (currentScrollTop <= 10 || currentScrollTop < lastScrollTop) {
+            header.style.transform = 'translateY(0)';
+            setTimeout(adjustMainMargin, 200); // Réajuster après l'animation
+        } 
+        // Si on descend la page (scroll vers le bas)
+        else if (currentScrollTop > lastScrollTop) {
+            header.style.transform = 'translateY(-100%)';
+        }
+        
+        lastScrollTop = currentScrollTop;
+    });
+    
+    // Fonction de recherche de produits
+    function searchProducts(query, products) {
+        if (!query || query.trim() === '') {
+            return products; // Retourne tous les produits si la recherche est vide
+        }
+        
+        query = query.toLowerCase().trim();
+        
+        return products.filter(product => {
+            // Vérifier si le produit a un nom valide
+            if (!product.Nom) return false;
+            
+            const productName = product.Nom.toLowerCase();
+            const productCategory = (product.categorie || '').toLowerCase();
+            
+            // Recherche dans le nom du produit et la catégorie
+            return productName.includes(query) || productCategory.includes(query);
+        });
+    }
+    
+    // Fonction pour effectuer la recherche
+    async function performSearch() {
+        const searchQuery = document.getElementById('searchInput').value;
+        
+        // Si nous n'avons pas encore chargé les produits, faisons-le maintenant
+        if (allProducts.length === 0) {
+            allProducts = await fetchProducts();
+        }
+        
+        // Filtrer les produits selon la requête de recherche
+        const filteredProducts = searchProducts(searchQuery, allProducts);
+        
+        // Obtenir la catégorie actuellement sélectionnée
+        const categorySelect = document.getElementById('categoryFilter');
+        const selectedCategory = categorySelect.value;
+        
+        // Afficher les produits filtrés, en respectant également le filtre de catégorie si ce n'est pas "all"
+        if (selectedCategory === "all") {
+            displayProducts(filteredProducts);
+        } else {
+            const categoryFilteredProducts = filteredProducts.filter(p => p.categorie === selectedCategory);
+            displayProducts(categoryFilteredProducts);
+        }
+    }
+    
+    // Écouteur d'événement pour la touche Entrée dans le champ de recherche
+    document.getElementById('searchInput').addEventListener('keyup', function(event) {
+        if (event.key === 'Enter') {
+            performSearch();
+        }
+    });
+    
+    // Écouteur d'événement pour le bouton de recherche
+    document.getElementById('searchButton').addEventListener('click', performSearch);
+    
     // Filtre par catégorie
     document.getElementById('categoryFilter').addEventListener('change', async function() {
         const selectedCategory = this.value;
-        const products = await fetchProducts();
-        displayProducts(products, selectedCategory);
+        
+        // Obtenir la valeur actuelle de la recherche
+        const searchQuery = document.getElementById('searchInput').value;
+        
+        // Si une recherche est en cours, filtrer d'abord par la recherche
+        if (searchQuery && searchQuery.trim() !== '') {
+            // Si nous n'avons pas encore chargé les produits, faisons-le maintenant
+            if (allProducts.length === 0) {
+                allProducts = await fetchProducts();
+            }
+            
+            const searchFilteredProducts = searchProducts(searchQuery, allProducts);
+            
+            // Puis appliquer le filtre de catégorie
+            if (selectedCategory === "all") {
+                displayProducts(searchFilteredProducts);
+            } else {
+                const finalFilteredProducts = searchFilteredProducts.filter(p => p.categorie === selectedCategory);
+                displayProducts(finalFilteredProducts);
+            }
+        } else {
+            // Sinon, simplement filtrer par catégorie comme avant
+            if (allProducts.length === 0) {
+                allProducts = await fetchProducts();
+            }
+            displayProducts(allProducts, selectedCategory);
+        }
     });
     
     // Ouvrir la modale du panier
@@ -325,8 +444,10 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Chargement initial des produits
     (async () => {
-        const products = await fetchProducts();
-        displayProducts(products);
+        allProducts = await fetchProducts();
+        // Filtrer les produits sans nom valide pour éviter les "Produit sans nom"
+        allProducts = allProducts.filter(p => p.Nom && p.Nom.trim() !== "");
+        displayProducts(allProducts);
         updateCartCount();
     })();
 });
