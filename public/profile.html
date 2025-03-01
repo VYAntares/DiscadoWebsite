@@ -27,7 +27,7 @@
             color: #333;
         }
         
-        .form-group input, .form-group textarea {
+        .form-group input {
             width: 100%;
             padding: 10px;
             border: 1px solid #ddd;
@@ -35,10 +35,18 @@
             font-size: 14px;
         }
         
-        .form-group input:focus, .form-group textarea:focus {
+        .form-group input:focus {
             border-color: #2575fc;
             outline: none;
             box-shadow: 0 0 0 2px rgba(37, 117, 252, 0.2);
+        }
+        
+        .form-group input:required {
+            border-left: 3px solid #2575fc;
+        }
+        
+        .form-group input:invalid {
+            border-color: #e74c3c;
         }
         
         .save-btn {
@@ -64,6 +72,23 @@
             margin-bottom: 15px;
             padding-bottom: 10px;
             border-bottom: 1px solid #eee;
+        }
+        
+        .required-fields-note {
+            margin-bottom: 20px;
+            font-size: 14px;
+            color: #666;
+        }
+        
+        .input-error {
+            border-color: #e74c3c !important;
+        }
+        
+        .error-message {
+            color: #e74c3c;
+            font-size: 12px;
+            margin-top: 5px;
+            display: none;
         }
     </style>
 </head>
@@ -120,47 +145,36 @@
                 <div class="profile-section">
                     <h3>Personal Information</h3>
                     <div class="form-group">
-                        <label for="fullName">Full Name</label>
-                        <input type="text" id="fullName" name="fullName" placeholder="Your full name">
+                        <label for="fullName">Full Name*</label>
+                        <input type="text" id="fullName" name="fullName" placeholder="Your full name" required>
                     </div>
                     <div class="form-group">
-                        <label for="email">Email</label>
-                        <input type="email" id="email" name="email" placeholder="Your email address">
+                        <label for="email">Email*</label>
+                        <input type="email" id="email" name="email" placeholder="Your email address" required>
                     </div>
                     <div class="form-group">
-                        <label for="phone">Phone Number</label>
-                        <input type="tel" id="phone" name="phone" placeholder="Your phone number">
+                        <label for="phone">Phone Number*</label>
+                        <input type="tel" id="phone" name="phone" placeholder="Your phone number" required>
                     </div>
                 </div>
                 
                 <div class="profile-section">
                     <h3>Shipping Address</h3>
                     <div class="form-group">
-                        <label for="address">Street Address</label>
-                        <input type="text" id="address" name="address" placeholder="Street address">
+                        <label for="address">Street Address*</label>
+                        <input type="text" id="address" name="address" placeholder="Street address" required>
                     </div>
                     <div class="form-group">
-                        <label for="city">City</label>
-                        <input type="text" id="city" name="city" placeholder="City">
+                        <label for="city">City*</label>
+                        <input type="text" id="city" name="city" placeholder="City" required>
                     </div>
                     <div class="form-group">
-                        <label for="postalCode">Postal Code</label>
-                        <input type="text" id="postalCode" name="postalCode" placeholder="Postal code">
-                    </div>
-                    <div class="form-group">
-                        <label for="country">Country</label>
-                        <input type="text" id="country" name="country" placeholder="Country">
+                        <label for="postalCode">Postal Code*</label>
+                        <input type="text" id="postalCode" name="postalCode" placeholder="Postal code" required>
                     </div>
                 </div>
                 
-                <div class="profile-section">
-                    <h3>Preferences</h3>
-                    <div class="form-group">
-                        <label for="preferences">Additional Information</label>
-                        <textarea id="preferences" name="preferences" rows="4" placeholder="Any additional information or preferences"></textarea>
-                    </div>
-                </div>
-                
+                <p class="required-fields-note">* All fields are required</p>
                 <button type="submit" class="save-btn">Save Profile</button>
             </form>
         </div>
@@ -178,9 +192,45 @@
             // Gérer la soumission du formulaire
             document.getElementById('profileForm').addEventListener('submit', function(event) {
                 event.preventDefault();
-                saveUserProfile();
+                
+                // Vérifier si tous les champs sont remplis
+                if (validateForm()) {
+                    saveUserProfile();
+                }
             });
         });
+        
+        // Fonction pour valider le formulaire
+        function validateForm() {
+            const inputs = document.querySelectorAll('#profileForm input[required]');
+            let isValid = true;
+            let firstEmptyField = null;
+            
+            // Vérifier chaque champ obligatoire
+            inputs.forEach(input => {
+                if (!input.value.trim()) {
+                    isValid = false;
+                    input.classList.add('input-error');
+                    
+                    // Mémoriser le premier champ vide pour le focus
+                    if (!firstEmptyField) {
+                        firstEmptyField = input;
+                    }
+                } else {
+                    input.classList.remove('input-error');
+                }
+            });
+            
+            // Si le formulaire n'est pas valide, afficher une notification et mettre le focus sur le premier champ vide
+            if (!isValid) {
+                showNotification('Please fill in all required fields', 'error');
+                if (firstEmptyField) {
+                    firstEmptyField.focus();
+                }
+            }
+            
+            return isValid;
+        }
         
         // Fonction pour récupérer le profil de l'utilisateur
         function fetchUserProfile() {
@@ -195,8 +245,6 @@
                         document.getElementById('address').value = profileData.address || '';
                         document.getElementById('city').value = profileData.city || '';
                         document.getElementById('postalCode').value = profileData.postalCode || '';
-                        document.getElementById('country').value = profileData.country || '';
-                        document.getElementById('preferences').value = profileData.preferences || '';
                     }
                 })
                 .catch(error => {
@@ -208,14 +256,12 @@
         // Fonction pour enregistrer le profil
         function saveUserProfile() {
             const profileData = {
-                fullName: document.getElementById('fullName').value,
-                email: document.getElementById('email').value,
-                phone: document.getElementById('phone').value,
-                address: document.getElementById('address').value,
-                city: document.getElementById('city').value,
-                postalCode: document.getElementById('postalCode').value,
-                country: document.getElementById('country').value,
-                preferences: document.getElementById('preferences').value
+                fullName: document.getElementById('fullName').value.trim(),
+                email: document.getElementById('email').value.trim(),
+                phone: document.getElementById('phone').value.trim(),
+                address: document.getElementById('address').value.trim(),
+                city: document.getElementById('city').value.trim(),
+                postalCode: document.getElementById('postalCode').value.trim(),
             };
             
             fetch('/api/save-profile', {
@@ -271,6 +317,15 @@
                 notification.remove();
             }, 4000);
         }
+        
+        // Ajouter des écouteurs d'événements pour supprimer l'état d'erreur lorsque l'utilisateur commence à saisir
+        document.querySelectorAll('#profileForm input[required]').forEach(input => {
+            input.addEventListener('input', function() {
+                if (this.value.trim()) {
+                    this.classList.remove('input-error');
+                }
+            });
+        });
     </script>
 </body>
 </html>
