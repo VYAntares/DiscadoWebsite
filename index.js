@@ -217,5 +217,5 @@ app.get('/orders', requireLogin, (req, res) => {
 
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Serveur démarré sur http://localhost:${PORT}`);
-  console.log(`Accessible sur le réseau à l'adresse http://10.18.203.95:${PORT}`);
+  console.log(`Accessible sur le réseau à l'adresse http://172.20.10.3:${PORT}`);
 });
