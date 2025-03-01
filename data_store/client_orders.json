@@ -1,0 +1,16 @@
+[
+  {
+    "userId": "client",
+    "items": [
+      {
+        "Nom": "Bags 312 - Small backpack Switzerland",
+        "prix": "4.00",
+        "imageUrl": "http://10.18.203.95:3000/images/bags/Bags312.jpg",
+        "categorie": "bags",
+        "quantity": 500
+      }
+    ],
+    "status": "en cours",
+    "date": "2025-03-01T00:42:12.792Z"
+  }
+]

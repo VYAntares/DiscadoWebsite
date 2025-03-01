@@ -37,29 +37,69 @@ h1 {
     border: 1px solid #ccc;
 }
 
-.cart-icon {
-    position: relative;
-    font-size: 24px;
+.user-controls {
+    display: flex;
+    align-items: center;
+    gap: 15px;
 }
 
-.cart-icon a {
-    text-decoration: none;
-    color: #333;
+.cart-btn {
+    display: flex;
+    align-items: center;
+    background-color: #2575fc;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 8px 15px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    position: relative;
+}
+
+.cart-btn:hover {
+    background-color: #1a5cb8;
 }
 
 .cart-count {
-    position: absolute;
-    top: -10px;
-    right: -10px;
-    background-color: #e74c3c;
-    color: white;
-    border-radius: 50%;
-    width: 20px;
+    background-color: white;
+    color: #2575fc;
+    border-radius: 12px;
+    min-width: 20px;
     height: 20px;
     display: flex;
     justify-content: center;
     align-items: center;
     font-size: 12px;
+    margin-left: 8px;
+    font-weight: bold;
+    padding: 0 6px;
+}
+
+.my-orders-link, .logout-btn {
+    text-decoration: none;
+    padding: 6px 12px;
+    border-radius: 4px;
+    font-size: 14px;
+    transition: all 0.2s ease;
+}
+
+.my-orders-link {
+    color: #2575fc;
+    background-color: #e6f0ff;
+}
+
+.my-orders-link:hover {
+    background-color: #d1e6ff;
+}
+
+.logout-btn {
+    color: white;
+    background-color: #e74c3c;
+}
+
+.logout-btn:hover {
+    background-color: #c0392b;
 }
 
 /* Liste de produits */
@@ -335,6 +375,20 @@ li.product-item {
 @keyframes spin {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
+}
+
+.back-btn {
+    text-decoration: none;
+    padding: 6px 12px;
+    border-radius: 4px;
+    font-size: 14px;
+    color: #333;
+    background-color: #f0f0f0;
+    transition: all 0.2s ease;
+}
+
+.back-btn:hover {
+    background-color: #e0e0e0;
 }
 
 /* Optimisation pour les écrans mobiles */
