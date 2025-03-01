@@ -322,29 +322,35 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // Fonction pour effectuer la recherche
-    async function performSearch() {
+    // Fonction pour effectuer la recherche
+    function performSearch() {
         const searchQuery = document.getElementById('searchInput').value;
-        
-        // Si nous n'avons pas encore chargé les produits, faisons-le maintenant
-        if (allProducts.length === 0) {
-            allProducts = await fetchProducts();
-        }
-        
-        // Filtrer les produits selon la requête de recherche
-        const filteredProducts = searchProducts(searchQuery, allProducts);
-        
-        // Obtenir la catégorie actuellement sélectionnée
-        const categorySelect = document.getElementById('categoryFilter');
-        const selectedCategory = categorySelect.value;
-        
-        // Afficher les produits filtrés, en respectant également le filtre de catégorie si ce n'est pas "all"
-        if (selectedCategory === "all") {
-            displayProducts(filteredProducts);
-        } else {
-            const categoryFilteredProducts = filteredProducts.filter(p => p.categorie === selectedCategory);
-            displayProducts(categoryFilteredProducts);
-        }
+    
+    // Si la recherche est vide, ne rien faire
+        if (!searchQuery || searchQuery.trim() === '') {
+            return;
     }
+    
+    // Si nous n'avons pas encore chargé les produits, faisons-le maintenant
+        if (allProducts.length === 0) {
+            fetchProducts().then(products => {
+                allProducts = products.filter(p => p.Nom && p.Nom.trim() !== "");
+                // Rechercher à travers TOUTES les catégories
+                const filteredProducts = searchProducts(searchQuery, allProducts);
+                displayProducts(filteredProducts);
+                
+                // Optionnel: Remettre la sélection de catégorie à "Toutes catégories"
+                document.getElementById('categoryFilter').value = "all";
+            });
+        } else {
+            // Rechercher à travers TOUTES les catégories
+            const filteredProducts = searchProducts(searchQuery, allProducts);
+            displayProducts(filteredProducts);
+            
+            // Optionnel: Remettre la sélection de catégorie à "Toutes catégories"
+            document.getElementById('categoryFilter').value = "all";
+        }
+}
     
     // Écouteur d'événement pour la touche Entrée dans le champ de recherche
     document.getElementById('searchInput').addEventListener('keyup', function(event) {
