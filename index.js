@@ -23,7 +23,8 @@ app.use(session({
 const allowedUsers = [
   { username: 'admin', password: 'admin123', role: 'admin' },
   { username: 'client', password: 'client123', role: 'client' },
-  { username: 'client2', password: 'client123', role: 'client' }
+  { username: 'client2', password: 'client123', role: 'client' },
+  { username: 'luca', password: 'lumattei', role: 'client' }
 ];
 
 // Route de login
@@ -386,6 +387,7 @@ app.get('/api/admin/customers', requireLogin, requireAdmin, (req, res) => {
 });
 
 // Route to update an order
+// Route to update an order
 app.post('/api/update-order', requireLogin, requireAdmin, (req, res) => {
   try {
     const { userId, orderId, items, status } = req.body;
@@ -431,15 +433,25 @@ app.post('/api/update-order', requireLogin, requireAdmin, (req, res) => {
     // Update the status
     order.status = status;
     
+    // Create copies of items for tracking
+    if (!order.shippedItems) {
+      order.shippedItems = [];
+    }
+    
     // Update shipped quantities for each item
     items.forEach(updatedItem => {
       const orderItem = order.items.find(item => item.Nom === updatedItem.name);
       
       if (orderItem) {
+        // Initialize shipped property if it doesn't exist
+        if (typeof orderItem.shipped === 'undefined') {
+          orderItem.shipped = 0;
+        }
+        
         // Calculate total shipped (including previous shipments)
         const previouslyShipped = orderItem.shipped || 0;
-        const newShipped = updatedItem.shippedQty;
-        const totalShipped = previouslyShipped + newShipped;
+        const newShippedQty = parseInt(updatedItem.shippedQty) || 0;
+        const totalShipped = previouslyShipped + newShippedQty;
         
         // Update the shipped quantity
         orderItem.shipped = totalShipped;
@@ -451,10 +463,27 @@ app.post('/api/update-order', requireLogin, requireAdmin, (req, res) => {
           // If fully shipped, remove the remaining quantity field
           delete orderItem.remainingQty;
         }
+        
+        // If we're shipping items now, add to shippedItems array for tracking
+        if (newShippedQty > 0) {
+          // Check if this item is already in shippedItems
+          const existingShippedItem = order.shippedItems.find(item => item.Nom === orderItem.Nom);
+          
+          if (existingShippedItem) {
+            // Update existing record
+            existingShippedItem.quantity += newShippedQty;
+          } else {
+            // Add new record for this item
+            order.shippedItems.push({
+              ...orderItem,
+              quantity: newShippedQty
+            });
+          }
+        }
       }
     });
     
-    // Double check if the order is truly complete or partial
+    // Check if the order is truly complete or partial
     const hasRemainingItems = order.items.some(item => 
       (item.shipped || 0) < item.quantity
     );

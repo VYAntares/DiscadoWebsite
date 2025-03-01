@@ -567,3 +567,61 @@
       grid-column: auto;
     }
   }
+
+  /* Additional styles to add to admin.css */
+
+/* Style for virtual completion cards */
+.order-card.virtual-completion {
+    border-left: 4px solid #28a745;
+    background-color: #f8fff9;
+  }
+  
+  /* Alert styles */
+  .alert {
+    padding: 10px 15px;
+    margin-bottom: 15px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+  }
+  
+  .alert i {
+    margin-right: 10px;
+    font-size: 1.2em;
+  }
+  
+  .alert-info {
+    background-color: #e1f5fe;
+    color: #0288d1;
+    border: 1px solid #b3e5fc;
+  }
+  
+  /* Shipped portion status badge */
+  .order-status.status-shipped-portion {
+    background-color: #e1f5fe;
+    color: #0288d1;
+  }
+  
+  /* Enhance visualization of shipped items */
+  .shipped-item {
+    background-color: #f0fff0;
+  }
+  
+  .remaining-item {
+    background-color: #fff3e0;
+  }
+  
+  /* Order info section */
+  .order-info {
+    margin: 10px 0;
+  }
+  
+  /* Styling for completed order portions */
+  .virtual-completion .order-items tbody tr {
+    background-color: #f0fff0;
+  }
+  
+  /* Styling for remaining items in partial orders */
+  .order-card[data-is-partial="true"] .order-items tbody tr {
+    background-color: #fff3e0;
+  }

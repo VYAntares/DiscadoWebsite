@@ -73,21 +73,28 @@ function displayProducts(products, category = "all") {
             img.alt = productName;
             img.className = "product-img";
             
+            // Ajouter l'attribut data-high-res pour l'image en haute résolution
+            // Dans cet exemple, nous utilisons la même image, mais vous pourriez avoir une URL différente pour la version haute résolution
+            img.setAttribute('data-high-res', productImage);
+            
             // Gestion plus robuste des erreurs d'images
             img.onerror = function() {
                 console.log(`Image non trouvée: ${this.src}`);
                 // Essayer d'abord avec un chemin sans /public
                 if (this.src.includes('/public/')) {
                     this.src = this.src.replace('/public/', '/');
+                    this.setAttribute('data-high-res', this.src); // Mettre à jour l'attribut high-res aussi
                     return;
                 }
                 
                 // Fallback vers une image par défaut en cas d'erreur
                 this.src = `/images/${productCategory}/${productCategory}-default.jpg`;
+                this.setAttribute('data-high-res', this.src); // Mettre à jour l'attribut high-res aussi
                 
                 // Deuxième fallback si l'image par défaut de catégorie n'existe pas
                 this.onerror = function() {
                     this.src = '/images/product-default.jpg';
+                    this.setAttribute('data-high-res', this.src); // Mettre à jour l'attribut high-res aussi
                     // Éviter les boucles infinies
                     this.onerror = null;
                 };
@@ -204,6 +211,9 @@ function displayProducts(products, category = "all") {
 
             list.appendChild(li);
         });
+    
+    // Déclencher un événement indiquant que les produits ont été chargés
+    document.dispatchEvent(new CustomEvent('productsLoaded'));
 }
 
 // Fonction pour mettre à jour le tableau des produits sélectionnés
@@ -773,4 +783,110 @@ document.addEventListener('DOMContentLoaded', function() {
         displayProducts(allProducts);
         updateCartCount();
     })();
+});
+
+// Add this code to your script.js file or create a new file and include it in your HTML: zoom image catalogue 
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Create the image preview modal
+    const modal = document.createElement('div');
+    modal.id = 'image-preview-modal';
+    modal.className = 'image-preview-modal';
+    modal.innerHTML = `
+        <div class="image-preview-content">
+            <span class="close-preview">&times;</span>
+            <img class="preview-image" src="" alt="Product preview">
+        </div>
+    `;
+    document.body.appendChild(modal);
+
+    // Get the modal elements
+    const previewImage = modal.querySelector('.preview-image');
+    const closeButton = modal.querySelector('.close-preview');
+
+    // Add click event listener to all product images
+    function setupImagePreviews() {
+        const productImages = document.querySelectorAll('.product-img');
+        
+        productImages.forEach(img => {
+            // Only add the click event if it doesn't already have one
+            if (!img.hasAttribute('data-preview-enabled')) {
+                img.style.cursor = 'zoom-in'; // Change cursor to indicate clickable
+                
+                img.addEventListener('click', function(event) {
+                    event.preventDefault(); // Prevent any default behavior
+                    
+                    // Get high resolution image URL (could be the same as the thumbnail)
+                    const highResUrl = this.getAttribute('data-high-res') || this.src;
+                    
+                    // Set the preview image source
+                    previewImage.src = highResUrl;
+                    
+                    // Show the modal
+                    modal.style.display = 'flex';
+                    
+                    // Add animation class
+                    modal.classList.add('show-preview');
+                });
+                
+                // Mark this image as having the preview enabled
+                img.setAttribute('data-preview-enabled', 'true');
+            }
+        });
+    }
+
+    // Close the modal when clicking the close button
+    closeButton.addEventListener('click', function() {
+        modal.classList.remove('show-preview');
+        setTimeout(() => {
+            modal.style.display = 'none';
+        }, 300); // Wait for animation to complete
+    });
+
+    // Close the modal when clicking outside the image
+    modal.addEventListener('click', function(event) {
+        if (event.target === modal) {
+            modal.classList.remove('show-preview');
+            setTimeout(() => {
+                modal.style.display = 'none';
+            }, 300); // Wait for animation to complete
+        }
+    });
+
+    // Set up image previews initially
+    setupImagePreviews();
+    
+    // Re-run setup when new products might be loaded (e.g., after filtering)
+    document.addEventListener('productsLoaded', setupImagePreviews);
+    
+    // If you're using category filters or search, you might need to call setupImagePreviews() 
+    // after those operations complete as well. For example:
+    const categoryFilter = document.getElementById('categoryFilter');
+    if (categoryFilter) {
+        categoryFilter.addEventListener('change', function() {
+            // Wait a moment for the DOM to update with new products
+            setTimeout(setupImagePreviews, 300);
+        });
+    }
+    
+    // For search functionality
+    const searchButton = document.getElementById('searchButton');
+    if (searchButton) {
+        searchButton.addEventListener('click', function() {
+            // Wait a moment for the DOM to update with new products
+            setTimeout(setupImagePreviews, 300);
+        });
+    }
+    
+    // Modify the displayProducts function to trigger an event when products are loaded
+    // This assumes you have access to modify the original displayProducts function
+    const originalDisplayProducts = window.displayProducts;
+    if (typeof originalDisplayProducts === 'function') {
+        window.displayProducts = function(products, category) {
+            originalDisplayProducts(products, category);
+            
+            // Dispatch an event to signal that products have been loaded
+            document.dispatchEvent(new CustomEvent('productsLoaded'));
+        };
+    }
 });

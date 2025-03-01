@@ -47,104 +47,121 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Function to load orders
     function loadOrders() {
-      const pendingContainer = document.getElementById('pending-orders-container');
-      const partialContainer = document.getElementById('partial-orders-container');
-      const completedContainer = document.getElementById('completed-orders-container');
-      
-      // Show loading state
-      pendingContainer.className = 'loading';
-      partialContainer.className = 'loading';
-      completedContainer.className = 'loading';
-      
-      // Fetch orders from server
-      fetch('/api/admin/orders')
-        .then(response => {
-          if (!response.ok) {
-            throw new Error('Network response was not ok');
-          }
-          return response.json();
-        })
-        .then(data => {
-          // Process the data
-          const pendingOrders = [];
-          const partialOrders = [];
-          const completedOrders = [];
-          
-          // Process each user's orders
-          Object.entries(data).forEach(([userId, userOrders]) => {
-            userOrders.forEach(order => {
-              order.userId = userId;
-              if (order.status === 'completed') {
-                completedOrders.push(order);
-              } else if (order.status === 'partially_shipped') {
-                partialOrders.push(order);
+        const pendingContainer = document.getElementById('pending-orders-container');
+        const partialContainer = document.getElementById('partial-orders-container');
+        const completedContainer = document.getElementById('completed-orders-container');
+        
+        // Show loading state
+        pendingContainer.className = 'loading';
+        partialContainer.className = 'loading';
+        completedContainer.className = 'loading';
+        
+        // Fetch orders from server
+        fetch('/api/admin/orders')
+          .then(response => {
+            if (!response.ok) {
+              throw new Error('Network response was not ok');
+            }
+            return response.json();
+          })
+          .then(data => {
+            // Process the data
+            const pendingOrders = [];
+            const partialOrders = [];
+            const completedOrders = [];
+            
+            // Process each user's orders
+            Object.entries(data).forEach(([userId, userOrders]) => {
+              userOrders.forEach(order => {
+                order.userId = userId;
+                
+                // For partially shipped orders, create a "completion" version for the completed section
+                if (order.status === 'partially_shipped') {
+                  // Add the original order to partial orders with remaining items
+                  partialOrders.push({
+                    ...order,
+                    isPartial: true
+                  });
+                  
+                  // Only add to completed if there are shipped items
+                  if (order.shippedItems && order.shippedItems.length > 0) {
+                    // Create a virtual "completed" part of the order
+                    completedOrders.push({
+                      ...order,
+                      items: order.shippedItems, // Only show shipped items
+                      isVirtualCompletion: true,
+                      status: 'shipped_portion'
+                    });
+                  }
+                } else if (order.status === 'completed') {
+                  completedOrders.push(order);
+                } else {
+                  pendingOrders.push(order);
+                }
+              });
+            });
+            
+            // Sort orders by date, newest first
+            pendingOrders.sort((a, b) => new Date(b.date) - new Date(a.date));
+            partialOrders.sort((a, b) => new Date(b.date) - new Date(a.date));
+            completedOrders.sort((a, b) => new Date(b.date) - new Date(a.date));
+            
+            // Render pending orders
+            pendingContainer.className = '';
+            if (pendingOrders.length === 0) {
+              pendingContainer.innerHTML = '<div class="no-orders">No pending orders</div>';
+            } else {
+              pendingContainer.innerHTML = pendingOrders.map(order => createOrderCard(order, 'pending')).join('');
+            }
+            
+            // Render partial orders
+            partialContainer.className = '';
+            if (partialOrders.length === 0) {
+              partialContainer.innerHTML = '<div class="no-orders">No partial orders</div>';
+            } else {
+              partialContainer.innerHTML = partialOrders.map(order => createOrderCard(order, 'partial')).join('');
+            }
+            
+            // Render completed orders
+            completedContainer.className = '';
+            if (completedOrders.length === 0) {
+              completedContainer.innerHTML = '<div class="no-orders">No completed orders</div>';
+            } else {
+              completedContainer.innerHTML = completedOrders.map(order => createOrderCard(order, 'completed')).join('');
+            }
+            
+            // Update orders count in the tabs
+            document.querySelectorAll('.order-tab').forEach(tab => {
+              const category = tab.getAttribute('data-order-category');
+              let count = 0;
+              
+              if (category === 'pending') count = pendingOrders.length;
+              else if (category === 'partial') count = partialOrders.length;
+              else if (category === 'completed') count = completedOrders.length;
+              
+              // Add count badge
+              const existingBadge = tab.querySelector('.count-badge');
+              if (existingBadge) {
+                existingBadge.textContent = count;
               } else {
-                pendingOrders.push(order);
+                const badge = document.createElement('span');
+                badge.className = 'count-badge';
+                badge.textContent = count;
+                tab.appendChild(badge);
               }
             });
+          })
+          .catch(error => {
+            console.error('Error:', error);
+            pendingContainer.className = '';
+            partialContainer.className = '';
+            completedContainer.className = '';
+            pendingContainer.innerHTML = `<div class="no-orders">Error loading orders: ${error.message}</div>`;
+            partialContainer.innerHTML = '';
+            completedContainer.innerHTML = '';
+            showNotification('Error loading orders: ' + error.message, 'error');
           });
-          
-          // Sort orders by date, newest first
-          pendingOrders.sort((a, b) => new Date(b.date) - new Date(a.date));
-          partialOrders.sort((a, b) => new Date(b.date) - new Date(a.date));
-          completedOrders.sort((a, b) => new Date(b.date) - new Date(a.date));
-          
-          // Render pending orders
-          pendingContainer.className = '';
-          if (pendingOrders.length === 0) {
-            pendingContainer.innerHTML = '<div class="no-orders">No pending orders</div>';
-          } else {
-            pendingContainer.innerHTML = pendingOrders.map(order => createOrderCard(order, 'pending')).join('');
-          }
-          
-          // Render partial orders
-          partialContainer.className = '';
-          if (partialOrders.length === 0) {
-            partialContainer.innerHTML = '<div class="no-orders">No partial orders</div>';
-          } else {
-            partialContainer.innerHTML = partialOrders.map(order => createOrderCard(order, 'partial')).join('');
-          }
-          
-          // Render completed orders
-          completedContainer.className = '';
-          if (completedOrders.length === 0) {
-            completedContainer.innerHTML = '<div class="no-orders">No completed orders</div>';
-          } else {
-            completedContainer.innerHTML = completedOrders.map(order => createOrderCard(order, 'completed')).join('');
-          }
-          
-          // Update orders count in the tabs
-          document.querySelectorAll('.order-tab').forEach(tab => {
-            const category = tab.getAttribute('data-order-category');
-            let count = 0;
-            
-            if (category === 'pending') count = pendingOrders.length;
-            else if (category === 'partial') count = partialOrders.length;
-            else if (category === 'completed') count = completedOrders.length;
-            
-            // Add count badge
-            const existingBadge = tab.querySelector('.count-badge');
-            if (existingBadge) {
-              existingBadge.textContent = count;
-            } else {
-              const badge = document.createElement('span');
-              badge.className = 'count-badge';
-              badge.textContent = count;
-              tab.appendChild(badge);
-            }
-          });
-        })
-        .catch(error => {
-          console.error('Error:', error);
-          pendingContainer.className = '';
-          partialContainer.className = '';
-          completedContainer.className = '';
-          pendingContainer.innerHTML = `<div class="no-orders">Error loading orders: ${error.message}</div>`;
-          partialContainer.innerHTML = '';
-          completedContainer.innerHTML = '';
-          showNotification('Error loading orders: ' + error.message, 'error');
-        });
-    }
+      }
     
     // Function to load customers
     function loadCustomers() {
@@ -212,7 +229,7 @@ document.addEventListener('DOMContentLoaded', function() {
   // Function to create an order card
   function createOrderCard(order, orderType) {
     // Calculate total
-    const total = order.items.reduce((sum, item) => sum + (parseFloat(item.prix) * item.quantity), 0).toFixed(2);
+    let items = order.items;
     
     // Format invoice number in MM/JJ/HH/MM format
     const orderDate = new Date(order.date);
@@ -237,47 +254,63 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Create HTML for order items based on order type
     let itemsHtml = '';
+    let total = 0;
     
     if (orderType === 'completed') {
-      // For completed orders, show only shipped items
-      itemsHtml = order.items
-        .filter(item => item.shipped && item.shipped > 0)
-        .map(item => `
+      // For completed or shipped portions, show only shipped items
+      const itemsToShow = order.isVirtualCompletion ? order.items : 
+                          order.items.filter(item => item.shipped && item.shipped > 0);
+      
+      itemsHtml = itemsToShow.map(item => {
+        const quantity = order.isVirtualCompletion ? item.quantity : item.shipped;
+        const itemTotal = quantity * parseFloat(item.prix);
+        total += itemTotal;
+        
+        return `
           <tr>
             <td>${item.Nom}</td>
             <td>${item.categorie}</td>
-            <td class="text-center">${item.shipped}</td>
+            <td class="text-center">${quantity}</td>
             <td>${item.prix} CHF</td>
-            <td>${(item.shipped * parseFloat(item.prix)).toFixed(2)} CHF</td>
+            <td>${itemTotal.toFixed(2)} CHF</td>
           </tr>
-        `).join('');
+        `;
+      }).join('');
     } else if (orderType === 'partial') {
       // For partial orders, show remaining items to be shipped
       itemsHtml = order.items
         .filter(item => (!item.shipped && item.quantity > 0) || (item.shipped < item.quantity))
         .map(item => {
           const remaining = item.shipped ? item.quantity - item.shipped : item.quantity;
+          const itemTotal = remaining * parseFloat(item.prix);
+          total += itemTotal;
+          
           return `
             <tr>
               <td>${item.Nom}</td>
               <td>${item.categorie}</td>
               <td class="text-center">${remaining}</td>
               <td>${item.prix} CHF</td>
-              <td>${(remaining * parseFloat(item.prix)).toFixed(2)} CHF</td>
+              <td>${itemTotal.toFixed(2)} CHF</td>
             </tr>
           `;
         }).join('');
     } else {
       // For pending orders, show all items
-      itemsHtml = order.items.map(item => `
-        <tr>
-          <td>${item.Nom}</td>
-          <td>${item.categorie}</td>
-          <td class="text-center">${item.quantity}</td>
-          <td>${item.prix} CHF</td>
-          <td>${(item.quantity * parseFloat(item.prix)).toFixed(2)} CHF</td>
-        </tr>
-      `).join('');
+      itemsHtml = order.items.map(item => {
+        const itemTotal = item.quantity * parseFloat(item.prix);
+        total += itemTotal;
+        
+        return `
+          <tr>
+            <td>${item.Nom}</td>
+            <td>${item.categorie}</td>
+            <td class="text-center">${item.quantity}</td>
+            <td>${item.prix} CHF</td>
+            <td>${itemTotal.toFixed(2)} CHF</td>
+          </tr>
+        `;
+      }).join('');
     }
     
     // Create HTML for processing form items
@@ -316,8 +349,13 @@ document.addEventListener('DOMContentLoaded', function() {
     let statusClass, statusText;
     
     if (orderType === 'completed') {
-      statusClass = 'status-completed';
-      statusText = 'Completed';
+      if (order.isVirtualCompletion) {
+        statusClass = 'status-partial';
+        statusText = 'Shipped Portion';
+      } else {
+        statusClass = 'status-completed';
+        statusText = 'Completed';
+      }
     } else if (orderType === 'partial') {
       statusClass = 'status-partial';
       statusText = 'Partially Shipped';
@@ -326,14 +364,36 @@ document.addEventListener('DOMContentLoaded', function() {
       statusText = 'In Progress';
     }
     
+    // Additional information for split orders
+    let additionalInfo = '';
+    if (order.isVirtualCompletion) {
+      additionalInfo = `
+        <div class="order-info">
+          <div class="alert alert-info">
+            <i class="fas fa-info-circle"></i> This shows the shipped portion of a partially completed order.
+          </div>
+        </div>
+      `;
+    } else if (order.isPartial) {
+      additionalInfo = `
+        <div class="order-info">
+          <div class="alert alert-info">
+            <i class="fas fa-info-circle"></i> This shows the remaining items to be shipped.
+          </div>
+        </div>
+      `;
+    }
+    
     // Create the card HTML
     return `
-      <div class="order-card" data-order-id="${order.id || order.date}" data-user-id="${order.userId}">
+      <div class="order-card ${order.isVirtualCompletion ? 'virtual-completion' : ''}" data-order-id="${order.id || order.date}" data-user-id="${order.userId}">
         <div class="order-header">
           <div class="order-id">Invoice #${invoiceNumber}</div>
           <div class="order-date">${displayDate}</div>
           <div class="order-status ${statusClass}">${statusText}</div>
         </div>
+        
+        ${additionalInfo}
         
         <div class="customer-info">
           <div><strong>Customer:</strong> ${order.userId}</div>
@@ -356,10 +416,10 @@ document.addEventListener('DOMContentLoaded', function() {
         </table>
         
         <div class="order-total">
-          Total: ${total} CHF
+          Total: ${total.toFixed(2)} CHF
         </div>
         
-        ${orderType !== 'completed' ? `
+        ${(orderType !== 'completed' && !order.isVirtualCompletion) ? `
           <div class="order-actions">
             <button class="btn btn-primary" onclick="processOrder('${order.id || order.date}', '${order.userId}', '${orderType}')">
               ${orderType === 'partial' ? 'Complete Shipping' : 'Process Order'}
