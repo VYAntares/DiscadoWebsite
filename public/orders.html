@@ -36,15 +36,25 @@
                     
                     let html = '';
                     orders.forEach((order, index) => {
+                        const orderDate = new Date(order.date).toLocaleDateString('fr-FR', {
+                            day: 'numeric',
+                            month: 'long',
+                            year: 'numeric'
+                        });
+                        
                         html += `
                             <div class="order-card">
-                                <h3>Commande #${index + 1} - ${new Date(order.date).toLocaleDateString()}</h3>
-                                <p>Statut: <strong>${order.status}</strong></p>
+                                <h3>
+                                    Commande #${index + 1}
+                                    <span class="order-date">${orderDate}</span>
+                                </h3>
+                                <div class="order-status">Statut: ${order.status}</div>
                                 <h4>Articles:</h4>
                                 <ul>
                                     ${order.items.map(item => `
                                         <li>
-                                            ${item.Nom} - ${item.quantity} × ${item.prix} CHF
+                                            <span>${item.Nom} - ${item.quantity} × ${item.prix} CHF</span>
+                                            <span>${(parseFloat(item.prix) * item.quantity).toFixed(2)} CHF</span>
                                         </li>
                                     `).join('')}
                                 </ul>

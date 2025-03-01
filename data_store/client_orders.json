@@ -7,10 +7,24 @@
         "prix": "4.00",
         "imageUrl": "http://10.18.203.95:3000/images/bags/Bags312.jpg",
         "categorie": "bags",
-        "quantity": 500
+        "quantity": 1
       }
     ],
     "status": "en cours",
-    "date": "2025-03-01T00:42:12.792Z"
+    "date": "2025-03-01T00:47:45.954Z"
+  },
+  {
+    "userId": "client",
+    "items": [
+      {
+        "Nom": "Bags 313 - Big bag with cities in beige",
+        "prix": "5.00",
+        "imageUrl": "http://10.18.203.95:3000/images/product-default.jpg",
+        "categorie": "bags",
+        "quantity": 1
+      }
+    ],
+    "status": "en cours",
+    "date": "2025-03-01T00:47:54.042Z"
   }
 ]
