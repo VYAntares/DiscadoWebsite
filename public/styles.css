@@ -1253,6 +1253,6 @@ li.product-item {
     }
     
     .quantity-container {
-        width: 600px; /* Slightly wider on mobile */
+        width: 800px; /* Slightly wider on mobile */
     }
 }
