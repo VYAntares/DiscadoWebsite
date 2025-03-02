@@ -1188,3 +1188,71 @@ li.product-item {
         font-size: 24px;
     }
 }
+
+/* Add these styles to your styles.css file */
+
+/* Simplified quantity container without buttons */
+.quantity-container {
+    display: flex;
+    align-items: center;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    overflow: hidden;
+    height: 36px;
+    background-color: #fff;
+    width: 70px; /* Reduced width since we don't have buttons */
+}
+
+/* Simplified quantity input style */
+.quantity-input.simplified {
+    width: 100%;
+    height: 36px;
+    border: none;
+    text-align: center;
+    font-size: 16px;
+    color: #333;
+    background: white;
+    -moz-appearance: textfield;
+    appearance: textfield;
+    padding: 0 5px;
+}
+
+.quantity-input.simplified::-webkit-inner-spin-button,
+.quantity-input.simplified::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.quantity-input.simplified:focus {
+    outline: none;
+    background-color: #f0f0f0;
+}
+
+/* Desktop layout adjustments */
+@media (min-width: 769px) {
+    li.product-item {
+        display: grid;
+        grid-template-columns: 80px 1fr 100px; /* Reduced width for actions */
+        gap: 20px;
+        padding: 15px 20px;
+    }
+    
+    .product-actions {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+    }
+}
+
+/* Mobile adjustments */
+@media (max-width: 768px) {
+    .product-actions {
+        align-items: center;
+        flex-direction: row; /* Keep in a row for better mobile appearance */
+        justify-content: center;
+    }
+    
+    .quantity-container {
+        width: 600px; /* Slightly wider on mobile */
+    }
+}

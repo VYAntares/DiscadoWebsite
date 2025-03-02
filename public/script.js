@@ -45,6 +45,7 @@ function showNotification(message, type = 'success') {
 // Tableau temporaire pour stocker les produits que l'utilisateur souhaite ajouter
 let selectedProducts = [];
 
+// This function needs to be updated to remove the plus/minus buttons
 function displayProducts(products, category = "all") {
     const list = document.getElementById("productList");
     list.innerHTML = "";
@@ -74,7 +75,6 @@ function displayProducts(products, category = "all") {
             img.className = "product-img";
             
             // Ajouter l'attribut data-high-res pour l'image en haute résolution
-            // Dans cet exemple, nous utilisons la même image, mais vous pourriez avoir une URL différente pour la version haute résolution
             img.setAttribute('data-high-res', productImage);
             
             // Gestion plus robuste des erreurs d'images
@@ -119,26 +119,13 @@ function displayProducts(products, category = "all") {
             infoContainer.appendChild(nameSpan);
             infoContainer.appendChild(priceSpan);
 
-            // Conteneur pour le compteur et le bouton
+            // Conteneur pour le compteur
             const actionContainer = document.createElement("div");
             actionContainer.className = "product-actions";
 
-            // Compteur de quantité
+            // Conteneur de quantité - SIMPLIFIÉ SANS BOUTONS PLUS/MOINS
             const quantityContainer = document.createElement("div");
             quantityContainer.className = "quantity-container";
-
-            // Bouton moins
-            const minusBtn = document.createElement("button");
-            minusBtn.textContent = "−"; // Utiliser un tiret un peu plus élégant
-            minusBtn.className = "quantity-btn minus-btn";
-            minusBtn.onclick = function() {
-                const input = this.parentNode.querySelector('input');
-                const value = parseInt(input.value);
-                if (value > 0) {
-                    input.value = value - 1;
-                    updateSelectedProducts(p, input.value, productImage);
-                }
-            };
 
             // Input pour la quantité
             const quantityInput = document.createElement("input");
@@ -147,7 +134,7 @@ function displayProducts(products, category = "all") {
             quantityInput.pattern = "[0-9]*"; // Force la saisie de chiffres uniquement
             quantityInput.min = "0";
             quantityInput.value = "0";
-            quantityInput.className = "quantity-input";
+            quantityInput.className = "quantity-input simplified";
 
             // Effacer automatiquement le "0" lorsque l'utilisateur clique sur le champ
             quantityInput.addEventListener('focus', function() {
@@ -175,34 +162,14 @@ function displayProducts(products, category = "all") {
             
             // Mise à jour du tableau selectedProducts quand la quantité change
             quantityInput.addEventListener('change', function() {
-                updateSelectedProducts(p, parseInt(this.value), productImage);
+                updateSelectedProducts(p, parseInt(this.value) || 0, productImage);
             });
 
-            // Bouton plus
-            const plusBtn = document.createElement("button");
-            plusBtn.textContent = "+";
-            plusBtn.className = "quantity-btn plus-btn";
-            plusBtn.onclick = function() {
-                const input = this.parentNode.querySelector('input');
-                // Limiter à 9999 articles pour éviter les problèmes d'affichage
-                const currentValue = parseInt(input.value);
-                if (currentValue < 9999) {
-                    input.value = currentValue + 1;
-                    updateSelectedProducts(p, currentValue + 1, productImage);
-                }
-            };
-
-            // Ajout des éléments au conteneur de quantité
-            quantityContainer.appendChild(minusBtn);
+            // Ajout des éléments au conteneur de quantité - SEULEMENT L'INPUT
             quantityContainer.appendChild(quantityInput);
-            quantityContainer.appendChild(plusBtn);
-
-            // Nous ne créons plus de bouton "Ajouter au panier" ici
-            // car nous utiliserons le bouton flottant à la place
 
             // Ajout des éléments au conteneur d'actions
             actionContainer.appendChild(quantityContainer);
-            // Nous avons supprimé l'ajout du bouton ici
 
             // Ajout de tous les éléments à l'élément de liste
             li.appendChild(imgContainer);
@@ -216,8 +183,11 @@ function displayProducts(products, category = "all") {
     document.dispatchEvent(new CustomEvent('productsLoaded'));
 }
 
-// Fonction pour mettre à jour le tableau des produits sélectionnés
+// Mise à jour de la fonction pour ajouter au panier pour gérer l'absence des boutons +/-
 function updateSelectedProducts(product, quantity, imageUrl) {
+    // S'assurer que la quantité est un nombre, avec 0 comme valeur par défaut
+    quantity = parseInt(quantity) || 0;
+    
     // Vérifier si le produit est déjà dans le tableau
     const existingProductIndex = selectedProducts.findIndex(item => 
         item.Nom === product.Nom && item.categorie === product.categorie

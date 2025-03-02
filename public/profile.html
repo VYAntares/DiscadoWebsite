@@ -90,6 +90,24 @@
             margin-top: 5px;
             display: none;
         }
+        
+        /* Style for two-column layout */
+        .form-row {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 0;
+        }
+        
+        .form-row .form-group {
+            flex: 1;
+        }
+        
+        /* Format hint for phone */
+        .format-hint {
+            font-size: 12px;
+            color: #666;
+            margin-top: 4px;
+        }
     </style>
 </head>
 <body>
@@ -143,9 +161,15 @@
             <form id="profileForm">
                 <div class="profile-section">
                     <h3>Personal Information</h3>
-                    <div class="form-group">
-                        <label for="fullName">Full Name*</label>
-                        <input type="text" id="fullName" name="fullName" placeholder="Your full name" required>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="firstName">First Name*</label>
+                            <input type="text" id="firstName" name="firstName" placeholder="Your first name" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="lastName">Last Name*</label>
+                            <input type="text" id="lastName" name="lastName" placeholder="Your last name" required>
+                        </div>
                     </div>
                     <div class="form-group">
                         <label for="email">Email*</label>
@@ -153,23 +177,29 @@
                     </div>
                     <div class="form-group">
                         <label for="phone">Phone Number*</label>
-                        <input type="tel" id="phone" name="phone" placeholder="Your phone number" required>
+                        <input type="tel" id="phone" name="phone" placeholder="+41 78 123 45 67" required>
                     </div>
                 </div>
                 
                 <div class="profile-section">
-                    <h3>Shipping Address</h3>
+                    <h3>Shop Information</h3>
                     <div class="form-group">
-                        <label for="address">Street Address*</label>
-                        <input type="text" id="address" name="address" placeholder="Street address" required>
+                        <label for="shopName">Shop's Name*</label>
+                        <input type="text" id="shopName" name="shopName" placeholder="Your shop name" required>
                     </div>
                     <div class="form-group">
-                        <label for="city">City*</label>
-                        <input type="text" id="city" name="city" placeholder="City" required>
+                        <label for="shopAddress">Shop Address*</label>
+                        <input type="text" id="shopAddress" name="shopAddress" placeholder="Shop street address" required>
                     </div>
-                    <div class="form-group">
-                        <label for="postalCode">Postal Code*</label>
-                        <input type="text" id="postalCode" name="postalCode" placeholder="Postal code" required>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="shopCity">Shop City*</label>
+                            <input type="text" id="shopCity" name="shopCity" placeholder="Shop city" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="shopZipCode">Shop Zip Code*</label>
+                            <input type="text" id="shopZipCode" name="shopZipCode" placeholder="Shop postal code" required>
+                        </div>
                     </div>
                 </div>
                 
@@ -238,12 +268,26 @@
                 .then(profileData => {
                     // Remplir le formulaire avec les données existantes
                     if (profileData) {
-                        document.getElementById('fullName').value = profileData.fullName || '';
+                        // Split fullName into firstName and lastName if needed
+                        if (profileData.fullName && !profileData.firstName) {
+                            const nameParts = profileData.fullName.split(' ');
+                            if (nameParts.length > 1) {
+                                document.getElementById('firstName').value = nameParts[0] || '';
+                                document.getElementById('lastName').value = nameParts.slice(1).join(' ') || '';
+                            } else {
+                                document.getElementById('firstName').value = profileData.fullName || '';
+                            }
+                        } else {
+                            document.getElementById('firstName').value = profileData.firstName || '';
+                            document.getElementById('lastName').value = profileData.lastName || '';
+                        }
+                        
                         document.getElementById('email').value = profileData.email || '';
                         document.getElementById('phone').value = profileData.phone || '';
-                        document.getElementById('address').value = profileData.address || '';
-                        document.getElementById('city').value = profileData.city || '';
-                        document.getElementById('postalCode').value = profileData.postalCode || '';
+                        document.getElementById('shopName').value = profileData.shopName || '';
+                        document.getElementById('shopAddress').value = profileData.shopAddress || profileData.address || '';
+                        document.getElementById('shopCity').value = profileData.shopCity || profileData.city || '';
+                        document.getElementById('shopZipCode').value = profileData.shopZipCode || profileData.postalCode || '';
                     }
                 })
                 .catch(error => {
@@ -255,12 +299,20 @@
         // Fonction pour enregistrer le profil
         function saveUserProfile() {
             const profileData = {
-                fullName: document.getElementById('fullName').value.trim(),
+                firstName: document.getElementById('firstName').value.trim(),
+                lastName: document.getElementById('lastName').value.trim(),
+                // Keep fullName for backward compatibility
+                fullName: document.getElementById('firstName').value.trim() + ' ' + document.getElementById('lastName').value.trim(),
                 email: document.getElementById('email').value.trim(),
                 phone: document.getElementById('phone').value.trim(),
-                address: document.getElementById('address').value.trim(),
-                city: document.getElementById('city').value.trim(),
-                postalCode: document.getElementById('postalCode').value.trim(),
+                shopName: document.getElementById('shopName').value.trim(),
+                shopAddress: document.getElementById('shopAddress').value.trim(),
+                shopCity: document.getElementById('shopCity').value.trim(),
+                shopZipCode: document.getElementById('shopZipCode').value.trim(),
+                // Keep these fields for backward compatibility
+                address: document.getElementById('shopAddress').value.trim(),
+                city: document.getElementById('shopCity').value.trim(),
+                postalCode: document.getElementById('shopZipCode').value.trim()
             };
             
             fetch('/api/save-profile', {

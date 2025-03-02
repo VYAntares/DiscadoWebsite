@@ -77,7 +77,7 @@ function requireAdmin(req, res, next) {
   res.send('Accès refusé. <a href="/logout">Se déconnecter</a>');
 }
 
-// Fonction pour vérifier si un profil est complet
+// Update the isProfileComplete function to check for the new required fields
 function isProfileComplete(username) {
   const userProfilePath = `./data_client/${username}_profile.json`;
   
@@ -87,7 +87,10 @@ function isProfileComplete(username) {
   
   try {
     const profileData = JSON.parse(fs.readFileSync(userProfilePath, 'utf8'));
-    const requiredFields = ['fullName', 'email', 'phone', 'address', 'city', 'postalCode'];
+    const requiredFields = [
+      'firstName', 'lastName', 'email', 'phone', 
+      'shopName', 'shopAddress', 'shopCity', 'shopZipCode'
+    ];
     return requiredFields.every(field => 
       profileData[field] && profileData[field].trim() !== ''
     );
