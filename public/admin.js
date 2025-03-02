@@ -729,46 +729,54 @@ function initCustomerSearch() {
       notification.remove();
     }, 5000);
   }
-
   function generateConsolidatedOrders(orderData) {
     const clientOrders = {};
     
-    // Group orders by client
+    // Parcourir les commandes par client
     Object.entries(orderData).forEach(([userId, orders]) => {
-      // Filter out orders that have items that need to be shipped
-      const ordersToProcess = orders.filter(order => {
-        return order.status === 'partially_shipped' || order.status === 'in progress';
-      });
+      // Ne garder que les commandes partiellement expédiées ou en cours
+      const ordersToProcess = orders.filter(order => 
+        order.status === 'partially_shipped' || order.status === 'in progress'
+      );
       
       if (ordersToProcess.length > 0) {
-        // Initialize consolidated items map to track highest quantities
+        // Carte pour stocker les articles consolidés de manière unique
         const consolidatedItems = new Map();
+        let totalOrderValue = 0;
         
-        // Process each order
+        // Traiter chaque commande
         ordersToProcess.forEach(order => {
           order.items.forEach(item => {
-            // Calculate remaining quantity to ship
+            // Calculer la quantité restante à expédier
             const shippedQuantity = item.shipped || 0;
             const remainingQuantity = item.quantity - shippedQuantity;
             
             if (remainingQuantity > 0) {
+              // Clé unique pour identifier l'article
               const itemKey = `${item.Nom}-${item.categorie}`;
+              const itemTotal = parseFloat(item.prix) * remainingQuantity;
+              totalOrderValue += itemTotal;
               
-              // If item already exists in consolidated map, keep the higher quantity
+              // Vérifier si l'article existe déjà
               if (consolidatedItems.has(itemKey)) {
                 const existingItem = consolidatedItems.get(itemKey);
+                
+                // Remplacer UNIQUEMENT si la nouvelle quantité est plus grande
                 if (remainingQuantity > existingItem.remainingQuantity) {
                   consolidatedItems.set(itemKey, {
                     ...item,
                     remainingQuantity: remainingQuantity,
-                    originalOrders: [...existingItem.originalOrders, { 
-                      orderId: order.id || order.date,
-                      quantity: remainingQuantity
-                    }]
+                    originalOrders: [
+                      ...existingItem.originalOrders, 
+                      { 
+                        orderId: order.id || order.date,
+                        quantity: remainingQuantity
+                      }
+                    ]
                   });
                 }
               } else {
-                // Add new item to consolidated map
+                // Ajouter un nouvel article à la liste consolidée
                 consolidatedItems.set(itemKey, {
                   ...item,
                   remainingQuantity: remainingQuantity,
@@ -782,11 +790,12 @@ function initCustomerSearch() {
           });
         });
         
-        // Only add client if they have items to ship
+        // N'ajouter le client que s'il a des articles à expédier
         if (consolidatedItems.size > 0) {
           clientOrders[userId] = {
             items: Array.from(consolidatedItems.values()),
-            originalOrders: ordersToProcess.map(o => o.id || o.date)
+            originalOrders: ordersToProcess.map(o => o.id || o.date),
+            totalValue: totalOrderValue.toFixed(2)
           };
         }
       }
@@ -885,73 +894,6 @@ function loadConsolidatedOrders() {
     });
 }
 
-// Enhanced function to generate consolidated orders
-function generateConsolidatedOrders(orderData) {
-  const clientOrders = {};
-  
-  // Group orders by client
-  Object.entries(orderData).forEach(([userId, orders]) => {
-    // Filter orders that have items to ship (new or partially shipped)
-    const ordersToProcess = orders.filter(order => {
-      return order.status === 'partially_shipped' || order.status === 'in progress';
-    });
-    
-    if (ordersToProcess.length > 0) {
-      // Initialize consolidated items map to track quantities
-      const consolidatedItems = new Map();
-      let totalOrderValue = 0;
-      
-      // Process each order
-      ordersToProcess.forEach(order => {
-        order.items.forEach(item => {
-          // Calculate remaining quantity to ship
-          const shippedQuantity = item.shipped || 0;
-          const remainingQuantity = item.quantity - shippedQuantity;
-          
-          if (remainingQuantity > 0) {
-            const itemKey = `${item.Nom}-${item.categorie}`;
-            const itemTotal = parseFloat(item.prix) * remainingQuantity;
-            totalOrderValue += itemTotal;
-            
-            // If item already exists in consolidated map, add quantities
-            if (consolidatedItems.has(itemKey)) {
-              const existingItem = consolidatedItems.get(itemKey);
-              consolidatedItems.set(itemKey, {
-                ...item,
-                remainingQuantity: existingItem.remainingQuantity + remainingQuantity,
-                originalOrders: [...existingItem.originalOrders, { 
-                  orderId: order.id || order.date,
-                  quantity: remainingQuantity
-                }]
-              });
-            } else {
-              // Add new item to consolidated map
-              consolidatedItems.set(itemKey, {
-                ...item,
-                remainingQuantity: remainingQuantity,
-                originalOrders: [{ 
-                  orderId: order.id || order.date,
-                  quantity: remainingQuantity
-                }]
-              });
-            }
-          }
-        });
-      });
-      
-      // Only add client if they have items to ship
-      if (consolidatedItems.size > 0) {
-        clientOrders[userId] = {
-          items: Array.from(consolidatedItems.values()),
-          originalOrders: ordersToProcess.map(o => o.id || o.date),
-          totalValue: totalOrderValue.toFixed(2)
-        };
-      }
-    }
-  });
-  
-  return clientOrders;
-}
 
 // Enhanced function to create consolidated order card
 function createConsolidatedOrderCard(clientId, orderData) {
