@@ -512,6 +512,23 @@ app.post('/api/update-order', requireLogin, requireAdmin, (req, res) => {
   }
 });
 
+// Route pour servir les fichiers PDF de catalogue
+app.get('/public/images/Catalogue-Discado-2025.pdf', (req, res) => {
+  const filename = req.params.filename;
+  const filepath = path.join(__dirname, 'public', 'catalogs', filename);
+  
+  // Vérifier si le fichier existe
+  if (fs.existsSync(filepath)) {
+    // Définir l'en-tête Content-Type pour un PDF
+    res.setHeader('Content-Type', 'application/pdf');
+    
+    // Envoyer le fichier
+    res.sendFile(filepath);
+  } else {
+    res.status(404).send('Fichier PDF non trouvé');
+  }
+});
+
 // Route pour la page des commandes
 app.get('/orders', requireLogin, (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'orders.html'));

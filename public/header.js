@@ -157,6 +157,21 @@ function updateCartUI() {
     }
 }
 
+document.addEventListener('DOMContentLoaded', function() {
+    // Référence au bouton de catalogue PDF
+    const pdfCatalogToggle = document.getElementById('pdfCatalogToggle');
+    
+    if (pdfCatalogToggle) {
+        pdfCatalogToggle.addEventListener('click', function() {
+            // Chemin vers votre fichier PDF unique
+            const catalogPath = '/public/images/Catalogue-Discado-2025.pdf';
+            
+            // Ouvrir le PDF dans un nouvel onglet
+            window.open(catalogPath, '_blank');
+        });
+    }
+});
+
 // Add cart update function to window for compatibility with existing code
 window.updateHeaderCartCount = updateHeaderCartCount;
 window.updateCartUI = updateCartUI;
