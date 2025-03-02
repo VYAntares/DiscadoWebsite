@@ -512,20 +512,6 @@ app.post('/api/update-order', requireLogin, requireAdmin, (req, res) => {
   }
 });
 
-// document.addEventListener('DOMContentLoaded', function() {
-//   const pdfCatalogToggle = document.getElementById('pdfCatalogToggle');
-  
-//   if (pdfCatalogToggle) {
-//       pdfCatalogToggle.addEventListener('click', function() {
-//           // Chemin direct vers le PDF
-//           const catalogPath = '/images/Catalogue-Discado-2025.pdf';
-          
-//           // Ouvrir le PDF dans un nouvel onglet
-//           window.open(catalogPath, '_blank');
-//       });
-//   }
-// });
-
 // Route pour la page des commandes
 app.get('/orders', requireLogin, (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'orders.html'));

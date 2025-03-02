@@ -1,28 +1,42 @@
 document.addEventListener('DOMContentLoaded', function() {
-  // Order category tab switching functionality
-  const orderTabs = document.querySelectorAll('.order-tab');
-  const orderContents = document.querySelectorAll('.order-content');
+  // Main tab switching functionality
+  const tabs = document.querySelectorAll('.tab');
+  const tabContents = document.querySelectorAll('.tab-content');
   
-  orderTabs.forEach(tab => {
+  tabs.forEach(tab => {
       tab.addEventListener('click', function() {
-      const category = this.getAttribute('data-order-category');
-      
-      // Update active tab
-      orderTabs.forEach(t => t.classList.remove('active'));
-      this.classList.add('active');
-      
-      // Update active content
-      orderContents.forEach(content => content.classList.remove('active'));
-      
-      // Special handling for consolidated tab
-      if (category === 'consolidated') {
-        document.getElementById('consolidated-orders-content').classList.add('active');
-        loadConsolidatedOrders(); // Refresh the consolidated view when selected
-      } else {
-        document.getElementById(`${category}-orders-content`).classList.add('active');
-      }
-    });
+          const tabId = this.getAttribute('data-tab');
+          
+          // Enlever la classe active de tous les onglets
+          tabs.forEach(t => t.classList.remove('active'));
+          this.classList.add('active');
+          
+          // Masquer tous les contenus de tab
+          tabContents.forEach(content => content.classList.remove('active'));
+          
+          // Afficher le contenu correspondant
+          const targetTab = document.getElementById(`${tabId}-tab`);
+          if (targetTab) {
+              targetTab.classList.add('active');
+          }
+          
+          // Charger le contenu en fonction de l'onglet
+          switch(tabId) {
+              case 'orders':
+                  loadOrders();
+                  break;
+              case 'customers':
+                  loadCustomers();
+                  break;
+              case 'consolidated':
+                  loadConsolidatedOrders();
+                  break;
+          }
+      });
   });
+
+  // Charger les commandes par défaut au chargement
+  loadOrders();
 });
     
     // Order category tab switching functionality
