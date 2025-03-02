@@ -193,49 +193,38 @@
       
       <!-- Orders Tab Content -->
       <div id="orders-tab" class="tab-content active">
-        <!-- Order category tabs -->
+        <!-- Modify the order tabs section in admin.html -->
         <div class="order-tabs">
           <div class="order-tab active" data-order-category="pending">
             <i class="fas fa-clock"></i> Pending Orders
           </div>
-          <div class="order-tab" data-order-category="partial">
-            <i class="fas fa-shipping-fast"></i> Partial Orders (To Ship)
-          </div>
+          <!-- Removed the Partial Orders tab -->
           <div class="order-tab" data-order-category="completed">
             <i class="fas fa-check-circle"></i> Completed Orders
           </div>
+          <div class="order-tab" data-order-category="consolidated">
+            <i class="fas fa-boxes"></i> Consolidated Shipping
+          </div>
         </div>
         
-        <!-- Order containers - only one will be visible at a time -->
+        <!-- Order containers - only pending and completed will be visible at a time -->
         <div id="pending-orders-content" class="order-content active">
           <div id="pending-orders-container" class="loading">
             <!-- Pending orders will be loaded here -->
           </div>
         </div>
-        
-        <div id="partial-orders-content" class="order-content">
-          <div id="partial-orders-container" class="loading">
-            <!-- Partial orders will be loaded here -->
-          </div>
-        </div>
-        
+
         <div id="completed-orders-content" class="order-content">
           <div id="completed-orders-container" class="loading">
             <!-- Completed orders will be loaded here -->
           </div>
         </div>
-      </div>
-      
-      <!-- Consolidated Shipping Tab Content -->
-      <div id="consolidated-tab" class="tab-content">
-        <h3><i class="fas fa-boxes"></i> Consolidated Shipping</h3>
-        <div class="alert alert-info">
-          <i class="fas fa-info-circle"></i> This view consolidates all pending shipments by client. For duplicate products, the higher quantity is shown.
+
+        <div id="consolidated-orders-content" class="order-content">
+          <div id="consolidated-orders-container" class="loading">
+            <!-- Consolidated orders will be loaded here -->
+          </div>
         </div>
-        <div id="consolidated-orders-container" class="loading">
-          <!-- Consolidated orders will be loaded here -->
-        </div>
-      </div>
       
       <!-- Customers Tab Content -->
       <div id="customers-tab" class="tab-content">
