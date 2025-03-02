@@ -166,64 +166,221 @@ document.addEventListener('DOMContentLoaded', function() {
           });
       }
     
-    // Function to load customers
-    function loadCustomers() {
-      const customersContainer = document.getElementById('customers-container');
+// This code will replace the existing loadCustomers function and add search functionality
+
+// Store all customers data for filtering
+let allCustomersData = {};
+
+// Function to load customers with enhanced display and search capability
+function loadCustomers() {
+  const customersContainer = document.getElementById('customers-container');
+  
+  // Show loading state
+  customersContainer.className = 'loading';
+  
+  // Fetch customers from server
+  fetch('/api/admin/customers')
+    .then(response => {
+      if (!response.ok) {
+        throw new Error('Network response was not ok');
+      }
+      return response.json();
+    })
+    .then(data => {
+      // Store full customer data for filtering
+      allCustomersData = data;
       
-      // Show loading state
-      customersContainer.className = 'loading';
+      // Render customers
+      renderCustomers(data);
       
-      // Fetch customers from server
-      fetch('/api/admin/customers')
-        .then(response => {
-          if (!response.ok) {
-            throw new Error('Network response was not ok');
-          }
-          return response.json();
-        })
-        .then(data => {
-          // Render customers
-          customersContainer.className = '';
-          if (Object.keys(data).length === 0) {
-            customersContainer.innerHTML = '<div class="no-orders">No customers found</div>';
-          } else {
-            const customersHtml = Object.entries(data).map(([userId, customerInfo]) => `
-              <div class="customer-item">
-                <div class="customer-header">
-                  <div class="customer-name">${customerInfo.fullName || userId}</div>
-                  <div class="customer-id">ID: ${userId}</div>
-                </div>
-                <div class="customer-details">
-                  <div class="customer-detail">
-                    <span class="detail-label">Email</span>
-                    <span class="detail-value">${customerInfo.email || 'N/A'}</span>
-                  </div>
-                  <div class="customer-detail">
-                    <span class="detail-label">Phone</span>
-                    <span class="detail-value">${customerInfo.phone || 'N/A'}</span>
-                  </div>
-                  <div class="customer-detail">
-                    <span class="detail-label">Address</span>
-                    <span class="detail-value">${customerInfo.address || 'N/A'}</span>
-                  </div>
-                  <div class="customer-detail">
-                    <span class="detail-label">City</span>
-                    <span class="detail-value">${customerInfo.city || 'N/A'}, ${customerInfo.postalCode || ''}</span>
-                  </div>
-                </div>
-              </div>
-            `).join('');
-            
-            customersContainer.innerHTML = customersHtml;
-          }
-        })
-        .catch(error => {
-          console.error('Error:', error);
-          customersContainer.className = '';
-          customersContainer.innerHTML = `<div class="no-orders">Error loading customers: ${error.message}</div>`;
-          showNotification('Error loading customers: ' + error.message, 'error');
-        });
+      // Initialize search if not already done
+      initCustomerSearch();
+    })
+    .catch(error => {
+      console.error('Error:', error);
+      customersContainer.className = '';
+      customersContainer.innerHTML = `<div class="no-orders">Error loading customers: ${error.message}</div>`;
+      showNotification('Error loading customers: ' + error.message, 'error');
+    });
+}
+
+// Function to render customers based on filtered data
+function renderCustomers(customersData) {
+  const customersContainer = document.getElementById('customers-container');
+  customersContainer.className = '';
+  
+  if (Object.keys(customersData).length === 0) {
+    customersContainer.innerHTML = '<div class="no-orders">No customers found</div>';
+  } else {
+    const customersHtml = Object.entries(customersData).map(([userId, customerInfo]) => `
+      <div class="customer-item">
+        <div class="customer-header">
+          <div class="customer-name">${customerInfo.fullName || userId}</div>
+          <div class="customer-id">ID: ${userId}</div>
+        </div>
+        
+        <!-- Personal Information Section -->
+        <div class="customer-section">
+          <h4><i class="fas fa-user"></i> Personal Information</h4>
+          <div class="customer-details">
+            <div class="customer-detail">
+              <span class="detail-label">First Name</span>
+              <span class="detail-value">${customerInfo.firstName || 'N/A'}</span>
+            </div>
+            <div class="customer-detail">
+              <span class="detail-label">Last Name</span>
+              <span class="detail-value">${customerInfo.lastName || 'N/A'}</span>
+            </div>
+            <div class="customer-detail">
+              <span class="detail-label">Email</span>
+              <span class="detail-value">${customerInfo.email || 'N/A'}</span>
+            </div>
+            <div class="customer-detail">
+              <span class="detail-label">Phone</span>
+              <span class="detail-value">${customerInfo.phone || 'N/A'}</span>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Shop Information Section -->
+        <div class="customer-section">
+          <h4><i class="fas fa-store"></i> Shop Information</h4>
+          <div class="customer-details">
+            <div class="customer-detail">
+              <span class="detail-label">Shop Name</span>
+              <span class="detail-value">${customerInfo.shopName || 'N/A'}</span>
+            </div>
+            <div class="customer-detail">
+              <span class="detail-label">Shop Address</span>
+              <span class="detail-value">${customerInfo.shopAddress || customerInfo.address || 'N/A'}</span>
+            </div>
+            <div class="customer-detail">
+              <span class="detail-label">Shop City</span>
+              <span class="detail-value">${customerInfo.shopCity || customerInfo.city || 'N/A'}</span>
+            </div>
+            <div class="customer-detail">
+              <span class="detail-label">Shop Zip Code</span>
+              <span class="detail-value">${customerInfo.shopZipCode || customerInfo.postalCode || 'N/A'}</span>
+            </div>
+          </div>
+        </div>
+        
+        <div class="customer-actions">
+          <button class="btn btn-secondary customer-orders-btn" data-user-id="${userId}">
+            <i class="fas fa-shopping-bag"></i> View Orders
+          </button>
+          <button class="btn btn-primary send-email-btn" data-email="${customerInfo.email || ''}">
+            <i class="fas fa-envelope"></i> Send Email
+          </button>
+        </div>
+      </div>
+    `).join('');
+    
+    customersContainer.innerHTML = customersHtml;
+    
+    // Add event listeners to buttons
+    document.querySelectorAll('.customer-orders-btn').forEach(btn => {
+      btn.addEventListener('click', function() {
+        const userId = this.getAttribute('data-user-id');
+        // Implementation for viewing customer orders
+        showNotification(`Viewing orders for ${userId} - Feature coming soon`, 'info');
+      });
+    });
+    
+    document.querySelectorAll('.send-email-btn').forEach(btn => {
+      btn.addEventListener('click', function() {
+        const email = this.getAttribute('data-email');
+        if (email && email !== 'N/A') {
+          window.open(`mailto:${email}`);
+        } else {
+          showNotification('No email address available', 'error');
+        }
+      });
+    });
+  }
+}
+
+// Function to initialize customer search
+function initCustomerSearch() {
+  // Check if search is already initialized
+  if (document.getElementById('customer-search-input')) return;
+  
+  // Create search container if it doesn't exist
+  const searchContainer = document.createElement('div');
+  searchContainer.className = 'search-container';
+  searchContainer.innerHTML = `
+    <div class="search-box">
+      <input type="text" id="customer-search-input" placeholder="Search customers by name, shop, email..." />
+      <button id="customer-search-btn">
+        <i class="fas fa-search"></i>
+      </button>
+    </div>
+    <div class="search-stats">
+      <span id="search-results-count">${Object.keys(allCustomersData).length} customers found</span>
+    </div>
+  `;
+  
+  // Insert before the customers container
+  const customersContainer = document.getElementById('customers-container');
+  customersContainer.parentNode.insertBefore(searchContainer, customersContainer);
+  
+  // Add event listener for search
+  const searchInput = document.getElementById('customer-search-input');
+  const searchBtn = document.getElementById('customer-search-btn');
+  
+  const performSearch = () => {
+    const searchTerm = searchInput.value.toLowerCase().trim();
+    let filteredCustomers = {};
+    
+    if (searchTerm === '') {
+      // If search is empty, show all customers
+      filteredCustomers = allCustomersData;
+    } else {
+      // Filter customers based on search term
+      Object.entries(allCustomersData).forEach(([userId, customerInfo]) => {
+        // Check all relevant fields
+        const searchFields = [
+          customerInfo.firstName,
+          customerInfo.lastName,
+          customerInfo.fullName,
+          customerInfo.email,
+          customerInfo.phone,
+          customerInfo.shopName,
+          customerInfo.shopAddress,
+          customerInfo.shopCity,
+          customerInfo.shopZipCode,
+          customerInfo.address,
+          customerInfo.city,
+          customerInfo.postalCode,
+          userId
+        ];
+        
+        // Check if any field contains the search term
+        if (searchFields.some(field => 
+          field && field.toString().toLowerCase().includes(searchTerm)
+        )) {
+          filteredCustomers[userId] = customerInfo;
+        }
+      });
     }
+    
+    // Update search stats
+    const resultsCount = Object.keys(filteredCustomers).length;
+    document.getElementById('search-results-count').textContent = 
+      `${resultsCount} customer${resultsCount !== 1 ? 's' : ''} found`;
+    
+    // Render the filtered customers
+    renderCustomers(filteredCustomers);
+  };
+  
+  searchInput.addEventListener('keyup', function(event) {
+    if (event.key === 'Enter') {
+      performSearch();
+    }
+  });
+  
+  searchBtn.addEventListener('click', performSearch);
+}
     
     // Make loadOrders available globally
     window.loadOrders = loadOrders;

@@ -519,5 +519,5 @@ app.get('/orders', requireLogin, (req, res) => {
 
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Serveur démarré sur http://localhost:${PORT}`);
-  console.log(`Accessible sur le réseau à l'adresse http://192.168.0.187:${PORT}`);
+  console.log(`Accessible sur le réseau à l'adresse http://192.168.1.252:${PORT}`);
 });
