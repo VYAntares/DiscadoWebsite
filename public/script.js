@@ -861,16 +861,4 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-document.addEventListener('DOMContentLoaded', function() {
-    const pdfCatalogToggle = document.getElementById('pdfCatalogToggle');
-    if (pdfCatalogToggle) {
-      pdfCatalogToggle.addEventListener('click', function() {
-        // Modifier le lien Dropbox pour un téléchargement direct
-        const catalogPath = 'https://www.dropbox.com/scl/fi/0gymxq4jtwdno6q1l5td2/Catalogue-Discado-2025.pdf?rlkey=zx8p1syhojya62atiteib8660&e=1&st=ol0xk3lc&dl=1';
-        
-        // Ouvrir le lien dans un nouvel onglet
-        window.open(catalogPath, '_blank');
-      });
-    }
-  });
 

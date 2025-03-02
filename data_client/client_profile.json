@@ -1,15 +1,15 @@
 {
-  "firstName": "Endrit",
-  "lastName": "Ahmeti",
-  "fullName": "Endrit Ahmeti",
-  "email": "endroahm@hotmail.com",
-  "phone": "+41786920115",
-  "shopName": "Kallaya",
-  "shopAddress": "rue de lausanne 23",
-  "shopCity": "geneve",
-  "shopZipCode": "1290",
-  "address": "rue de lausanne 23",
-  "city": "geneve",
-  "postalCode": "1290",
-  "lastUpdated": "2025-03-02T16:53:12.852Z"
+  "firstName": "Elie",
+  "lastName": "Berthet",
+  "fullName": "Elie Berthet",
+  "email": "elie.berthet97@gmail.com",
+  "phone": "0794508496",
+  "shopName": "cosmoboy",
+  "shopAddress": "rue de Lausanne 7",
+  "shopCity": "Morges",
+  "shopZipCode": "1020",
+  "address": "rue de Lausanne 7",
+  "city": "Morges",
+  "postalCode": "1020",
+  "lastUpdated": "2025-03-02T20:37:36.823Z"
 }
