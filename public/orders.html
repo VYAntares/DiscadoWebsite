@@ -94,6 +94,16 @@
     <script src="header.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
+            const ordersContainer = document.getElementById('ordersList');
+            
+            // Afficher un message de chargement avec un style plus doux
+            ordersContainer.innerHTML = `
+                <div class="loading-container">
+                    <div class="loading-spinner"></div>
+                    <p>Loading your orders...</p>
+                </div>
+            `;
+
             function getStatusClass(status) {
                 switch(status) {
                     case 'shipped':
@@ -107,7 +117,7 @@
             function getReadableStatus(status) {
                 switch(status) {
                     case 'in progress':
-                        return 'Being Processed';
+                        return 'Processing';
                     case 'shipped':
                         return 'Shipped';
                     default:
@@ -118,14 +128,17 @@
             fetch('/api/user-orders')
                 .then(response => response.json())
                 .then(orders => {
-                    const ordersContainer = document.getElementById('ordersList');
+                    // Vider le conteneur
+                    ordersContainer.innerHTML = '';
                     
                     if (orders.length === 0) {
-                        ordersContainer.innerHTML = '<p>You have no orders yet.</p>';
+                        ordersContainer.innerHTML = '<p class="no-orders-message">You have no orders yet.</p>';
                         return;
                     }
 
-                    let html = '';
+                    // Trier les commandes de la plus récente à la plus ancienne
+                    orders.sort((a, b) => new Date(b.date) - new Date(a.date));
+
                     orders.forEach((order, index) => {
                         const orderDate = new Date(order.date).toLocaleDateString('en-US', {
                             day: 'numeric',
@@ -137,37 +150,64 @@
                             total + (parseFloat(item.prix) * item.quantity), 0
                         ).toFixed(2);
 
-                        html += `
-                            <div class="order-card">
-                                <div class="order-item">
-                                    <div class="order-details">
-                                        <h3>Order #${index + 1}</h3>
-                                        <p>${orderDate}</p>
-                                        <span class="order-status ${getStatusClass(order.status)}">
-                                            ${getReadableStatus(order.status)}
-                                        </span>
-                                    </div>
-                                    <div class="order-total">
-                                        Total: ${totalAmount} CHF
-                                    </div>
-                                </div>
-                                <div class="order-items">
+                        // Créer le contenu de la commande avec un tableau détaillé
+                        const orderCard = document.createElement('div');
+                        orderCard.className = 'order-card';
+                        orderCard.innerHTML = `
+                            <div class="order-card-header">
+                                <h3>Order #${orders.length - index}</h3>
+                                <span class="order-status ${getStatusClass(order.status)}">
+                                    ${getReadableStatus(order.status)}
+                                </span>
+                            </div>
+                            <div class="order-date">${orderDate}</div>
+                            
+                            <table class="order-details-table">
+                                <thead>
+                                    <tr>
+                                        <th class="qty-column">Qty</th>
+                                        <th class="product-name-column">Product</th>
+                                        <th class="unit-price-column">Unit Price</th>
+                                        <th class="total-price-column">Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
                                     ${order.items.map(item => `
-                                        <div class="order-item-detail">
-                                            ${item.quantity}x ${item.Nom} - ${item.prix} CHF
-                                        </div>
+                                        <tr>
+                                            <td class="qty-column">${item.quantity}</td>
+                                            <td class="product-name-column">${item.Nom}</td>
+                                            <td class="unit-price-column">${parseFloat(item.prix).toFixed(2)} CHF</td>
+                                            <td class="total-price-column">${(parseFloat(item.prix) * item.quantity).toFixed(2)} CHF</td>
+                                        </tr>
                                     `).join('')}
+                                </tbody>
+                            </table>
+                            
+                            <div class="order-summary">
+                                <div class="order-summary-total">
+                                    Total: ${totalAmount} CHF
+                                    <button class="download-invoice-btn" data-order-index="${index}">
+                                        <i class="fas fa-file-pdf"></i> Download Invoice
+                                    </button>
                                 </div>
                             </div>
                         `;
+
+                        ordersContainer.appendChild(orderCard);
                     });
 
-                    ordersContainer.innerHTML = html;
+                    // Ajouter les écouteurs d'événements pour les boutons de téléchargement
+                    document.querySelectorAll('.download-invoice-btn').forEach(button => {
+                        button.addEventListener('click', function() {
+                            const orderIndex = this.getAttribute('data-order-index');
+                            window.open(`/api/download-invoice/${orderIndex}`, '_blank');
+                        });
+                    });
                 })
                 .catch(error => {
                     console.error('Error:', error);
-                    document.getElementById('ordersList').innerHTML = 
-                        '<p>Error loading orders. Please try again later.</p>';
+                    ordersContainer.innerHTML = 
+                        '<p class="error-message">Error loading orders. Please try again later.</p>';
                 });
         });
     </script>

@@ -3,14 +3,112 @@
     "userId": "client",
     "items": [
       {
-        "Nom": "Bags 312 - Small backpack Switzerland",
-        "prix": "4.00",
-        "imageUrl": "/images/bags/Bags312.jpg",
-        "categorie": "bags",
-        "quantity": 50
+        "Nom": "Bells 46 - Ringing bell",
+        "prix": "2.00",
+        "imageUrl": "/images/bells/Bells46.jpg",
+        "categorie": "bells",
+        "quantity": 12
+      },
+      {
+        "Nom": "Bells 47 - Traditionnal ringing bell",
+        "prix": "2.00",
+        "imageUrl": "/images/bells/Bells47.jpg",
+        "categorie": "bells",
+        "quantity": 15
+      },
+      {
+        "Nom": "Bells 74 - Edelweiss. cow and bell",
+        "prix": "1.90",
+        "imageUrl": "/images/bells/Bells74.jpg",
+        "categorie": "bells",
+        "quantity": 15
+      },
+      {
+        "Nom": "Bells 106 - Bella cow",
+        "prix": "1.90",
+        "imageUrl": "/images/bells/Bells106.jpg",
+        "categorie": "bells",
+        "quantity": 15
+      },
+      {
+        "Nom": "Bells 130 - Lausanne Bell red cow label",
+        "prix": "1.90",
+        "imageUrl": "/images/bells/Bells130.jpg",
+        "categorie": "bells",
+        "quantity": 15
+      },
+      {
+        "Nom": "Bells 131 - Bern Bell red cow label",
+        "prix": "1.90",
+        "imageUrl": "/images/bells/Bells131.jpg",
+        "categorie": "bells",
+        "quantity": 15
+      },
+      {
+        "Nom": "Bells 132 - Zermatt Bell red cow label",
+        "prix": "1.90",
+        "imageUrl": "/images/bells/Bells132.jpg",
+        "categorie": "bells",
+        "quantity": 15
+      },
+      {
+        "Nom": "Bells 133 - Gruyères Bell red cow label",
+        "prix": "1.90",
+        "imageUrl": "/images/bells/Bells133.jpg",
+        "categorie": "bells",
+        "quantity": 15
+      },
+      {
+        "Nom": "Bells 134 - Lucerne Bell red cow label",
+        "prix": "1.90",
+        "imageUrl": "/images/bells/Bells134.jpg",
+        "categorie": "bells",
+        "quantity": 15
+      },
+      {
+        "Nom": "Bells 135 - Montreux Bell red cow label",
+        "prix": "1.90",
+        "imageUrl": "/images/bells/Bells135.jpg",
+        "categorie": "bells",
+        "quantity": 15
+      },
+      {
+        "Nom": "Bells 136 - Morgins Bell red cow label",
+        "prix": "1.90",
+        "imageUrl": "/images/bells/Bells136.jpg",
+        "categorie": "bells",
+        "quantity": 15
+      },
+      {
+        "Nom": "Bells 137 - Genève Bell red cow label",
+        "prix": "1.90",
+        "imageUrl": "/images/bells/Bells137.jpg",
+        "categorie": "bells",
+        "quantity": 15
+      },
+      {
+        "Nom": "Bells 148 - Bell strap red",
+        "prix": "2.00",
+        "imageUrl": "/images/bells/Bells148.jpg",
+        "categorie": "bells",
+        "quantity": 15
+      },
+      {
+        "Nom": "Bells 149 - Bell strap black",
+        "prix": "2.00",
+        "imageUrl": "/images/bells/Bells149.jpg",
+        "categorie": "bells",
+        "quantity": 15
+      },
+      {
+        "Nom": "Bells 152 - Bell 15 cm poya",
+        "prix": "3.50",
+        "imageUrl": "/images/bells/Bells152.jpg",
+        "categorie": "bells",
+        "quantity": 15
       }
     ],
     "status": "in progress",
-    "date": "2025-03-03T01:07:45.789Z"
+    "date": "2025-03-03T04:24:15.773Z"
   }
 ]
