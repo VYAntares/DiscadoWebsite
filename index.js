@@ -191,7 +191,7 @@ app.get('/logout', (req, res) => {
 
 // Routes protégées
 app.get('/admin', requireLogin, requireAdmin, (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'admin.html'));
+  res.sendFile(path.join(__dirname, 'admin', 'index.html'));
 });
 
 app.get('/catalog', requireLogin, requireCompleteProfile, (req, res) => {
@@ -930,6 +930,57 @@ app.get('/api/download-invoice/:orderId', requireLogin, (req, res) => {
   } catch (error) {
     console.error('Error generating invoice:', error);
     res.status(500).json({ error: 'Could not generate invoice' });
+  }
+});
+
+// Route admin for getting all client profiles
+app.get('/api/admin/client-profiles', requireLogin, requireAdmin, (req, res) => {
+  try {
+    const dataClientDir = path.join(__dirname, 'data_client');
+    
+    // Check if the directory exists
+    if (!fs.existsSync(dataClientDir)) {
+      return res.json([]);
+    }
+    
+    // Get all files in the directory
+    const files = fs.readdirSync(dataClientDir)
+      .filter(file => file.endsWith('_profile.json'));
+    
+    const clientProfiles = [];
+    
+    // Read each profile file
+    files.forEach(file => {
+      try {
+        const profilePath = path.join(dataClientDir, file);
+        const profileContent = fs.readFileSync(profilePath, 'utf8');
+        const profileData = JSON.parse(profileContent);
+        
+        // Extract username from filename (remove '_profile.json')
+        const username = file.replace('_profile.json', '');
+        
+        // Add username and file identifier to the profile data
+        profileData.username = username;
+        profileData.id = username; // Use username as ID
+        
+        clientProfiles.push(profileData);
+      } catch (err) {
+        console.error(`Error reading profile file ${file}:`, err);
+        // Continue with next file
+      }
+    });
+    
+    // Sort profiles by last updated date (newest first)
+    clientProfiles.sort((a, b) => {
+      const dateA = a.lastUpdated ? new Date(a.lastUpdated) : new Date(0);
+      const dateB = b.lastUpdated ? new Date(b.lastUpdated) : new Date(0);
+      return dateB - dateA;
+    });
+    
+    res.json(clientProfiles);
+  } catch (error) {
+    console.error('Error fetching client profiles:', error);
+    res.status(500).json({ error: 'Failed to retrieve client profiles' });
   }
 });
 
