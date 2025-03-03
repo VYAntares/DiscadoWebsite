@@ -651,3 +651,158 @@ main {
         max-width: 320px;
     }
 }
+
+/* Styles améliorés pour le traitement de commande */
+.order-process-container {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    font-family: 'Inter', Arial, sans-serif;
+}
+
+.order-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 2px solid #2575fc;
+    padding-bottom: 15px;
+}
+
+.order-header h1 {
+    color: #2575fc;
+    margin: 0;
+    font-size: 24px;
+}
+
+.order-header .order-date {
+    color: #666;
+    font-size: 14px;
+}
+
+.client-info-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+.client-info-card {
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+}
+
+.client-info-card h3 {
+    color: #2575fc;
+    border-bottom: 2px solid #2575fc;
+    padding-bottom: 10px;
+    margin-bottom: 15px;
+}
+
+.info-row {
+    display: flex;
+    margin-bottom: 10px;
+}
+
+.info-row strong {
+    min-width: 150px;
+    color: #555;
+    margin-right: 15px;
+}
+
+.info-row a {
+    color: #2575fc;
+    text-decoration: none;
+}
+
+.info-row a:hover {
+    text-decoration: underline;
+}
+
+.process-order-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    margin-top: 20px;
+}
+
+.process-order-table thead {
+    background-color: #2575fc;
+    color: white;
+}
+
+.process-order-table th {
+    padding: 12px;
+    text-align: left;
+}
+
+.process-order-table td {
+    padding: 12px;
+    border-bottom: 1px solid #e1e8ed;
+}
+
+.item-details {
+    display: flex;
+    flex-direction: column;
+}
+
+.item-name {
+    font-weight: 600;
+    color: #333;
+}
+
+.item-price {
+    color: #666;
+    font-size: 12px;
+}
+
+.delivered-quantity {
+    width: 80px;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    text-align: center;
+}
+
+.order-summary {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 20px;
+    padding: 15px;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+}
+
+.order-total {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.order-total strong {
+    color: #2575fc;
+    font-size: 18px;
+}
+
+.order-process-actions {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 20px;
+}
+
+.primary-btn {
+    background-color: #2575fc;
+    color: white;
+}
+
+.secondary-btn {
+    background-color: #6c757d;
+    color: white;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .client-info-grid {
+        grid-template-columns: 1fr;
+    }
+}

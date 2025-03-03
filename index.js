@@ -557,92 +557,108 @@ app.get('/api/user-orders', requireLogin, (req, res) => {
   }
 });
 
+// Route pour obtenir le profil d'un client spécifique
+app.get('/api/admin/client-profile/:userId', requireLogin, requireAdmin, (req, res) => {
+  const userId = req.params.userId;
+  const userProfilePath = path.join(__dirname, 'data_client', `${userId}_profile.json`);
+  
+  try {
+      if (fs.existsSync(userProfilePath)) {
+          const profileData = JSON.parse(fs.readFileSync(userProfilePath, 'utf8'));
+          profileData.fullName = `${profileData.firstName} ${profileData.lastName}`;
+          res.json(profileData);
+      } else {
+          res.status(404).json({ error: 'Profil client non trouvé' });
+      }
+  } catch (error) {
+      console.error('Erreur lors de la récupération du profil:', error);
+      res.status(500).json({ error: 'Erreur lors de la récupération du profil' });
+  }
+});
+
 // Route admin pour traiter une commande
 app.post('/api/admin/process-order', requireLogin, requireAdmin, (req, res) => {
   const { userId, orderId, deliveredItems } = req.body;
   
   if (!userId || !orderId || !Array.isArray(deliveredItems)) {
-    return res.status(400).json({ error: 'Champs requis manquants ou invalides' });
+      return res.status(400).json({ error: 'Champs requis manquants ou invalides' });
   }
   
   try {
-    const dirs = ensureUserOrderDirectories(userId);
-    const sourcePath = path.join(dirs.pendingDir, `${orderId}.json`);
-    
-    // Vérifier si la commande existe
-    if (!fs.existsSync(sourcePath)) {
-      return res.status(404).json({ error: 'Commande non trouvée' });
-    }
-    
-    // Lire la commande
-    const orderContent = fs.readFileSync(sourcePath, 'utf8');
-    const orderData = JSON.parse(orderContent);
-    
-    // Calculer les articles non livrés
-    const remainingItems = [];
-    
-    orderData.items.forEach(originalItem => {
-      const deliveredItem = deliveredItems.find(item => 
-        item.Nom === originalItem.Nom && item.categorie === originalItem.categorie
+      const dirs = ensureUserOrderDirectories(userId);
+      const sourcePath = path.join(dirs.pendingDir, `${orderId}.json`);
+      
+      // Vérifier si la commande existe
+      if (!fs.existsSync(sourcePath)) {
+          return res.status(404).json({ error: 'Commande non trouvée' });
+      }
+      
+      // Lire la commande
+      const orderContent = fs.readFileSync(sourcePath, 'utf8');
+      const orderData = JSON.parse(orderContent);
+      
+      // Calculer les articles non livrés
+      const remainingItems = [];
+      
+      orderData.items.forEach(originalItem => {
+          const deliveredItem = deliveredItems.find(item => 
+              item.Nom === originalItem.Nom
+          );
+          
+          // Si l'article n'est pas dans la liste des articles livrés ou si la quantité livrée est inférieure
+          if (!deliveredItem || deliveredItem.quantity < originalItem.quantity) {
+              const remainingQuantity = deliveredItem 
+                  ? originalItem.quantity - deliveredItem.quantity 
+                  : originalItem.quantity;
+                  
+              remainingItems.push({
+                  ...originalItem,
+                  quantity: remainingQuantity
+              });
+          }
+      });
+      
+      // Créer l'objet pour la commande traitée
+      const treatedOrder = {
+          ...orderData,
+          status: remainingItems.length > 0 ? 'partial' : 'completed',
+          lastProcessed: new Date().toISOString(),
+          deliveredItems: deliveredItems,
+          remainingItems: remainingItems
+      };
+      
+      // Créer l'objet pour la facture de livraison
+      const deliveryInvoice = {
+          orderId: orderId,
+          userId: userId,
+          invoiceDate: new Date().toISOString(),
+          items: deliveredItems,
+          originalOrderDate: orderData.date
+      };
+      
+      // Enregistrer la commande traitée
+      fs.writeFileSync(
+          path.join(dirs.treatedDir, `${orderId}.json`), 
+          JSON.stringify(treatedOrder, null, 2)
       );
       
-      // Si l'article n'est pas dans la liste des articles livrés ou si la quantité livrée est inférieure
-      if (!deliveredItem || deliveredItem.quantity < originalItem.quantity) {
-        const remainingQuantity = deliveredItem 
-          ? originalItem.quantity - deliveredItem.quantity 
-          : originalItem.quantity;
-          
-        remainingItems.push({
-          ...originalItem,
-          quantity: remainingQuantity
-        });
-      }
-    });
-    
-    // Créer l'objet pour la commande traitée
-    const treatedOrder = {
-      ...orderData,
-      status: remainingItems.length > 0 ? 'partial' : 'completed',
-      lastProcessed: new Date().toISOString(),
-      deliveredItems: deliveredItems,
-      remainingItems: remainingItems
-    };
-    
-    // Créer l'objet pour la facture de livraison
-    const deliveryInvoice = {
-      orderId: orderId,
-      userId: userId,
-      invoiceDate: new Date().toISOString(),
-      items: deliveredItems,
-      originalOrderDate: orderData.date
-    };
-    
-    // Enregistrer la commande traitée
-    fs.writeFileSync(
-      path.join(dirs.treatedDir, `${orderId}.json`), 
-      JSON.stringify(treatedOrder, null, 2)
-    );
-    
-    // Enregistrer la facture de livraison
-    fs.writeFileSync(
-      path.join(dirs.deliveredDir, `${orderId}_invoice.json`), 
-      JSON.stringify(deliveryInvoice, null, 2)
-    );
-    
-    // Supprimer la commande du répertoire pending
-    fs.unlinkSync(sourcePath);
-    
-    // Mettre à jour le fichier legacy pour la compatibilité
-    updateLegacyOrderFile(userId, orderId, treatedOrder);
-    
-    res.json({ 
-      success: true, 
-      message: 'Commande traitée avec succès',
-      status: treatedOrder.status
-    });
+      // Enregistrer la facture de livraison
+      fs.writeFileSync(
+          path.join(dirs.deliveredDir, `${orderId}_invoice.json`), 
+          JSON.stringify(deliveryInvoice, null, 2)
+      );
+      
+      // Supprimer la commande du répertoire pending
+      fs.unlinkSync(sourcePath);
+      
+      res.json({ 
+          success: true, 
+          message: 'Commande traitée avec succès',
+          status: treatedOrder.status
+      });
   } catch (error) {
-    console.error('Erreur lors du traitement de la commande:', error);
-    res.status(500).json({ error: 'Impossible de traiter la commande' });
+      console.error('Erreur lors du traitement de la commande:', error);
+      res.status(500).json({ error: 'Impossible de traiter la commande' });
   }
 });
 
