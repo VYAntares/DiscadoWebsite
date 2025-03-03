@@ -14,6 +14,7 @@ app.use(express.json());
 
 // Servir les fichiers statiques
 app.use(express.static('public'));
+app.use('/admin', express.static('admin'));
 
 // Configuration des sessions
 app.use(session({
@@ -191,7 +192,7 @@ app.get('/logout', (req, res) => {
 
 // Routes protégées
 app.get('/admin', requireLogin, requireAdmin, (req, res) => {
-  res.sendFile(path.join(__dirname, 'admin', 'index.html'));
+  res.sendFile(path.join(__dirname, 'admin', 'orders.html'));
 });
 
 // Route pour la page des clients
