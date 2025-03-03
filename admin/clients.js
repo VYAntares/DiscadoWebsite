@@ -1,4 +1,4 @@
-// Client Management Script
+// Fixed Client Management Script - clients.js
 let clientsData = [];
 
 // Load client data
@@ -16,12 +16,13 @@ function loadClientData() {
     fetch('/api/admin/client-profiles')
         .then(response => {
             if (!response.ok) {
-                throw new Error('Network response was not ok');
+                throw new Error('Network response was not ok: ' + response.status);
             }
             return response.json();
         })
         .then(clients => {
             clientsData = clients;
+            console.log("Client data loaded:", clients);
             
             if (clients.length === 0) {
                 clientsContainer.innerHTML = `
@@ -261,7 +262,11 @@ function viewClientDetails(clientId) {
     const client = clientsData.find(c => c.id === clientId);
     
     if (!client) {
-        showNotification('Client not found', 'error');
+        if (typeof showNotification === 'function') {
+            showNotification('Client not found', 'error');
+        } else {
+            alert('Client not found');
+        }
         return;
     }
     
@@ -368,4 +373,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (refreshBtn) {
         refreshBtn.addEventListener('click', loadClientData);
     }
+    
+    // Make loadClientData globally available
+    window.loadClientData = loadClientData;
 });

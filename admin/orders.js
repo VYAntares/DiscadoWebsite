@@ -1,4 +1,4 @@
-// Orders Management Script
+// Fixed Orders Management Script - orders.js
 let currentOrders = [];
 
 // Load pending orders from the API
@@ -16,12 +16,13 @@ function loadPendingOrders() {
     fetch('/api/admin/pending-orders')
         .then(response => {
             if (!response.ok) {
-                throw new Error('Network response was not ok');
+                throw new Error('Network response was not ok: ' + response.status);
             }
             return response.json();
         })
         .then(orders => {
             currentOrders = orders;
+            console.log("Pending orders loaded:", orders);
             
             if (orders.length === 0) {
                 ordersContainer.innerHTML = `
@@ -92,6 +93,7 @@ function loadPendingOrders() {
                 <div class="error-state">
                     <i class="fas fa-exclamation-triangle"></i>
                     <p>Error loading orders. Please try again.</p>
+                    <p class="error-details">${error.message}</p>
                 </div>
             `;
         });
@@ -107,7 +109,11 @@ function openProcessOrderModal(orderId) {
     const order = currentOrders.find(o => o.orderId === orderId);
     
     if (!order) {
-        showNotification('Order not found', 'error');
+        if (typeof showNotification === 'function') {
+            showNotification('Order not found', 'error');
+        } else {
+            alert('Order not found');
+        }
         return;
     }
     
@@ -223,7 +229,11 @@ function processOrder(order) {
     });
     
     if (deliveredItems.length === 0) {
-        showNotification('Please specify at least one item to ship', 'error');
+        if (typeof showNotification === 'function') {
+            showNotification('Please specify at least one item to ship', 'error');
+        } else {
+            alert('Please specify at least one item to ship');
+        }
         return;
     }
     
@@ -254,17 +264,29 @@ function processOrder(order) {
             document.getElementById('process-order-modal').style.display = 'none';
             
             // Show success notification
-            showNotification(`Order processed successfully! Status: ${data.status}`, 'success');
+            if (typeof showNotification === 'function') {
+                showNotification(`Order processed successfully! Status: ${data.status}`, 'success');
+            } else {
+                alert(`Order processed successfully! Status: ${data.status}`);
+            }
             
             // Reload orders
             loadPendingOrders();
         } else {
-            showNotification('Error: ' + (data.error || 'Unknown error'), 'error');
+            if (typeof showNotification === 'function') {
+                showNotification('Error: ' + (data.error || 'Unknown error'), 'error');
+            } else {
+                alert('Error: ' + (data.error || 'Unknown error'));
+            }
         }
     })
     .catch(error => {
         console.error('Error processing order:', error);
-        showNotification('Error processing order. Please try again.', 'error');
+        if (typeof showNotification === 'function') {
+            showNotification('Error processing order. Please try again.', 'error');
+        } else {
+            alert('Error processing order. Please try again.');
+        }
     });
 }
 
@@ -274,4 +296,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (refreshBtn) {
         refreshBtn.addEventListener('click', loadPendingOrders);
     }
+    
+    // Make loadPendingOrders globally available
+    window.loadPendingOrders = loadPendingOrders;
 });
