@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Administration Clients - Discado</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/admin/clients.css">
+</head>
+<body>
+    <!-- Header -->
+    <header>
+        <div class="header-container">
+            <div class="logo-container">
+                <img src="/images/logo_discado_noir.png" alt="Discado Logo">
+            </div>
+            <div class="admin-user">
+                <i class="fas fa-user-shield"></i>
+                <span>Admin</span>
+                <a href="/logout" class="logout-btn">Déconnexion</a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Tabs Navigation -->
+    <div class="admin-tabs">
+        <div class="tabs-container">
+            <a href="/admin" class="tab">Gestion des commandes</a>
+            <a href="/admin/clients" class="tab active">Client Database</a>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <main>
+        <h1 class="page-title">Base de données clients</h1>
+
+        <!-- Search bar -->
+        <div class="search-container">
+            <input type="text" id="searchInput" class="search-input" placeholder="Rechercher un client par nom, email, boutique...">
+            <button id="searchBtn" class="search-btn">Rechercher</button>
+        </div>
+
+        <!-- Client List -->
+        <div class="client-list">
+            <table class="client-table">
+                <thead>
+                    <tr>
+                        <th>ID Client</th>
+                        <th>Nom / Boutique</th>
+                        <th>Contact</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="clientTableBody">
+                    <tr>
+                        <td colspan="4" class="loading">Chargement des clients...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </main>
+
+    <!-- Client Details Modal -->
+    <div id="clientModal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal">&times;</span>
+            <h2 id="clientDetailsTitle" class="client-details-title">Détails du client</h2>
+            
+            <div id="clientDetailsContent">
+                <!-- Les détails du client seront chargés ici dynamiquement -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Inclure les scripts JS -->
+    <script src="/admin/clients.js"></script>
+</body>
+</html>

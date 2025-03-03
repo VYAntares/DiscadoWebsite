@@ -2,13 +2,9 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Panel - Discado</title>
-    
-    <!-- Font Awesome pour les icônes -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Administration Discado</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
-    <!-- Styles CSS -->
     <style>
         * {
             margin: 0;
@@ -16,616 +12,361 @@
             box-sizing: border-box;
             font-family: Arial, sans-serif;
         }
-        
+
         body {
-            background-color: #f5f7fa;
-            padding-top: 70px;
+            background-color: #f5f5f5;
         }
-        
-        /* Header */
+
+        /* Header style */
         header {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
             background-color: #fff;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-            z-index: 1000;
-            height: 60px;
-            display: flex;
-            align-items: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            padding: 15px 0;
         }
-        
+
         .header-container {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            width: 100%;
+            max-width: 1400px;
+            margin: 0 auto;
             padding: 0 20px;
         }
-        
+
         .logo-container img {
             height: 40px;
+            width: auto;
         }
-        
-        h1 {
+
+        .admin-user {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: bold;
             color: #333;
-            font-size: 24px;
         }
-        
+
+        .admin-user i {
+            font-size: 18px;
+            color: #2575fc;
+        }
+
         .logout-btn {
+            padding: 8px 15px;
             background-color: #f44336;
             color: white;
             border: none;
             border-radius: 4px;
-            padding: 8px 15px;
             cursor: pointer;
-            font-size: 14px;
-            display: flex;
-            align-items: center;
             text-decoration: none;
+            font-size: 14px;
         }
-        
+
         .logout-btn:hover {
             background-color: #d32f2f;
         }
-        
-        .logout-btn i {
-            margin-right: 6px;
-        }
-        
-        /* Admin Content */
-        .admin-content {
-            max-width: 1200px;
-            margin: 20px auto;
-            padding: 0 15px;
-        }
-        
-        /* Tabs */
+
+        /* Tabs navigation */
         .admin-tabs {
-            background-color: #fff;
+            background-color: #2575fc;
+            padding: 0 20px;
+        }
+
+        .tabs-container {
             display: flex;
-            justify-content: center;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-            margin-bottom: 20px;
+            max-width: 1400px;
+            margin: 0 auto;
         }
-        
-        .tab-btn {
-            background: none;
-            border: none;
-            padding: 20px 30px;
-            font-size: 18px;
-            font-weight: 500;
-            color: #666;
-            cursor: pointer;
+
+        .tab {
+            padding: 15px 30px;
+            color: white;
+            text-decoration: none;
+            font-weight: bold;
             position: relative;
-            transition: color 0.3s;
+            opacity: 0.8;
+            transition: opacity 0.2s;
+            font-size: 16px;
         }
-        
-        .tab-btn:hover {
-            color: #2575fc;
+
+        .tab:hover {
+            opacity: 1;
         }
-        
-        .tab-btn.active {
-            color: #2575fc;
+
+        .tab.active {
+            opacity: 1;
         }
-        
-        .tab-btn.active::after {
+
+        .tab.active::after {
             content: '';
             position: absolute;
             bottom: 0;
             left: 0;
             right: 0;
-            height: 3px;
-            background-color: #2575fc;
+            height: 4px;
+            background-color: white;
         }
-        
-        .tab-btn i {
-            margin-right: 8px;
+
+        /* Main content */
+        main {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 30px 20px;
         }
-        
-        /* Tab Content */
-        .tab-content {
-            display: none;
-        }
-        
-        .tab-content.active {
-            display: block;
-            animation: fadeIn 0.3s ease;
-        }
-        
-        /* Section Headers */
-        .admin-section-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+
+        .page-title {
             margin-bottom: 20px;
-        }
-        
-        .admin-section-header h2 {
             color: #333;
             font-size: 24px;
-            margin: 0;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 10px;
         }
-        
-        .refresh-btn {
-            background-color: #f2f2f2;
-            border: none;
-            border-radius: 4px;
-            padding: 8px 15px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            transition: background-color 0.2s;
-        }
-        
-        .refresh-btn:hover {
-            background-color: #e6e6e6;
-        }
-        
-        .refresh-btn i {
-            margin-right: 6px;
-        }
-        
-        /* Tables */
-        .admin-table {
-            width: 100%;
-            background-color: #fff;
+
+        /* Order list styles */
+        .order-list {
+            background-color: white;
             border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-            border-collapse: separate;
-            border-spacing: 0;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
             overflow: hidden;
         }
-        
-        .admin-table th,
-        .admin-table td {
-            padding: 15px;
-            text-align: left;
-        }
-        
-        .admin-table th {
-            background-color: #f8f9fa;
-            font-weight: 600;
-            color: #333;
-            border-bottom: 1px solid #dee2e6;
-        }
-        
-        .admin-table td {
-            border-bottom: 1px solid #f2f2f2;
-        }
-        
-        .admin-table tr:last-child td {
-            border-bottom: none;
-        }
-        
-        .admin-table tbody tr:hover {
-            background-color: #f8f9fa;
-        }
-        
-        /* Buttons */
-        .process-btn,
-        .view-client-btn {
-            background-color: #2575fc;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            padding: 8px 12px;
-            cursor: pointer;
-            font-size: 14px;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            transition: background-color 0.2s;
-        }
-        
-        .process-btn:hover,
-        .view-client-btn:hover {
-            background-color: #1a5cb8;
-        }
-        
-        .process-btn i,
-        .view-client-btn i {
-            margin-right: 6px;
-        }
-        
-        /* Source Tag */
-        .source-tag {
-            display: inline-block;
-            padding: 4px 8px;
-            border-radius: 12px;
-            font-size: 12px;
-            color: white;
-            font-weight: 600;
-            text-align: center;
-        }
-        
-        .source-complete {
-            background-color: #4CAF50;
-        }
-        
-        .source-orders {
-            background-color: #FF9800;
-        }
-        
-        .source-pending {
-            background-color: #2196F3;
-        }
-        
-        .source-unknown {
-            background-color: #9E9E9E;
-        }
-        
-        /* Loading States */
-        .loading-container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 40px;
-            background-color: #fff;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-        }
-        
-        .loading-spinner {
-            width: 40px;
-            height: 40px;
-            border: 3px solid #f3f3f3;
-            border-top: 3px solid #2575fc;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin-bottom: 15px;
-        }
-        
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        
-        /* Empty and Error States */
-        .empty-state,
-        .error-state {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 40px;
-            background-color: #fff;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-            text-align: center;
-        }
-        
-        .empty-state i,
-        .error-state i {
-            font-size: 48px;
-            margin-bottom: 15px;
-        }
-        
-        .empty-state i {
-            color: #4caf50;
-        }
-        
-        .error-state i {
-            color: #f44336;
-        }
-        
-        /* Modals */
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 1000;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.5);
-        }
-        
-        .modal-content {
-            background-color: white;
-            margin: 50px auto;
+
+        .order-item {
             padding: 20px;
-            width: 90%;
-            max-width: 800px;
-            border-radius: 8px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-            max-height: 90vh;
-            overflow-y: auto;
-        }
-        
-        .close-modal {
-            float: right;
-            font-size: 24px;
-            font-weight: bold;
-            cursor: pointer;
-        }
-        
-        /* Client Details */
-        .client-details-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            flex-wrap: wrap;
             gap: 20px;
         }
-        
-        .details-table {
-            width: 100%;
-            border-collapse: collapse;
+
+        .order-item:last-child {
+            border-bottom: none;
         }
-        
-        .details-table th,
-        .details-table td {
-            padding: 12px;
-            text-align: left;
-            border-bottom: 1px solid #eee;
+
+        .order-details {
+            flex: 1;
+            min-width: 300px;
         }
-        
-        .details-table th {
-            width: 30%;
+
+        .order-id {
+            font-weight: bold;
+            color: #2575fc;
+            margin-bottom: 5px;
+        }
+
+        .order-date {
             color: #666;
-            font-weight: 600;
-        }
-        
-        /* Notification */
-        #notification-container {
-            position: fixed;
-            top: 70px;
-            right: 20px;
-            z-index: 1001;
-        }
-        
-        .notification {
-            background-color: white;
-            border-radius: 4px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-            margin-bottom: 10px;
-            padding: 15px;
-            display: flex;
-            align-items: center;
-            max-width: 300px;
-            animation: notifyIn 0.3s ease-out;
-        }
-        
-        .notification-success {
-            border-left: 4px solid #4caf50;
-        }
-        
-        .notification-error {
-            border-left: 4px solid #f44336;
-        }
-        
-        @keyframes notifyIn {
-            from { transform: translateX(100%); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
-        }
-        
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-        
-        /* Client Search */
-        .search-container {
-            display: flex;
-            margin-bottom: 20px;
-        }
-        
-        #client-search {
-            flex-grow: 1;
-            padding: 10px 15px;
-            border: 1px solid #ddd;
-            border-radius: 4px 0 0 4px;
             font-size: 14px;
+            margin-bottom: 10px;
         }
-        
-        #search-btn {
-            background-color: #2575fc;
-            color: white;
-            border: none;
-            border-radius: 0 4px 4px 0;
-            padding: 0 15px;
-            cursor: pointer;
+
+        .customer-info {
+            margin-bottom: 10px;
         }
-        
-        /* Order Detail Modal */
-        .order-meta {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 20px;
+
+        .customer-name {
+            font-weight: bold;
         }
-        
-        .items-table,
-        .delivery-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 10px 0;
-        }
-        
-        .items-table th,
-        .items-table td,
-        .delivery-table th,
-        .delivery-table td {
-            padding: 10px;
-            text-align: left;
-            border-bottom: 1px solid #eee;
-        }
-        
-        .items-table th,
-        .delivery-table th {
-            background-color: #f8f9fa;
-            font-weight: 600;
-        }
-        
-        .delivery-quantity {
-            width: 80px;
-            padding: 8px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-        }
-        
-        .form-actions {
-            display: flex;
-            justify-content: flex-end;
-            gap: 10px;
-            margin-top: 20px;
-        }
-        
-        .close-btn {
-            background-color: #f2f2f2;
+
+        .customer-shop {
             color: #666;
-            border: none;
-            border-radius: 4px;
-            padding: 10px 15px;
-            cursor: pointer;
-            transition: background-color 0.2s;
         }
-        
-        .close-btn:hover {
-            background-color: #e6e6e6;
+
+        .order-items {
+            margin-top: 10px;
         }
-        
-        .primary-btn {
+
+        .item-count {
+            font-weight: bold;
+        }
+
+        .order-actions {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .action-btn {
+            padding: 8px 15px;
             background-color: #2575fc;
             color: white;
             border: none;
             border-radius: 4px;
-            padding: 10px 20px;
             cursor: pointer;
-            font-weight: 500;
-            transition: background-color 0.2s;
+            text-align: center;
         }
-        
-        .primary-btn:hover {
+
+        .action-btn:hover {
             background-color: #1a5cb8;
         }
-        
-        /* Responsive Styles */
+
+        /* Responsive */
         @media (max-width: 768px) {
-            .admin-tabs {
+            .tabs-container {
+                justify-content: space-between;
+            }
+
+            .tab {
+                padding: 15px;
+                font-size: 14px;
+            }
+
+            .order-item {
                 flex-direction: column;
+                gap: 15px;
             }
-            
-            .client-details-grid {
-                grid-template-columns: 1fr;
-            }
-            
-            .admin-section-header {
-                flex-direction: column;
-                align-items: flex-start;
-            }
-            
-            .refresh-container {
-                margin-top: 10px;
-            }
-            
-            .admin-table {
-                display: block;
-                overflow-x: auto;
+
+            .order-actions {
+                width: 100%;
+                flex-direction: row;
             }
         }
     </style>
 </head>
-<body class="admin-body">
+<body>
+    <!-- Header -->
     <header>
         <div class="header-container">
             <div class="logo-container">
-                <img src="/images/logo_discado_noir.png" alt="Discado Logo" id="logo">
+                <img src="/images/logo_discado_noir.png" alt="Discado Logo">
             </div>
-            <h1>Admin Dashboard</h1>
-            <div class="header-right">
-                <a href="/logout" class="logout-btn">
-                    <i class="fas fa-sign-out-alt"></i> Logout
-                </a>
+            <div class="admin-user">
+                <i class="fas fa-user-shield"></i>
+                <span>Admin</span>
+                <a href="/logout" class="logout-btn">Déconnexion</a>
             </div>
         </div>
     </header>
 
+    <!-- Tabs Navigation -->
     <div class="admin-tabs">
-        <button class="tab-btn active" data-tab="orders">
-            <i class="fas fa-shopping-cart"></i> Orders
-        </button>
-        <button class="tab-btn" data-tab="clients">
-            <i class="fas fa-users"></i> Clients
-        </button>
+        <div class="tabs-container">
+            <a href="/admin" class="tab active">Gestion des commandes</a>
+            <a href="/admin/clients" class="tab">Client Database</a>
+        </div>
     </div>
 
-    <main class="admin-content">
-        <!-- Orders Tab -->
-        <div id="orders-tab" class="tab-content active">
-            <div class="admin-section-header">
-                <h2>Pending Orders</h2>
-                <div class="refresh-container">
-                    <button id="refresh-orders" class="refresh-btn">
-                        <i class="fas fa-sync-alt"></i> Refresh
-                    </button>
-                </div>
-            </div>
-            <div id="pending-orders-container" class="orders-container">
-                <div class="loading-container">
-                    <div class="loading-spinner"></div>
-                    <p>Loading orders...</p>
-                </div>
-            </div>
-        </div>
+    <!-- Main Content -->
+    <main>
+        <h1 class="page-title">Gestion des commandes</h1>
 
-        <!-- Clients Tab -->
-        <div id="clients-tab" class="tab-content">
-            <div class="admin-section-header">
-                <h2>Client Database</h2>
-                <div class="refresh-container">
-                    <button id="refresh-clients" class="refresh-btn">
-                        <i class="fas fa-sync-alt"></i> Refresh
-                    </button>
-                </div>
-            </div>
-            <div id="clients-container" class="clients-container">
-                <div class="loading-container">
-                    <div class="loading-spinner"></div>
-                    <p>Loading clients...</p>
-                </div>
-            </div>
+        <!-- Order List -->
+        <div class="order-list" id="orderList">
+            <!-- Les commandes seront chargées dynamiquement ici -->
+            <div id="loading-indicator" class="loading">Chargement des commandes...</div>
         </div>
     </main>
 
-    <!-- Order Processing Modal -->
-    <div id="process-order-modal" class="modal">
-        <div class="modal-content">
-            <span class="close-modal">&times;</span>
-            <h2>Process Order</h2>
-            <div id="order-details">
-                <!-- Order details will be loaded here -->
-            </div>
-            <div id="process-form">
-                <h3>Shipment Details</h3>
-                <div id="delivery-items-container">
-                    <!-- Delivery items will be generated here -->
-                </div>
-                <div class="form-actions">
-                    <button id="process-order-btn" class="primary-btn">Process Order</button>
-                    <button class="close-btn">Cancel</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Client Details Modal -->
-    <div id="client-details-modal" class="modal">
-        <div class="modal-content">
-            <span class="close-modal">&times;</span>
-            <h2>Client Details</h2>
-            <div id="client-details">
-                <!-- Client details will be loaded here -->
-            </div>
-        </div>
-    </div>
-
-    <!-- Notification container -->
-    <div id="notification-container"></div>
-
-    <!-- JavaScript Files -->
-    <script src="admin.js"></script>
-    <script src="orders.js"></script>
-    <script src="clients.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Charger les commandes en attente
+            loadPendingOrders();
+            
+            // Fonction pour charger les commandes en attente depuis l'API
+            function loadPendingOrders() {
+                fetch('/api/admin/pending-orders')
+                    .then(response => response.json())
+                    .then(orders => {
+                        displayOrders(orders);
+                    })
+                    .catch(error => {
+                        console.error('Erreur lors du chargement des commandes:', error);
+                        document.getElementById('orderList').innerHTML = '<p style="padding: 20px; text-align: center;">Erreur lors du chargement des commandes. Veuillez réessayer.</p>';
+                    });
+            }
+            
+            // Fonction pour afficher les commandes
+            function displayOrders(orders) {
+                const orderList = document.getElementById('orderList');
+                
+                if (orders.length === 0) {
+                    orderList.innerHTML = '<p style="padding: 20px; text-align: center;">Aucune commande en attente.</p>';
+                    return;
+                }
+                
+                orderList.innerHTML = '';
+                
+                orders.forEach(order => {
+                    const orderDate = new Date(order.date).toLocaleDateString('fr-FR', {
+                        day: 'numeric',
+                        month: 'long',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    });
+                    
+                    // Calculer le nombre total d'articles
+                    const totalItems = order.items.reduce((sum, item) => sum + item.quantity, 0);
+                    
+                    // Récupérer les 3 premiers noms d'articles pour l'aperçu
+                    const itemsPreview = order.items.slice(0, 3).map(item => {
+                        const shortName = item.Nom.split(' - ')[0]; // Prendre juste la première partie du nom
+                        return shortName;
+                    }).join(', ');
+                    
+                    // Informations du client
+                    const userProfile = order.userProfile || {};
+                    const customerName = userProfile.fullName || order.userId;
+                    const shopName = userProfile.shopName || 'Non spécifié';
+                    const email = userProfile.email || 'Non spécifié';
+                    const phone = userProfile.phone || 'Non spécifié';
+                    
+                    const orderItem = document.createElement('div');
+                    orderItem.className = 'order-item';
+                    orderItem.innerHTML = `
+                        <div class="order-details">
+                            <div class="order-id">Commande #${order.orderId}</div>
+                            <div class="order-date">${orderDate}</div>
+                            <div class="customer-info">
+                                <div class="customer-name">${customerName}</div>
+                                <div class="customer-shop">Boutique: ${shopName}</div>
+                                <div class="customer-contact">Email: ${email} | Tél: ${phone}</div>
+                            </div>
+                            <div class="order-items">
+                                <div class="item-count">${totalItems} article${totalItems > 1 ? 's' : ''} au total</div>
+                                <div class="items-preview">${itemsPreview}${order.items.length > 3 ? '...' : ''}</div>
+                            </div>
+                        </div>
+                        <div class="order-actions">
+                            <button class="action-btn view-btn" data-order-id="${order.orderId}">Voir détails</button>
+                            <button class="action-btn process-btn" data-order-id="${order.orderId}" data-user-id="${order.userId}">Traiter commande</button>
+                        </div>
+                    `;
+                    
+                    orderList.appendChild(orderItem);
+                });
+                
+                // Ajouter les écouteurs d'événements pour les boutons
+                document.querySelectorAll('.view-btn').forEach(button => {
+                    button.addEventListener('click', function() {
+                        const orderId = this.getAttribute('data-order-id');
+                        viewOrderDetails(orderId);
+                    });
+                });
+                
+                document.querySelectorAll('.process-btn').forEach(button => {
+                    button.addEventListener('click', function() {
+                        const orderId = this.getAttribute('data-order-id');
+                        const userId = this.getAttribute('data-user-id');
+                        processOrder(orderId, userId);
+                    });
+                });
+            }
+            
+            // Fonction pour voir les détails d'une commande
+            function viewOrderDetails(orderId) {
+                // À implémenter - pourrait ouvrir une modal avec les détails
+                console.log('Voir détails de la commande:', orderId);
+                alert('Fonctionnalité "Voir détails" à implémenter');
+            }
+            
+            // Fonction pour traiter une commande
+            function processOrder(orderId, userId) {
+                // À implémenter - pourrait ouvrir une modal pour traiter la commande
+                console.log('Traiter commande:', orderId, 'pour utilisateur:', userId);
+                alert('Fonctionnalité "Traiter commande" à implémenter');
+            }
+        });
+    </script>
 </body>
 </html>

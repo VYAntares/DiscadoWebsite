@@ -194,6 +194,11 @@ app.get('/admin', requireLogin, requireAdmin, (req, res) => {
   res.sendFile(path.join(__dirname, 'admin', 'index.html'));
 });
 
+// Route pour la page des clients
+app.get('/admin/clients', requireLogin, requireAdmin, (req, res) => {
+  res.sendFile(path.join(__dirname, 'admin', 'clients.html'));
+});
+
 app.get('/catalog', requireLogin, requireCompleteProfile, (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'catalog.html'));
 });
@@ -930,174 +935,6 @@ app.get('/api/download-invoice/:orderId', requireLogin, (req, res) => {
   } catch (error) {
     console.error('Error generating invoice:', error);
     res.status(500).json({ error: 'Could not generate invoice' });
-  }
-});
-
-// Route admin for getting all client profiles with enhanced search
-app.get('/api/admin/client-profiles', requireLogin, requireAdmin, (req, res) => {
-  try {
-    const clientProfiles = [];
-    
-    // Step 1: Check data_client directory for profile JSON files
-    const dataClientDir = path.join(__dirname, 'data_client');
-    if (fs.existsSync(dataClientDir)) {
-      const profileFiles = fs.readdirSync(dataClientDir)
-        .filter(file => file.endsWith('_profile.json'));
-      
-      profileFiles.forEach(file => {
-        try {
-          const profilePath = path.join(dataClientDir, file);
-          const profileContent = fs.readFileSync(profilePath, 'utf8');
-          const profileData = JSON.parse(profileContent);
-          
-          // Extract username from filename (remove '_profile.json')
-          const username = file.replace('_profile.json', '');
-          
-          // Add username and file identifier to the profile data
-          profileData.username = username;
-          profileData.id = username; // Use username as ID
-          profileData.source = 'data_client';
-          
-          clientProfiles.push(profileData);
-        } catch (err) {
-          console.error(`Error reading profile file ${file}:`, err);
-          // Continue with next file
-        }
-      });
-    }
-    
-    // Step 2: Check data_store directory for order JSON files
-    // This helps identify clients who may have placed orders but don't have profile files
-    const dataStoreDir = path.join(__dirname, 'data_store');
-    if (fs.existsSync(dataStoreDir)) {
-      // Get all directories that end with _orders
-      const orderDirs = fs.readdirSync(dataStoreDir, { withFileTypes: true })
-        .filter(dirent => dirent.isDirectory() && dirent.name.endsWith('_orders'))
-        .map(dirent => dirent.name);
-      
-      // Get all legacy order files
-      const orderFiles = fs.readdirSync(dataStoreDir, { withFileTypes: true })
-        .filter(dirent => !dirent.isDirectory() && dirent.name.endsWith('_orders.json'))
-        .map(dirent => dirent.name);
-      
-      // Process order directories first
-      orderDirs.forEach(dirName => {
-        // Extract username from directory name
-        const username = dirName.replace('_orders', '');
-        
-        // Check if this client already exists in our profiles list
-        if (!clientProfiles.find(profile => profile.username === username)) {
-          // Create a basic profile for this client
-          const basicProfile = {
-            username: username,
-            id: username,
-            source: 'data_store_dir',
-            fullName: username, // Use username as fallback
-            notes: 'Profile created from order directory. Limited information available.'
-          };
-          
-          clientProfiles.push(basicProfile);
-        }
-      });
-      
-      // Process order JSON files
-      orderFiles.forEach(fileName => {
-        try {
-          // Extract username from filename
-          const username = fileName.replace('_orders.json', '');
-          
-          // Check if this client already exists in our profiles list
-          if (!clientProfiles.find(profile => profile.username === username)) {
-            // Read the orders file to extract any customer information
-            const orderPath = path.join(dataStoreDir, fileName);
-            const orderContent = fs.readFileSync(orderPath, 'utf8');
-            const orders = JSON.parse(orderContent);
-            
-            // Create a basic profile
-            const basicProfile = {
-              username: username,
-              id: username,
-              source: 'data_store_json',
-              fullName: username, // Use username as fallback
-              notes: 'Profile created from order file. Limited information available.'
-            };
-            
-            // Try to extract more information from the first order if available
-            if (orders && orders.length > 0 && orders[0].userProfile) {
-              Object.assign(basicProfile, orders[0].userProfile);
-            }
-            
-            clientProfiles.push(basicProfile);
-          }
-        } catch (err) {
-          console.error(`Error processing order file ${fileName}:`, err);
-          // Continue with next file
-        }
-      });
-    }
-    
-    // Step 3: Check for pending orders that might contain user information
-    const pendingOrdersDir = path.join(__dirname, 'data_store', 'client_orders', 'pending');
-    if (fs.existsSync(pendingOrdersDir)) {
-      try {
-        const pendingFiles = fs.readdirSync(pendingOrdersDir)
-          .filter(file => file.endsWith('.json'));
-        
-        pendingFiles.forEach(file => {
-          try {
-            const orderPath = path.join(pendingOrdersDir, file);
-            const orderContent = fs.readFileSync(orderPath, 'utf8');
-            const orderData = JSON.parse(orderContent);
-            
-            if (orderData.userId && !clientProfiles.find(profile => profile.username === orderData.userId)) {
-              // Create a basic profile for this user
-              const basicProfile = {
-                username: orderData.userId,
-                id: orderData.userId,
-                source: 'pending_order',
-                fullName: orderData.userId, // Use userId as fallback
-                notes: 'Profile created from pending order. Limited information available.'
-              };
-              
-              // Add any additional user information if available
-              if (orderData.userProfile) {
-                Object.assign(basicProfile, orderData.userProfile);
-              }
-              
-              clientProfiles.push(basicProfile);
-            }
-          } catch (err) {
-            console.error(`Error processing pending order file ${file}:`, err);
-            // Continue with next file
-          }
-        });
-      } catch (err) {
-        console.error('Error reading pending orders directory:', err);
-      }
-    }
-    
-    // Remove duplicates based on username
-    const uniqueProfiles = [];
-    const seenUsernames = new Set();
-    
-    clientProfiles.forEach(profile => {
-      if (!seenUsernames.has(profile.username)) {
-        seenUsernames.add(profile.username);
-        uniqueProfiles.push(profile);
-      }
-    });
-    
-    // Sort profiles by last updated date (newest first)
-    uniqueProfiles.sort((a, b) => {
-      const dateA = a.lastUpdated ? new Date(a.lastUpdated) : new Date(0);
-      const dateB = b.lastUpdated ? new Date(b.lastUpdated) : new Date(0);
-      return dateB - dateA;
-    });
-    
-    res.json(uniqueProfiles);
-  } catch (error) {
-    console.error('Error fetching client profiles:', error);
-    res.status(500).json({ error: 'Failed to retrieve client profiles' });
   }
 });
 
