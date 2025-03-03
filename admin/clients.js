@@ -8,11 +8,30 @@ document.addEventListener('DOMContentLoaded', function() {
     const searchBtn = document.getElementById('searchBtn');
     const closeModal = document.querySelector('.close-modal');
     
+    // Fonction pour formater la date
+    function formatDate(dateString) {
+        if (!dateString) return 'N/A';
+        const date = new Date(dateString);
+        return date.toLocaleDateString('fr-CH', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    }
+    
     // Charger la liste des clients
     loadClients();
     
     // Fonction pour charger la liste des clients
     function loadClients() {
+        clientTableBody.innerHTML = `
+            <tr>
+                <td colspan="4" class="loading">Chargement des clients...</td>
+            </tr>
+        `;
+        
         fetch('/api/admin/client-profiles')
             .then(response => response.json())
             .then(clients => {
@@ -20,14 +39,28 @@ document.addEventListener('DOMContentLoaded', function() {
             })
             .catch(error => {
                 console.error('Erreur lors du chargement des clients:', error);
-                clientTableBody.innerHTML = '<tr><td colspan="4" class="loading">Erreur lors du chargement des clients. Veuillez réessayer.</td></tr>';
+                clientTableBody.innerHTML = `
+                    <tr>
+                        <td colspan="4" class="loading">
+                            Erreur lors du chargement des clients. Veuillez réessayer.
+                            <br><button class="action-btn" onclick="loadClients()">Réessayer</button>
+                        </td>
+                    </tr>
+                `;
             });
     }
     
     // Fonction pour afficher les clients dans le tableau
     function displayClients(clients) {
         if (clients.length === 0) {
-            clientTableBody.innerHTML = '<tr><td colspan="4" class="loading">Aucun client trouvé.</td></tr>';
+            clientTableBody.innerHTML = `
+                <tr>
+                    <td colspan="4" class="empty-state">
+                        <i class="fas fa-users-slash"></i>
+                        <p>Aucun client trouvé.</p>
+                    </td>
+                </tr>
+            `;
             return;
         }
         
@@ -39,20 +72,26 @@ document.addEventListener('DOMContentLoaded', function() {
             const email = client.email || 'N/A';
             const phone = client.phone || 'N/A';
             const clientId = client.username || client.id || 'N/A';
+            const lastUpdated = client.lastUpdated ? formatDate(client.lastUpdated) : 'N/A';
             
             const row = document.createElement('tr');
             row.innerHTML = `
-                <td>${clientId}</td>
+                <td><span class="client-id">${clientId}</span></td>
                 <td>
                     <span class="client-name">${fullName}</span>
                     <span class="client-shop">${shopName}</span>
+                    ${lastUpdated !== 'N/A' ? `<span class="date-display">Dernière mise à jour: ${lastUpdated}</span>` : ''}
                 </td>
                 <td>
-                    <div>${email}</div>
-                    <div>${phone}</div>
+                    <div class="contact-info">
+                        <div class="contact-email"><i class="fas fa-envelope"></i> ${email}</div>
+                        <div class="contact-phone"><i class="fas fa-phone"></i> ${phone}</div>
+                    </div>
                 </td>
                 <td>
-                    <button class="action-btn view-client-btn" data-client-id="${clientId}">Voir détails</button>
+                    <button class="action-btn view-client-btn" data-client-id="${clientId}">
+                        <i class="fas fa-eye"></i> Voir détails
+                    </button>
                 </td>
             `;
             
@@ -70,6 +109,10 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Fonction pour afficher les détails d'un client
     function viewClientDetails(clientId) {
+        // Animation de chargement dans la modal
+        clientDetailsContent.innerHTML = `<div class="loading">Chargement des détails...</div>`;
+        clientModal.style.display = 'block';
+        
         // Charger les détails du client
         fetch('/api/admin/client-profiles')
             .then(response => response.json())
@@ -77,20 +120,33 @@ document.addEventListener('DOMContentLoaded', function() {
                 const client = clients.find(c => c.username === clientId || c.id === clientId);
                 if (client) {
                     displayClientDetails(client);
-                    clientModal.style.display = 'block';
                 } else {
-                    alert('Client non trouvé');
+                    clientDetailsContent.innerHTML = `
+                        <div class="empty-state">
+                            <i class="fas fa-user-slash"></i>
+                            <p>Client non trouvé</p>
+                        </div>
+                    `;
                 }
             })
             .catch(error => {
                 console.error('Erreur lors du chargement des détails du client:', error);
-                alert('Erreur lors du chargement des détails du client');
+                clientDetailsContent.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <p>Erreur lors du chargement des détails du client</p>
+                        <button class="action-btn" onclick="viewClientDetails('${clientId}')">Réessayer</button>
+                    </div>
+                `;
             });
     }
     
     // Fonction pour afficher les détails du client dans la modal
     function displayClientDetails(client) {
         clientDetailsTitle.textContent = `Détails du client: ${client.fullName || client.username || 'N/A'}`;
+        
+        // Formatter la date de dernière mise à jour
+        const lastUpdated = client.lastUpdated ? formatDate(client.lastUpdated) : 'N/A';
         
         // Construire le contenu HTML pour les détails du client
         let html = `
@@ -152,17 +208,36 @@ document.addEventListener('DOMContentLoaded', function() {
             <div class="client-details-section">
                 <h3>Métadonnées</h3>
                 <div class="metadata">
+                    <h4>Informations système</h4>
         `;
         
         // Parcourir toutes les propriétés et les afficher
+        const ignoredProps = [
+            'firstName', 'lastName', 'fullName', 'email', 'phone', 
+            'shopName', 'shopAddress', 'shopCity', 'shopZipCode',
+            'address', 'city', 'postalCode', 'username', 'id'
+        ];
+        
+        // Afficher d'abord la date de dernière mise à jour
+        if (client.lastUpdated) {
+            html += `<p><strong>Dernière mise à jour:</strong> ${lastUpdated}</p>`;
+        }
+        
+        // Puis toutes les autres propriétés
         for (const [key, value] of Object.entries(client)) {
-            // Ignorer les propriétés déjà affichées
-            const ignoredProps = ['firstName', 'lastName', 'fullName', 'email', 'phone', 
-                                 'shopName', 'shopAddress', 'shopCity', 'shopZipCode',
-                                 'address', 'city', 'postalCode', 'username', 'id'];
-            
-            if (!ignoredProps.includes(key)) {
-                html += `<p><strong>${key}:</strong> ${value}</p>`;
+            if (!ignoredProps.includes(key) && key !== 'lastUpdated') {
+                let displayValue = value;
+                
+                // Formater les valeurs en fonction du type
+                if (typeof value === 'object' && value !== null) {
+                    displayValue = JSON.stringify(value);
+                } else if (typeof value === 'boolean') {
+                    displayValue = value ? 'Oui' : 'Non';
+                } else if (typeof value === 'string' && (value.includes('http://') || value.includes('https://'))) {
+                    displayValue = `<a href="${value}" target="_blank" rel="noopener noreferrer">${value}</a>`;
+                }
+                
+                html += `<p><strong>${key}:</strong> ${displayValue}</p>`;
             }
         }
         
@@ -196,6 +271,13 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         
+        // Afficher une indication de recherche
+        clientTableBody.innerHTML = `
+            <tr>
+                <td colspan="4" class="loading">Recherche en cours...</td>
+            </tr>
+        `;
+        
         // Récupérer tous les clients puis filtrer
         fetch('/api/admin/client-profiles')
             .then(response => response.json())
@@ -206,19 +288,75 @@ document.addEventListener('DOMContentLoaded', function() {
                     const email = (client.email || '').toLowerCase();
                     const phone = (client.phone || '').toLowerCase();
                     const username = (client.username || client.id || '').toLowerCase();
+                    const city = (client.shopCity || client.city || '').toLowerCase();
                     
                     return fullName.includes(searchValue) ||
                            shopName.includes(searchValue) ||
                            email.includes(searchValue) ||
                            phone.includes(searchValue) ||
-                           username.includes(searchValue);
+                           username.includes(searchValue) ||
+                           city.includes(searchValue);
                 });
                 
                 displayClients(filteredClients);
+                
+                // Afficher un message indiquant les résultats de recherche
+                if (filteredClients.length > 0) {
+                    // Ajouter une notification indiquant les résultats
+                    showNotification(`${filteredClients.length} client(s) trouvé(s) pour "${searchValue}"`, 'info');
+                } else {
+                    // Aucun résultat
+                    showNotification(`Aucun client trouvé pour "${searchValue}"`, 'info');
+                }
             })
             .catch(error => {
                 console.error('Erreur lors de la recherche:', error);
+                showNotification('Erreur lors de la recherche', 'error');
             });
+    }
+    
+    // Fonction pour afficher une notification
+    function showNotification(message, type = 'success') {
+        // Vérifier si le conteneur de notification existe, sinon le créer
+        let container = document.getElementById('notification-container');
+        if (!container) {
+            container = document.createElement('div');
+            container.id = 'notification-container';
+            container.style.position = 'fixed';
+            container.style.top = '20px';
+            container.style.right = '20px';
+            container.style.zIndex = '9999';
+            document.body.appendChild(container);
+        }
+        
+        // Créer la notification
+        const notification = document.createElement('div');
+        notification.className = `notification notification-${type}`;
+        
+        // Icône selon le type
+        let icon = '✓';
+        if (type === 'error') icon = '✕';
+        if (type === 'info') icon = 'ℹ';
+        
+        // Structure de la notification
+        notification.innerHTML = `
+            <div class="notification-content">
+                <div class="notification-icon">${icon}</div>
+                <div class="notification-message">${message}</div>
+            </div>
+        `;
+        
+        // Ajouter au conteneur
+        container.appendChild(notification);
+        
+        // Supprimer après un délai
+        setTimeout(() => {
+            notification.style.opacity = '0';
+            notification.style.transform = 'translateX(100%)';
+            setTimeout(() => {
+                notification.remove();
+            }, 300);
+        }, 3000);
     }
     
     // Écouteur d'événement pour le bouton de recherche
