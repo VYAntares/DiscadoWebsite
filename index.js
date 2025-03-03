@@ -1037,8 +1037,423 @@ app.get('/api/download-invoice/:orderId', requireLogin, (req, res) => {
   }
 });
 
+// Route for the Order History page
+app.get('/admin/order-history', requireLogin, requireAdmin, (req, res) => {
+  res.sendFile(path.join(__dirname, 'admin', 'order-history.html'));
+});
+
+// API route to get all treated orders
+app.get('/api/admin/treated-orders', requireLogin, requireAdmin, (req, res) => {
+  try {
+    const dataStoreDir = path.join(__dirname, 'data_store');
+    const userDirs = fs.readdirSync(dataStoreDir)
+      .filter(item => 
+        fs.statSync(path.join(dataStoreDir, item)).isDirectory() && 
+        item.endsWith('_orders')
+      );
+    
+    let treatedOrders = [];
+    
+    userDirs.forEach(userDir => {
+      const userId = userDir.replace('_orders', '');
+      const treatedDir = path.join(dataStoreDir, userDir, 'treated');
+      
+      if (fs.existsSync(treatedDir)) {
+        const files = fs.readdirSync(treatedDir).filter(file => file.endsWith('.json'));
+        
+        files.forEach(file => {
+          const orderPath = path.join(treatedDir, file);
+          const orderContent = fs.readFileSync(orderPath, 'utf8');
+          const orderData = JSON.parse(orderContent);
+          
+          // Ajouter l'ID utilisateur pour aider à identifier la commande
+          orderData.userId = userId;
+          
+          // Essayer de récupérer les informations de profil utilisateur
+          const userProfilePath = path.join(__dirname, 'data_client', `${userId}_profile.json`);
+          if (fs.existsSync(userProfilePath)) {
+            try {
+              const profileContent = fs.readFileSync(userProfilePath, 'utf8');
+              const profileData = JSON.parse(profileContent);
+              orderData.userProfile = {
+                fullName: profileData.fullName || `${profileData.firstName} ${profileData.lastName}`,
+                shopName: profileData.shopName,
+                email: profileData.email,
+                phone: profileData.phone,
+                shopAddress: profileData.shopAddress,
+                shopCity: profileData.shopCity,
+                shopZipCode: profileData.shopZipCode
+              };
+            } catch (error) {
+              console.error(`Erreur lors de la lecture du profil pour ${userId}:`, error);
+            }
+          }
+          
+          treatedOrders.push(orderData);
+        });
+      }
+    });
+    
+    // Trier les commandes par date de traitement (les plus récentes d'abord)
+    treatedOrders.sort((a, b) => new Date(b.lastProcessed || b.date) - new Date(a.lastProcessed || a.date));
+    
+    res.json(treatedOrders);
+  } catch (error) {
+    console.error('Erreur lors de la récupération des commandes traitées:', error);
+    res.status(500).json({ error: 'Impossible de récupérer les commandes traitées' });
+  }
+});
+
+// API route to get details of a specific order
+app.get('/api/admin/order-details/:orderId/:userId', requireLogin, requireAdmin, (req, res) => {
+  const { orderId, userId } = req.params;
+  
+  try {
+    const dirs = ensureUserOrderDirectories(userId);
+    const orderPath = path.join(dirs.treatedDir, `${orderId}.json`);
+    
+    if (!fs.existsSync(orderPath)) {
+      return res.status(404).json({ error: 'Commande non trouvée' });
+    }
+    
+    const orderContent = fs.readFileSync(orderPath, 'utf8');
+    const orderData = JSON.parse(orderContent);
+    
+    // Ajouter les informations de profil utilisateur
+    const userProfilePath = path.join(__dirname, 'data_client', `${userId}_profile.json`);
+    if (fs.existsSync(userProfilePath)) {
+      try {
+        const profileContent = fs.readFileSync(userProfilePath, 'utf8');
+        const profileData = JSON.parse(profileContent);
+        orderData.userProfile = {
+          fullName: profileData.fullName || `${profileData.firstName} ${profileData.lastName}`,
+          shopName: profileData.shopName,
+          email: profileData.email,
+          phone: profileData.phone,
+          shopAddress: profileData.shopAddress,
+          shopCity: profileData.shopCity,
+          shopZipCode: profileData.shopZipCode
+        };
+      } catch (error) {
+        console.error(`Erreur lors de la lecture du profil pour ${userId}:`, error);
+      }
+    }
+    
+    res.json(orderData);
+  } catch (error) {
+    console.error('Erreur lors de la récupération des détails de la commande:', error);
+    res.status(500).json({ error: 'Impossible de récupérer les détails de la commande' });
+  }
+});
+
+// API route for admin to download any invoice
+app.get('/api/admin/download-invoice/:orderId/:userId', requireLogin, requireAdmin, (req, res) => {
+  const { orderId, userId } = req.params;
+  const userProfilePath = path.join(__dirname, 'data_client', `${userId}_profile.json`);
+  
+  // Utiliser la structure de dossiers
+  const dirs = ensureUserOrderDirectories(userId);
+  
+  try {
+    // Vérifier que le fichier de profil existe
+    if (!fs.existsSync(userProfilePath)) {
+      return res.status(404).json({ error: 'User profile not found' });
+    }
+
+    // Lire le profil utilisateur
+    const profileContent = fs.readFileSync(userProfilePath, 'utf8');
+    const userProfile = JSON.parse(profileContent);
+
+    // Chercher la facture dans le répertoire delivered
+    const invoicePath = path.join(dirs.deliveredDir, `${orderId}_invoice.json`);
+    let invoiceData;
+    let orderItems;
+    let orderDate;
+    
+    // Si nous avons une facture dans le dossier delivered
+    if (fs.existsSync(invoicePath)) {
+      const invoiceContent = fs.readFileSync(invoicePath, 'utf8');
+      invoiceData = JSON.parse(invoiceContent);
+      orderItems = invoiceData.items;
+      orderDate = new Date(invoiceData.invoiceDate || invoiceData.originalOrderDate);
+    } 
+    // Sinon, chercher dans le dossier treated pour les commandes déjà traitées
+    else {
+      const treatedOrderPath = path.join(dirs.treatedDir, `${orderId}.json`);
+      if (fs.existsSync(treatedOrderPath)) {
+        const orderContent = fs.readFileSync(treatedOrderPath, 'utf8');
+        const orderData = JSON.parse(orderContent);
+        
+        // Si la commande est marquée comme completed ou a des items livrés
+        if (orderData.status === 'completed' || 
+           (orderData.deliveredItems && orderData.deliveredItems.length > 0)) {
+          orderItems = orderData.deliveredItems || orderData.items;
+          orderDate = new Date(orderData.lastProcessed || orderData.date);
+        } else {
+          return res.status(403).json({ 
+            error: 'Cette commande n\'a pas encore été livrée. Aucune facture disponible.' 
+          });
+        }
+      } else {
+        return res.status(404).json({ error: 'Commande non trouvée' });
+      }
+    }
+
+    // Si nous n'avons pas d'éléments à facturer
+    if (!orderItems || orderItems.length === 0) {
+      return res.status(404).json({ error: 'Aucun élément à facturer trouvé' });
+    }
+
+    // Créer un nouveau document PDF
+    const doc = new PDFDocument({ size: 'A4', margin: 50 });
+    
+    // Définir l'en-tête pour le téléchargement
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename=Invoice_${userId}_${orderId}.pdf`
+    );
+
+    // Pipe du PDF directement dans la réponse
+    doc.pipe(res);
+
+    // Fonction pour ajouter un élément d'en-tête
+    function addHeaderElement(doc, text, x, y, options = {}) {
+      doc.font('Helvetica').fontSize(10).text(text, x, y, options);
+    }
+
+    // Logo de l'entreprise
+    doc.image(path.join(__dirname, 'public', 'images', 'logo_discado_noir.png'), 50, 45, { width: 100 });
+
+    // Informations de l'émetteur
+    addHeaderElement(doc, 'Discado Sàrl', 50, 150);
+    addHeaderElement(doc, 'Rue de Lausanne 7', 50, 165);
+    addHeaderElement(doc, '1020 Morges, Suisse', 50, 180);
+    addHeaderElement(doc, 'TVA : CHE-123.456.789', 50, 195);
+
+    // Informations du client
+    const clientY = 150;
+    addHeaderElement(doc, 'Facture à :', 350, clientY);
+    addHeaderElement(doc, `${userProfile.firstName} ${userProfile.lastName}`, 350, clientY + 15);
+    addHeaderElement(doc, userProfile.shopName, 350, clientY + 30);
+    addHeaderElement(doc, userProfile.shopAddress || userProfile.address, 350, clientY + 45);
+    addHeaderElement(
+      doc,
+      `${userProfile.shopZipCode || userProfile.postalCode} ${userProfile.shopCity || userProfile.city}`,
+      350,
+      clientY + 60
+    );
+
+    // Détails de la facture
+    const invoiceDate = orderDate;
+    const invoiceNumber = `INV-${invoiceDate.getFullYear()}-${orderId}`;
+
+    doc.font('Helvetica-Bold').fontSize(16).text('Facture', 50, 250);
+    addHeaderElement(doc, `Numéro de facture: ${invoiceNumber}`, 50, 280);
+    addHeaderElement(doc, `Date de facturation: ${invoiceDate.toLocaleDateString('fr-CH')}`, 50, 295);
+
+    // Configuration des colonnes du tableau
+    const tableTop = 350;
+    const columns = [
+      { title: 'Désignation',   width: 200, align: 'left' },
+      { title: 'Quantité',     width:  70, align: 'center' },
+      { title: 'Prix unitaire',width: 100, align: 'right' },
+      { title: 'Total',        width: 100, align: 'right' }
+    ];
+
+    // Calcul de la largeur totale des colonnes
+    const totalWidth = columns.reduce((sum, col) => sum + col.width, 0);
+
+    // Position X de départ
+    let currentX = 50;
+
+    // En-tête du tableau
+    doc.font('Helvetica-Bold').fontSize(10);
+
+    columns.forEach(col => {
+      doc.text(col.title, currentX, tableTop, {
+        width: col.width,
+        align: col.align
+      });
+      currentX += col.width;
+    });
+
+    // Épaisseur de trait
+    doc.lineWidth(1.2);
+
+    // Ligne séparatrice en-tête
+    const lineEnd = 50 + totalWidth;
+    doc.moveTo(50, tableTop + 20)
+       .lineTo(lineEnd, tableTop + 20)
+       .stroke();
+
+    // Lignes d'articles
+    let yPos = tableTop + 30;
+    let totalHT = 0;
+
+    orderItems.forEach(item => {
+      const itemTotal = parseFloat(item.prix) * item.quantity;
+      totalHT += itemTotal;
+
+      doc.font('Helvetica').fontSize(10);
+
+      // On réinitialise la position de départ pour chaque ligne
+      let xPos = 50;
+
+      // Désignation
+      doc.text(item.Nom, xPos, yPos, {
+        width: columns[0].width,
+        align: columns[0].align
+      });
+      xPos += columns[0].width;
+
+      // Quantité
+      doc.text(String(item.quantity), xPos, yPos, {
+        width: columns[1].width,
+        align: columns[1].align
+      });
+      xPos += columns[1].width;
+
+      // Prix unitaire
+      doc.text(`${parseFloat(item.prix).toFixed(2)} CHF`, xPos, yPos, {
+        width: columns[2].width,
+        align: columns[2].align
+      });
+      xPos += columns[2].width;
+
+      // Total
+      doc.text(`${itemTotal.toFixed(2)} CHF`, xPos, yPos, {
+        width: columns[3].width,
+        align: columns[3].align
+      });
+
+      yPos += 20;
+    });
+
+    // Calculs et totaux
+    const TVA = 0.077; // Taux de TVA suisse standard (7.7%)
+    const montantTVA = totalHT * TVA;
+    const totalTTC = totalHT + montantTVA;
+
+    // Ligne séparatrice avant les totaux
+    doc.moveTo(50, yPos + 10)
+       .lineTo(lineEnd, yPos + 10)
+       .stroke();
+
+    // Alignement des totaux
+    doc.font('Helvetica-Bold').fontSize(10);
+
+    const col3Start = 50 + columns[0].width + columns[1].width;
+    const col4Start = col3Start + columns[2].width;
+
+    // Totaux
+    doc.text('TOTAL HT', col3Start, yPos + 20, {
+      width: columns[2].width,
+      align: 'right'
+    });
+    doc.text(`${totalHT.toFixed(2)} CHF`, col4Start, yPos + 20, {
+      width: columns[3].width,
+      align: 'right'
+    });
+
+    doc.text('TVA 7.7%', col3Start, yPos + 40, {
+      width: columns[2].width,
+      align: 'right'
+    });
+    doc.text(`${montantTVA.toFixed(2)} CHF`, col4Start, yPos + 40, {
+      width: columns[3].width,
+      align: 'right'
+    });
+
+    doc.text('TOTAL TTC', col3Start, yPos + 60, {
+      width: columns[2].width,
+      align: 'right'
+    });
+    doc.text(`${totalTTC.toFixed(2)} CHF`, col4Start, yPos + 60, {
+      width: columns[3].width,
+      align: 'right'
+    });
+
+    // Pied de page
+    doc.font('Helvetica').fontSize(10);
+    doc.text('Merci pour votre commande !', 50, yPos + 180, { align: 'center' });
+
+    // Finaliser le PDF
+    doc.end();
+
+  } catch (error) {
+    console.error('Error generating invoice:', error);
+    res.status(500).json({ error: 'Could not generate invoice' });
+  }
+});
+
+// Add this route to your index.js file
+
+// API route to get all orders for a specific client
+app.get('/api/admin/client-orders/:clientId', requireLogin, requireAdmin, (req, res) => {
+  const clientId = req.params.clientId;
+  
+  try {
+    const dirs = ensureUserOrderDirectories(clientId);
+    let clientOrders = [];
+    
+    // Get treated orders
+    if (fs.existsSync(dirs.treatedDir)) {
+      const treatedFiles = fs.readdirSync(dirs.treatedDir).filter(file => file.endsWith('.json'));
+      
+      treatedFiles.forEach(file => {
+        const orderPath = path.join(dirs.treatedDir, file);
+        const orderContent = fs.readFileSync(orderPath, 'utf8');
+        const orderData = JSON.parse(orderContent);
+        
+        clientOrders.push(orderData);
+      });
+    }
+    
+    // Get pending orders
+    if (fs.existsSync(dirs.pendingDir)) {
+      const pendingFiles = fs.readdirSync(dirs.pendingDir).filter(file => file.endsWith('.json'));
+      
+      pendingFiles.forEach(file => {
+        const orderPath = path.join(dirs.pendingDir, file);
+        const orderContent = fs.readFileSync(orderPath, 'utf8');
+        const orderData = JSON.parse(orderContent);
+        
+        clientOrders.push(orderData);
+      });
+    }
+    
+    // Check for legacy orders (backward compatibility)
+    const legacyOrdersPath = path.join(__dirname, 'data_store', `${clientId}_orders.json`);
+    if (fs.existsSync(legacyOrdersPath)) {
+      const fileContent = fs.readFileSync(legacyOrdersPath, 'utf8');
+      const legacyOrders = JSON.parse(fileContent);
+      
+      // Add any legacy orders that aren't already included
+      legacyOrders.forEach(legacyOrder => {
+        const isDuplicate = clientOrders.some(order => 
+          order.orderId === legacyOrder.orderId ||
+          (order.date === legacyOrder.date && JSON.stringify(order.items) === JSON.stringify(legacyOrder.items))
+        );
+        
+        if (!isDuplicate) {
+          clientOrders.push(legacyOrder);
+        }
+      });
+    }
+    
+    // Sort orders by date (newest first)
+    clientOrders.sort((a, b) => new Date(b.date) - new Date(a.date));
+    
+    res.json(clientOrders);
+  } catch (error) {
+    console.error('Erreur lors de la récupération des commandes du client:', error);
+    res.status(500).json({ error: 'Impossible de récupérer les commandes du client' });
+  }
+});
+
 // Lancement du serveur
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Serveur démarré sur http://localhost:${PORT}`);
-  console.log(`Accessible sur le réseau à l'adresse http://172.20.10.3:${PORT}`);
+  console.log(`Accessible sur le réseau à l'adresse 192.168.1.232:${PORT}`);
 });

@@ -7,6 +7,9 @@ document.addEventListener('DOMContentLoaded', function() {
     const searchInput = document.getElementById('searchInput');
     const searchBtn = document.getElementById('searchBtn');
     const closeModal = document.querySelector('.close-modal');
+    const orderDetailsModal = document.getElementById('orderDetailsModal');
+    const orderModalContent = document.getElementById('orderModalContent');
+    const orderModalTitle = document.getElementById('orderModalTitle');
     
     // Fonction pour formater la date
     function formatDate(dateString) {
@@ -104,7 +107,6 @@ document.addEventListener('DOMContentLoaded', function() {
         document.querySelectorAll('.view-client-btn').forEach(button => {
             button.addEventListener('click', function() {
                 const clientId = this.getAttribute('data-client-id');
-                console.log('ID client cliqué:', clientId); // Log pour déboguer
                 viewClientDetails(clientId);
             });
         });
@@ -116,18 +118,12 @@ document.addEventListener('DOMContentLoaded', function() {
         clientDetailsContent.innerHTML = `<div class="loading">Chargement des détails...</div>`;
         clientModal.style.display = 'block';
         
-        console.log('ID du client recherché:', clientId); // Log pour déboguer
-        
         // Charger les détails du client
         fetch('/api/admin/client-profiles')
             .then(response => response.json())
             .then(clients => {
-                console.log('Clients récupérés:', clients); // Log pour déboguer
-                
                 // On recherche le client via son clientId
                 const client = clients.find(c => c.clientId === clientId);
-                
-                console.log('Client trouvé:', client); // Log pour déboguer
                 
                 if (client) {
                     displayClientDetails(client);
@@ -155,7 +151,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Fonction pour afficher les détails du client dans la modale
     function displayClientDetails(client) {
-        // Mettre en titre l’ID du client
+        // Mettre en titre l'ID du client
         clientDetailsTitle.textContent = `Détails du client: ${client.clientId || 'N/A'}`;
         
         // Formatter la date de dernière mise à jour
@@ -210,6 +206,13 @@ document.addEventListener('DOMContentLoaded', function() {
                     </div>
                 </div>
             </div>
+            
+            <div class="client-details-section">
+                <h3>Historique des commandes</h3>
+                <div id="client-orders-container" class="client-orders-container">
+                    <div class="loading">Chargement de l'historique...</div>
+                </div>
+            </div>
         `;
         
         // Ajouter toutes les autres informations disponibles dans une section "Métadonnées"
@@ -257,9 +260,306 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Mettre à jour le contenu de la modal
         clientDetailsContent.innerHTML = html;
+        
+        // Charger l'historique des commandes du client
+        getClientOrderHistory(client.clientId)
+            .then(orders => {
+                const ordersContainer = document.getElementById('client-orders-container');
+                displayOrderHistory(ordersContainer, orders, client.clientId);
+            });
     }
     
-    // Fermer la modal quand on clique sur la croix
+    // Fonction pour récupérer l'historique des commandes d'un client
+    function getClientOrderHistory(clientId) {
+        return fetch(`/api/admin/client-orders/${clientId}`)
+            .then(response => response.json())
+            .catch(error => {
+                console.error('Error fetching client orders:', error);
+                return [];
+            });
+    }
+    
+        // Fonction pour afficher l'historique des commandes
+    function displayOrderHistory(container, orders, clientId) {
+        if (!orders || orders.length === 0) {
+            container.innerHTML = `
+                <div class="empty-state">
+                    <i class="fas fa-shopping-cart"></i>
+                    <p>Aucune commande pour ce client</p>
+                </div>
+            `;
+            return;
+        }
+        
+        // Trier les commandes par date (les plus récentes d'abord)
+        orders.sort((a, b) => new Date(b.lastProcessed || b.date) - new Date(a.lastProcessed || a.date));
+        
+        let html = `
+            <div class="client-orders-list">
+                <table class="orders-table">
+                    <thead>
+                        <tr>
+                            <th>Commande #</th>
+                            <th>Date</th>
+                            <th>Statut</th>
+                            <th>Articles</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+        `;
+        
+        orders.forEach(order => {
+            const orderDate = formatDate(order.date);
+            const processDate = order.lastProcessed ? formatDate(order.lastProcessed) : 'N/A';
+            
+            // Get status display
+            let statusText = 'En attente';
+            let statusClass = 'status-pending';
+            
+            // Toutes les commandes traitées (completed ou partial) sont considérées comme complètes
+            if (order.status === 'completed' || order.status === 'partial') {
+                statusText = 'Complète';
+                statusClass = 'status-completed';
+            }
+            
+            // Calculate total items
+            const totalItems = (order.deliveredItems || order.items || []).reduce((sum, item) => sum + item.quantity, 0);
+            
+            html += `
+                <tr>
+                    <td>${order.orderId}</td>
+                    <td>
+                        Commandé: ${orderDate}<br>
+                        ${order.lastProcessed ? `Traité: ${processDate}` : ''}
+                    </td>
+                    <td><span class="status-badge ${statusClass}">${statusText}</span></td>
+                    <td>${totalItems} article${totalItems > 1 ? 's' : ''}</td>
+                    <td class="order-actions">
+            `;
+            
+            // Le changement se trouve dans cette section - suppression du bouton "Facture"
+            if (order.status === 'pending') {
+                html += `
+                    <a href="/admin" class="order-action-btn">
+                        <i class="fas fa-tasks"></i> Traiter
+                    </a>
+                `;
+            } else {
+                html += `
+                    <button class="order-action-btn view-details-btn" data-order-id="${order.orderId}" data-client-id="${clientId}">
+                        <i class="fas fa-eye"></i> Détails
+                    </button>
+                `;
+            }
+            
+            html += `
+                    </td>
+                </tr>
+            `;
+        });
+        
+        html += `
+                </tbody>
+            </table>
+        </div>
+        `;
+        
+        container.innerHTML = html;
+        
+        // Ajouter les écouteurs d'événements pour les boutons de détails
+        container.querySelectorAll('.view-details-btn').forEach(button => {
+            button.addEventListener('click', function(e) {
+                e.preventDefault();
+                const orderId = this.getAttribute('data-order-id');
+                const clientId = this.getAttribute('data-client-id');
+                viewOrderDetails(orderId, clientId);
+            });
+        });
+    }
+    
+    // Fonction pour afficher les détails d'une commande
+    function viewOrderDetails(orderId, clientId) {
+        orderModalContent.innerHTML = `<div class="loading">Chargement des détails...</div>`;
+        orderDetailsModal.style.display = 'block';
+        
+        // Récupérer les détails de la commande
+        fetch(`/api/admin/order-details/${orderId}/${clientId}`)
+            .then(response => response.json())
+            .then(orderDetails => {
+                displayOrderDetailsModal(orderDetails, clientId);
+            })
+            .catch(error => {
+                console.error('Erreur lors du chargement des détails de la commande:', error);
+                orderModalContent.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <p>Erreur lors du chargement des détails de la commande.</p>
+                    </div>
+                `;
+            });
+    }
+    
+        // Fonction pour afficher les détails de la commande dans la modal
+    function displayOrderDetailsModal(order, clientId) {
+        const orderModalContent = document.getElementById('orderModalContent');
+        const orderModalTitle = document.getElementById('orderModalTitle');
+        
+        const orderDate = formatDate(order.date);
+        const processDate = formatDate(order.lastProcessed);
+        
+        // Calculer le montant total
+        const totalAmount = (order.deliveredItems || []).reduce((total, item) => {
+            return total + (parseFloat(item.prix) * item.quantity);
+        }, 0).toFixed(2);
+
+        // Calculer le montant des articles en attente si présent
+        let pendingTotalAmount = 0;
+        if (order.remainingItems && order.remainingItems.length > 0) {
+            pendingTotalAmount = order.remainingItems.reduce((total, item) => {
+                return total + (parseFloat(item.prix) * item.quantity);
+            }, 0).toFixed(2);
+        }
+
+        // Calculer le montant total global
+        const globalTotalAmount = (parseFloat(totalAmount) + parseFloat(pendingTotalAmount)).toFixed(2);
+        
+        // Statut de la commande (avec option "partiellement livrée" si applicable)
+        let statusText = 'COMPLETED';
+        let statusClass = 'status-completed';
+        
+        if (order.remainingItems && order.remainingItems.length > 0) {
+            statusText = 'PARTIALLY SHIPPED';
+            statusClass = 'status-partial';
+        }
+        
+        // Définir le titre de la modal - plus simple, juste Order #ID
+        orderModalTitle.textContent = `Order #${order.orderId.split('_').pop()}`;
+        
+        // Créer le HTML pour le contenu de la modal avec un style plus proche de l'image de référence
+        let detailsHTML = `
+            <div class="order-header">
+                <div class="order-status-indicator">
+                    <span class="status-badge ${statusClass}">${statusText}</span>
+                </div>
+            </div>
+
+            <div class="order-date-section">
+                ${orderDate.split(',')[0]}
+            </div>
+
+            <div class="order-items-table">
+                <table class="items-table">
+                    <thead>
+                        <tr>
+                            <th class="qty-column">Qty</th>
+                            <th class="product-column">Product</th>
+                            <th class="unit-price-column">Unit Price</th>
+                            <th class="total-column">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+        `;
+        
+        // Ajouter les articles livrés
+        if (order.deliveredItems && order.deliveredItems.length > 0) {
+            order.deliveredItems.forEach(item => {
+                const itemTotal = (parseFloat(item.prix) * item.quantity).toFixed(2);
+                
+                detailsHTML += `
+                    <tr>
+                        <td class="qty-column">${item.quantity}</td>
+                        <td class="product-column">${item.Nom}</td>
+                        <td class="unit-price-column">${parseFloat(item.prix).toFixed(2)} CHF</td>
+                        <td class="total-column">${itemTotal} CHF</td>
+                    </tr>
+                `;
+            });
+        }
+        
+        detailsHTML += `
+                    </tbody>
+                </table>
+            </div>
+        `;
+        
+        // Ajouter la section des articles en attente s'il y en a
+        if (order.remainingItems && order.remainingItems.length > 0) {
+            detailsHTML += `
+                <div class="pending-items-header">
+                    PENDING ITEMS
+                </div>
+                
+                <div class="pending-items-table">
+                    <table class="items-table">
+                        <tbody>
+            `;
+            
+            order.remainingItems.forEach(item => {
+                const itemTotal = (parseFloat(item.prix) * item.quantity).toFixed(2);
+                
+                detailsHTML += `
+                    <tr>
+                        <td class="qty-column">${item.quantity}</td>
+                        <td class="product-column">${item.Nom}</td>
+                        <td class="unit-price-column">${parseFloat(item.prix).toFixed(2)} CHF</td>
+                        <td class="total-column">${itemTotal} CHF</td>
+                    </tr>
+                `;
+            });
+            
+            detailsHTML += `
+                        </tbody>
+                    </table>
+                </div>
+            `;
+        }
+        
+        // Ajouter le résumé et le bouton de téléchargement
+        detailsHTML += `
+            <div class="order-footer">
+                <div class="order-total">
+                    <span>Total: ${globalTotalAmount} CHF</span>
+                </div>
+                <div class="download-invoice-btn-container">
+                    <a href="/api/admin/download-invoice/${order.orderId}/${clientId}" class="download-invoice-btn" target="_blank">
+                        <i class="fas fa-file-pdf"></i> Download Invoice
+                    </a>
+                </div>
+            </div>
+            
+            <div class="client-info-section">
+                <h3>Informations du client</h3>
+                <div class="client-details">
+                    <div class="client-detail-item">
+                        <span class="detail-label">Nom:</span>
+                        <span class="detail-value">${order.userProfile?.fullName || 'N/A'}</span>
+                    </div>
+                    <div class="client-detail-item">
+                        <span class="detail-label">Email:</span>
+                        <span class="detail-value">${order.userProfile?.email || 'N/A'}</span>
+                    </div>
+                    <div class="client-detail-item">
+                        <span class="detail-label">Téléphone:</span>
+                        <span class="detail-value">${order.userProfile?.phone || 'N/A'}</span>
+                    </div>
+                    <div class="client-detail-item">
+                        <span class="detail-label">Boutique:</span>
+                        <span class="detail-value">${order.userProfile?.shopName || 'N/A'}</span>
+                    </div>
+                    <div class="client-detail-item">
+                        <span class="detail-label">Adresse:</span>
+                        <span class="detail-value">${order.userProfile?.shopAddress || 'N/A'}, ${order.userProfile?.shopCity || ''} ${order.userProfile?.shopZipCode || ''}</span>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // Mettre à jour le contenu de la modal
+        orderModalContent.innerHTML = detailsHTML;
+    }
+    
+    // Fermer la modal client quand on clique sur la croix
     closeModal.addEventListener('click', function() {
         clientModal.style.display = 'none';
     });
@@ -269,7 +569,18 @@ document.addEventListener('DOMContentLoaded', function() {
         if (event.target === clientModal) {
             clientModal.style.display = 'none';
         }
+        if (event.target === orderDetailsModal) {
+            orderDetailsModal.style.display = 'none';
+        }
     });
+    
+    // Fermer la modal des détails de commande quand on clique sur la croix
+    const closeOrderModal = document.querySelector('.close-order-modal');
+    if (closeOrderModal) {
+        closeOrderModal.addEventListener('click', function() {
+            orderDetailsModal.style.display = 'none';
+        });
+    }
     
     // Fonction de recherche
     function searchClients() {
@@ -371,12 +682,16 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // Écouteur d'événement pour le bouton de recherche
-    searchBtn.addEventListener('click', searchClients);
+    if (searchBtn) {
+        searchBtn.addEventListener('click', searchClients);
+    }
     
     // Recherche en appuyant sur Entrée
-    searchInput.addEventListener('keyup', function(event) {
-        if (event.key === 'Enter') {
-            searchClients();
-        }
-    });
+    if (searchInput) {
+        searchInput.addEventListener('keyup', function(event) {
+            if (event.key === 'Enter') {
+                searchClients();
+            }
+        });
+    }
 });
