@@ -351,50 +351,102 @@ app.post('/api/save-order', requireLogin, (req, res) => {
   const cartItems = req.body.items;
   const keepLegacyFormat = req.body.keepLegacyFormat || false; // Paramètre optionnel
   
-  // Créer un ID unique pour la commande
-  const orderId = `order_${Date.now()}`;
-  
-  // Créer un objet commande
-  const order = {
-    orderId: orderId,
-    userId: userId,
-    items: cartItems,
-    status: 'pending',
-    date: new Date().toISOString()
-  };
-  
   // S'assurer que les répertoires utilisateur existent
   const dirs = ensureUserOrderDirectories(userId);
   
-  // Chemin pour enregistrer la commande dans le répertoire pending
-  const orderFilePath = path.join(dirs.pendingDir, `${orderId}.json`);
-  
   try {
-    // Enregistrer la commande dans le répertoire pending
-    fs.writeFileSync(orderFilePath, JSON.stringify(order, null, 2));
-    
-    // Enregistrer dans le format legacy si demandé
-    if (keepLegacyFormat) {
-      const legacyOrdersPath = path.join(__dirname, 'data_store', `${userId}_orders.json`);
-      let legacyOrders = [];
+      // Récupérer toutes les commandes en attente pour cet utilisateur
+      const pendingOrderFiles = fs.readdirSync(dirs.pendingDir)
+          .filter(file => file.endsWith('.json'));
       
-      if (fs.existsSync(legacyOrdersPath)) {
-        // Lire le fichier existant
-        const fileContent = fs.readFileSync(legacyOrdersPath, 'utf8');
-        legacyOrders = JSON.parse(fileContent);
+      let combinedOrder;
+      let existingOrderId;
+      
+      if (pendingOrderFiles.length > 0) {
+          // S'il y a déjà des commandes en attente, les combiner
+          const existingOrderPath = path.join(dirs.pendingDir, pendingOrderFiles[0]);
+          const existingOrder = JSON.parse(fs.readFileSync(existingOrderPath, 'utf8'));
+          existingOrderId = existingOrder.orderId;
+          
+          // Combiner les articles de la nouvelle commande avec ceux de la commande existante
+          const combinedItems = [...existingOrder.items];
+          
+          // Pour chaque nouvel article, vérifier s'il existe déjà et l'ajouter ou mettre à jour la quantité
+          cartItems.forEach(newItem => {
+              const existingItemIndex = combinedItems.findIndex(item => 
+                  item.Nom === newItem.Nom && item.categorie === newItem.categorie
+              );
+              
+              if (existingItemIndex !== -1) {
+                  // Si l'article existe, mettre à jour la quantité
+                  combinedItems[existingItemIndex].quantity += newItem.quantity;
+              } else {
+                  // Sinon, ajouter le nouvel article
+                  combinedItems.push(newItem);
+              }
+          });
+          
+          // Créer la commande combinée
+          combinedOrder = {
+              ...existingOrder,
+              items: combinedItems,
+              lastUpdated: new Date().toISOString()
+          };
+          
+          // Supprimer l'ancienne commande
+          fs.unlinkSync(existingOrderPath);
+      } else {
+          // Si pas de commande en attente, créer une nouvelle commande
+          existingOrderId = `order_${Date.now()}`;
+          combinedOrder = {
+              orderId: existingOrderId,
+              userId: userId,
+              items: cartItems,
+              status: 'pending',
+              date: new Date().toISOString()
+          };
       }
       
-      // Ajouter la nouvelle commande
-      legacyOrders.push(order);
+      // Chemin pour enregistrer la commande combinée
+      const orderFilePath = path.join(dirs.pendingDir, `${existingOrderId}.json`);
       
-      // Enregistrer dans le fichier legacy
-      fs.writeFileSync(legacyOrdersPath, JSON.stringify(legacyOrders, null, 2));
-    }
-    
-    res.json({ success: true, message: 'Commande enregistrée', orderId: orderId });
+      // Enregistrer la commande combinée
+      fs.writeFileSync(orderFilePath, JSON.stringify(combinedOrder, null, 2));
+      
+      // Enregistrer dans le format legacy si demandé
+      if (keepLegacyFormat) {
+          const legacyOrdersPath = path.join(__dirname, 'data_store', `${userId}_orders.json`);
+          let legacyOrders = [];
+          
+          if (fs.existsSync(legacyOrdersPath)) {
+              // Lire le fichier existant
+              const fileContent = fs.readFileSync(legacyOrdersPath, 'utf8');
+              legacyOrders = JSON.parse(fileContent);
+          }
+          
+          // Ajouter ou mettre à jour la commande
+          const legacyOrderIndex = legacyOrders.findIndex(order => order.orderId === existingOrderId);
+          
+          if (legacyOrderIndex !== -1) {
+              legacyOrders[legacyOrderIndex] = combinedOrder;
+          } else {
+              legacyOrders.push(combinedOrder);
+          }
+          
+          // Enregistrer dans le fichier legacy
+          fs.writeFileSync(legacyOrdersPath, JSON.stringify(legacyOrders, null, 2));
+      }
+      
+      res.json({ 
+          success: true, 
+          message: pendingOrderFiles.length > 0 
+              ? 'Commande mise à jour avec les nouveaux articles' 
+              : 'Nouvelle commande enregistrée', 
+          orderId: existingOrderId 
+      });
   } catch (error) {
-    console.error('Erreur lors de l\'enregistrement de la commande:', error);
-    res.status(500).json({ success: false, message: 'Erreur lors de l\'enregistrement de la commande' });
+      console.error('Erreur lors de l\'enregistrement de la commande:', error);
+      res.status(500).json({ success: false, message: 'Erreur lors de l\'enregistrement de la commande' });
   }
 });
 

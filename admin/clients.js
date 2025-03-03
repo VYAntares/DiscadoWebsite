@@ -77,15 +77,17 @@ document.addEventListener('DOMContentLoaded', function() {
             
             const row = document.createElement('tr');
             row.innerHTML = `
-                <td><span class="client-id">${clientId}</span></td>
                 <td>
-                    <span class="client-name">${fullName}</span>
-                    <span class="client-shop">${shopName}</span>
+                    <span class="client-id">${clientId}</span>
                 </td>
                 <td>
-                    <div class="contact-info">
-                        <div class="contact-email"><i class="fas fa-envelope"></i> ${email}</div>
-                        <div class="contact-phone"><i class="fas fa-phone"></i> ${phone}</div>
+                    <div class="client-info">
+                        <span class="client-name">${fullName}</span>
+                        <span class="client-shop">${shopName}</span>
+                        <div class="client-contact-mobile">
+                            <a href="mailto:${email}" class="contact-link"><i class="fas fa-envelope"></i></a>
+                            <a href="tel:${phone}" class="contact-link"><i class="fas fa-phone"></i></a>
+                        </div>
                     </div>
                 </td>
                 <td>

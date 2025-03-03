@@ -1,0 +1,23 @@
+{
+  "orderId": "order_1741015011257",
+  "userId": "luca",
+  "items": [
+    {
+      "Nom": "Bags 312 - Small backpack Switzerland",
+      "prix": "4.00",
+      "imageUrl": "/images/bags/Bags312.jpg",
+      "categorie": "bags",
+      "quantity": 100
+    },
+    {
+      "Nom": "Bags 313 - Big bag with cities in beige",
+      "prix": "5.00",
+      "imageUrl": "/images/bags/Bags313.jpg",
+      "categorie": "bags",
+      "quantity": 50
+    }
+  ],
+  "status": "pending",
+  "date": "2025-03-03T15:16:51.257Z",
+  "lastUpdated": "2025-03-03T15:17:13.505Z"
+}
