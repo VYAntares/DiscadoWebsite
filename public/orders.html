@@ -247,10 +247,6 @@
                         
                         // Pour les commandes partiellement livrées, afficher les articles déjà livrés
                         if (order.status === 'partial' && order.deliveredItems && order.deliveredItems.length > 0) {
-                            orderHtml += `
-                                <tr class="order-section-header">
-                                    <td colspan="4" class="delivered-section">DELIVERED ITEMS</td>
-                                </tr>`;
                             
                             order.deliveredItems.forEach(item => {
                                 const itemTotal = parseFloat(item.prix) * item.quantity;
