@@ -3,48 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Mes Commandes</title>
+    <title>My Orders</title>
     <link rel="stylesheet" href="styles.css">
-    <!-- Font Awesome pour les icônes -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        /* Additional styles for improved order display */
-        .order-items {
-            margin: 0;
-            padding: 0;
-            list-style: none;
-        }
-        
         .order-item {
-            padding: 10px;
-            border-bottom: 1px solid #eee;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            padding: 15px;
+            border-bottom: 1px solid #eee;
         }
         
-        .order-item:last-child {
-            border-bottom: none;
-        }
-        
-        .item-details {
-            flex: 1;
-        }
-        
-        .item-price {
-            text-align: right;
-            font-weight: bold;
-            margin-left: 10px;
-        }
-        
-        .item-status {
+        .order-status {
             display: inline-block;
-            padding: 2px 6px;
-            border-radius: 3px;
-            font-size: 0.7em;
-            margin-left: 10px;
-            text-transform: uppercase;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 0.8em;
             font-weight: bold;
+            text-transform: uppercase;
         }
         
         .status-shipped {
@@ -52,121 +29,22 @@
             color: #155724;
         }
         
-        .status-pending {
+        .status-processing {
             background-color: #fff3cd;
             color: #856404;
         }
         
-        .order-status-details {
-            margin: 10px 0;
-            padding: 10px;
-            background-color: #f8f9fa;
-            border-radius: 5px;
-            font-size: 0.9em;
-        }
-        
-        .status-summary {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 10px;
-        }
-        
-        .status-indicator {
-            display: flex;
-            align-items: center;
+        .order-details {
+            flex-grow: 1;
             margin-right: 15px;
         }
         
-        .status-dot {
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            margin-right: 5px;
-        }
-        
-        .dot-shipped {
-            background-color: #28a745;
-        }
-        
-        .dot-pending {
-            background-color: #ffc107;
-        }
-        
-        .items-section {
-            margin-top: 15px;
-        }
-        
-        .items-section h4 {
-            margin-bottom: 10px;
-            padding-bottom: 5px;
-            border-bottom: 1px solid #eee;
-            color: #6c757d;
-            font-size: 0.95em;
-        }
-        
-        /* Style pour le bouton "À livrer" */
-        .filter-buttons {
-            display: flex;
-            margin-bottom: 20px;
-            gap: 10px;
-        }
-        
-        .filter-button {
-            padding: 8px 16px;
-            background-color: #f0f0f0;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            display: flex;
-            align-items: center;
-            font-weight: 500;
-        }
-        
-        .filter-button.active {
-            background-color: #2575fc;
-            color: white;
-        }
-        
-        .filter-button i {
-            margin-right: 8px;
-        }
-        
-        .filter-count {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            height: 20px;
-            min-width: 20px;
-            padding: 0 6px;
-            margin-left: 8px;
-            background-color: #ff5722;
-            color: white;
-            border-radius: 10px;
-            font-size: 0.8em;
+        .order-total {
             font-weight: bold;
-        }
-        
-        /* Mobile optimizations */
-        @media (max-width: 768px) {
-            .order-item {
-                flex-direction: column;
-                align-items: flex-start;
-            }
-            
-            .item-price {
-                margin-left: 0;
-                margin-top: 5px;
-            }
-            
-            .filter-buttons {
-                flex-wrap: wrap;
-            }
         }
     </style>
 </head>
 <body>
-    <!-- Header compact -->
     <header>
         <div class="header-container">
             <button id="menuToggle" class="menu-toggle" aria-label="Toggle menu">
@@ -187,280 +65,111 @@
         </div>
     </header>
 
-    <!-- Menu déroulant (simplifié pour la page des commandes) -->
     <div id="dropdownMenu" class="dropdown-menu">
         <div class="menu-section">
             <ul class="category-list">
-                <li class="category-item" data-category="all"><a href="/catalog">Retour au Catalogue</a></li>
+                <li class="category-item" data-category="all"><a href="/catalog">Back to Catalog</a></li>
             </ul>
         </div>
     </div>
 
-    <!-- Menu utilisateur -->
     <div id="userMenu" class="user-menu">
-        <a href="/profile">Mon Profil</a>
-        <a href="/catalog">Catalogue</a>
-        <a href="/logout">Déconnexion</a>
+        <a href="/profile">My Profile</a>
+        <a href="/catalog">Catalog</a>
+        <a href="/logout">Log Out</a>
     </div>
 
-    <!-- Overlay pour fermer les menus -->
     <div id="menuOverlay" class="menu-overlay"></div>
 
-    <!-- Contenu principal -->
     <main>
         <div class="order-page-header">
-            <h2>Mes Commandes</h2>
-            
-            <!-- Boutons de filtrage -->
-            <div class="filter-buttons">
-                <button id="allOrdersBtn" class="filter-button active">
-                    <i class="fas fa-list"></i> Toutes les commandes
-                </button>
-                <button id="toDeliverBtn" class="filter-button">
-                    <i class="fas fa-shipping-fast"></i> À livrer
-                    <span id="toDeliverCount" class="filter-count" style="display: none;">0</span>
-                </button>
-            </div>
+            <h2>My Orders</h2>
         </div>
         
         <div id="ordersList">
-            <p>Chargement de vos commandes...</p>
+            <p>Loading your orders...</p>
         </div>
     </main>
 
     <script src="header.js"></script>
     <script>
-        // Enhanced function to get readable status
-        function getReadableStatus(status) {
-            switch(status) {
-                case 'in progress':
-                    return 'En cours de traitement';
-                case 'partially_shipped':
-                    return 'Partiellement livrée';
-                case 'completed':
-                    return 'Terminée';
-                case 'shipped_portion':
-                    return 'Livrée';
-                default:
-                    return status.charAt(0).toUpperCase() + status.slice(1).replace(/_/g, ' ');
-            }
-        }
-        
-        // Variables globales pour stocker les commandes et le filtre actuel
-        let allOrders = [];
-        let currentFilter = 'all'; // 'all' ou 'to-deliver'
-        
-        // Charger les commandes de l'utilisateur avec statut amélioré des articles
         document.addEventListener('DOMContentLoaded', function() {
+            function getStatusClass(status) {
+                switch(status) {
+                    case 'shipped':
+                        return 'status-shipped';
+                    case 'in progress':
+                    default:
+                        return 'status-processing';
+                }
+            }
+
+            function getReadableStatus(status) {
+                switch(status) {
+                    case 'in progress':
+                        return 'Being Processed';
+                    case 'shipped':
+                        return 'Shipped';
+                    default:
+                        return status.charAt(0).toUpperCase() + status.slice(1).replace(/_/g, ' ');
+                }
+            }
+
             fetch('/api/user-orders')
                 .then(response => response.json())
                 .then(orders => {
-                    allOrders = orders;
+                    const ordersContainer = document.getElementById('ordersList');
                     
-                    // Compter les commandes "à livrer"
-                    const toDeliverCount = orders.filter(order => order.status === 'partially_shipped').length;
-                    
-                    // Mettre à jour le compteur du bouton
-                    const countBadge = document.getElementById('toDeliverCount');
-                    if (toDeliverCount > 0) {
-                        countBadge.textContent = toDeliverCount;
-                        countBadge.style.display = 'inline-flex';
-                    } else {
-                        countBadge.style.display = 'none';
+                    if (orders.length === 0) {
+                        ordersContainer.innerHTML = '<p>You have no orders yet.</p>';
+                        return;
                     }
-                    
-                    // Afficher les commandes par défaut (toutes)
-                    displayOrders('all');
-                    
-                    // Ajouter les écouteurs d'événements pour les boutons de filtre
-                    document.getElementById('allOrdersBtn').addEventListener('click', function() {
-                        setActiveFilter('all');
-                    });
-                    
-                    document.getElementById('toDeliverBtn').addEventListener('click', function() {
-                        setActiveFilter('to-deliver');
-                    });
-                })
-                .catch(error => {
-                    console.error('Erreur:', error);
-                    document.getElementById('ordersList').innerHTML = 
-                        '<p>Erreur lors du chargement des commandes.</p>';
-                });
-        });
-        
-        // Fonction pour définir le filtre actif
-        function setActiveFilter(filter) {
-            // Si c'est déjà le filtre actif, ne rien faire
-            if (filter === currentFilter) return;
-            
-            currentFilter = filter;
-            
-            // Mettre à jour les classes des boutons
-            document.getElementById('allOrdersBtn').classList.toggle('active', filter === 'all');
-            document.getElementById('toDeliverBtn').classList.toggle('active', filter === 'to-deliver');
-            
-            // Afficher les commandes filtrées
-            displayOrders(filter);
-        }
-        
-        // Fonction pour afficher les commandes en fonction du filtre
-        function displayOrders(filter) {
-            const ordersContainer = document.getElementById('ordersList');
-            
-            // Filtrer les commandes si nécessaire
-            let filteredOrders = allOrders;
-            if (filter === 'to-deliver') {
-                filteredOrders = allOrders.filter(order => order.status === 'partially_shipped');
-            }
-            
-            if (filteredOrders.length === 0) {
-                if (filter === 'to-deliver') {
-                    ordersContainer.innerHTML = '<p>Vous n\'avez aucune commande à livrer.</p>';
-                } else {
-                    ordersContainer.innerHTML = '<p>Vous n\'avez pas encore passé de commande.</p>';
-                }
-                return;
-            }
-            
-            let html = '';
-            filteredOrders.forEach((order, index) => {
-                const orderDate = new Date(order.date).toLocaleDateString('fr-FR', {
-                    day: 'numeric',
-                    month: 'long',
-                    year: 'numeric'
-                });
-                
-                // Get counts for status summary
-                let shippedItemsCount = 0;
-                let pendingItemsCount = 0;
-                
-                // Check for shipped items
-                order.items.forEach(item => {
-                    const shipped = item.shipped || 0;
-                    const pending = item.quantity - shipped;
-                    
-                    if (shipped > 0) shippedItemsCount += shipped;
-                    if (pending > 0) pendingItemsCount += pending;
-                });
-                
-                // Start building the order card
-                html += `
-                    <div class="order-card">
-                        <h3>
-                            <span class="order-title">Commande #${index + 1}</span>
-                            <span class="order-date">${orderDate}</span>
-                        </h3>
-                        <div class="order-status">Statut: ${getReadableStatus(order.status)}</div>`;
-                        
-                // Display status details for partially shipped orders
-                if (order.status === 'partially_shipped') {
-                    html += `
-                        <div class="order-status-details">
-                            <div class="status-summary">
-                                <div class="status-indicator">
-                                    <span class="status-dot dot-shipped"></span>
-                                    <span>${shippedItemsCount} articles livrés</span>
+
+                    let html = '';
+                    orders.forEach((order, index) => {
+                        const orderDate = new Date(order.date).toLocaleDateString('en-US', {
+                            day: 'numeric',
+                            month: 'long',
+                            year: 'numeric'
+                        });
+
+                        const totalAmount = order.items.reduce((total, item) => 
+                            total + (parseFloat(item.prix) * item.quantity), 0
+                        ).toFixed(2);
+
+                        html += `
+                            <div class="order-card">
+                                <div class="order-item">
+                                    <div class="order-details">
+                                        <h3>Order #${index + 1}</h3>
+                                        <p>${orderDate}</p>
+                                        <span class="order-status ${getStatusClass(order.status)}">
+                                            ${getReadableStatus(order.status)}
+                                        </span>
+                                    </div>
+                                    <div class="order-total">
+                                        Total: ${totalAmount} CHF
+                                    </div>
                                 </div>
-                                <div class="status-indicator">
-                                    <span class="status-dot dot-pending"></span>
-                                    <span>${pendingItemsCount} articles en attente</span>
+                                <div class="order-items">
+                                    ${order.items.map(item => `
+                                        <div class="order-item-detail">
+                                            ${item.quantity}x ${item.Nom} - ${item.prix} CHF
+                                        </div>
+                                    `).join('')}
                                 </div>
                             </div>
-                        </div>`;
-                }
-                
-                html += `<h4>Articles:</h4>
-                        <ul class="order-items">`;
-                        
-                // Group items by status for partially shipped orders
-                if (order.status === 'partially_shipped') {
-                    // First add shipped items
-                    const shippedItems = order.items.filter(item => item.shipped && item.shipped > 0);
-                    
-                    if (shippedItems.length > 0) {
-                        html += `
-                            <div class="items-section shipped-items">
-                                <h4><i class="fas fa-check-circle"></i> Articles livrés</h4>
-                                <ul class="order-items">`;
-                        
-                        shippedItems.forEach(item => {
-                            const shipped = item.shipped || 0;
-                            if (shipped > 0) {
-                                const itemTotal = (parseFloat(item.prix) * shipped).toFixed(2);
-                                html += `
-                                    <li class="order-item">
-                                        <div class="item-details">
-                                            <span>${shipped}x | ${item.Nom} - ${item.prix} CHF</span>
-                                            <span class="item-status status-shipped">Livré</span>
-                                        </div>
-                                        <span class="item-price">${itemTotal} CHF</span>
-                                    </li>`;
-                            }
-                        });
-                        
-                        html += `</ul></div>`;
-                    }
-                    
-                    // Then add pending items
-                    const pendingItems = order.items.filter(item => {
-                        const shipped = item.shipped || 0;
-                        return (item.quantity - shipped) > 0;
+                        `;
                     });
-                    
-                    if (pendingItems.length > 0) {
-                        html += `
-                            <div class="items-section pending-items">
-                                <h4><i class="fas fa-clock"></i> Articles en attente</h4>
-                                <ul class="order-items">`;
-                        
-                        pendingItems.forEach(item => {
-                            const shipped = item.shipped || 0;
-                            const pending = item.quantity - shipped;
-                            if (pending > 0) {
-                                const itemTotal = (parseFloat(item.prix) * pending).toFixed(2);
-                                html += `
-                                    <li class="order-item">
-                                        <div class="item-details">
-                                            <span>${pending}x | ${item.Nom} - ${item.prix} CHF</span>
-                                            <span class="item-status status-pending">En attente</span>
-                                        </div>
-                                        <span class="item-price">${itemTotal} CHF</span>
-                                    </li>`;
-                            }
-                        });
-                        
-                        html += `</ul></div>`;
-                    }
-                } else {
-                    // Standard display for non-partially shipped orders
-                    order.items.forEach(item => {
-                        const itemTotal = (parseFloat(item.prix) * item.quantity).toFixed(2);
-                        html += `
-                            <li class="order-item">
-                                <div class="item-details">
-                                    <span>${item.quantity}x | ${item.Nom} - ${item.prix} CHF</span>
-                                </div>
-                                <span class="item-price">${itemTotal} CHF</span>
-                            </li>`;
-                    });
-                }
-                
-                html += `</ul>
-                        <p class="order-total">Total: <strong>${calculateTotal(order.items)} CHF</strong></p>
-                    </div>`;
-            });
-            
-            ordersContainer.innerHTML = html;
-        }
-        
-        // Calculate total function with enhanced support for partially shipped items
-        function calculateTotal(items) {
-            return items.reduce((total, item) => {
-                // If the order is partially shipped, we still show the full amount
-                // as the total reflects the entire order value
-                return total + (parseFloat(item.prix) * item.quantity);
-            }, 0).toFixed(2);
-        }
+
+                    ordersContainer.innerHTML = html;
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    document.getElementById('ordersList').innerHTML = 
+                        '<p>Error loading orders. Please try again later.</p>';
+                });
+        });
     </script>
 </body>
 </html>
