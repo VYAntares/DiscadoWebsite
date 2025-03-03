@@ -657,7 +657,7 @@ dataDirs.forEach(dir => {
 
 app.get('/api/download-invoice/:orderId', requireLogin, (req, res) => {
   const userId = req.session.user.username;
-  const orderId = req.params.orderId; // Ne pas convertir en entier, c'est une chaîne
+  const orderId = req.params.orderId;
   const userProfilePath = path.join(__dirname, 'data_client', `${userId}_profile.json`);
   
   // Utiliser la structure de dossiers
@@ -673,46 +673,77 @@ app.get('/api/download-invoice/:orderId', requireLogin, (req, res) => {
     const profileContent = fs.readFileSync(userProfilePath, 'utf8');
     const userProfile = JSON.parse(profileContent);
 
-    // Chercher la commande dans les répertoires treated et pending
-    let orderPath;
-    let order;
+    // Chercher la facture dans le répertoire delivered
+    const invoicePath = path.join(dirs.deliveredDir, `${orderId}_invoice.json`);
+    let invoiceData;
+    let orderItems;
+    let orderDate;
     
-    // Chercher d'abord dans treated
-    const treatedOrderPath = path.join(dirs.treatedDir, `${orderId}.json`);
-    if (fs.existsSync(treatedOrderPath)) {
-      orderPath = treatedOrderPath;
-      const orderContent = fs.readFileSync(orderPath, 'utf8');
-      order = JSON.parse(orderContent);
+    // Si nous avons une facture dans le dossier delivered
+    if (fs.existsSync(invoicePath)) {
+      const invoiceContent = fs.readFileSync(invoicePath, 'utf8');
+      invoiceData = JSON.parse(invoiceContent);
+      orderItems = invoiceData.items;
+      orderDate = new Date(invoiceData.invoiceDate || invoiceData.originalOrderDate);
     } 
-    
-    // Sinon chercher dans pending
-    if (!order) {
-      const pendingOrderPath = path.join(dirs.pendingDir, `${orderId}.json`);
-      if (fs.existsSync(pendingOrderPath)) {
-        orderPath = pendingOrderPath;
-        const orderContent = fs.readFileSync(orderPath, 'utf8');
-        order = JSON.parse(orderContent);
-      }
-    }
-    
-    // Si on n'a pas trouvé la commande, chercher dans l'ancien format
-    if (!order) {
-      const legacyOrdersPath = path.join(__dirname, 'data_store', `${userId}_orders.json`);
-      if (fs.existsSync(legacyOrdersPath)) {
-        const fileContent = fs.readFileSync(legacyOrdersPath, 'utf8');
-        const orders = JSON.parse(fileContent);
+    // Sinon, chercher dans le dossier treated pour les commandes déjà traitées
+    else {
+      const treatedOrderPath = path.join(dirs.treatedDir, `${orderId}.json`);
+      if (fs.existsSync(treatedOrderPath)) {
+        const orderContent = fs.readFileSync(treatedOrderPath, 'utf8');
+        const orderData = JSON.parse(orderContent);
         
-        // Trouver par l'index ou par l'ID
-        const orderById = orders.find(o => o.orderId === orderId);
-        const orderByIndex = orders[parseInt(orderId, 10)];
+        // Si la commande est marquée comme completed ou a des items livrés
+        if (orderData.status === 'completed' || 
+           (orderData.deliveredItems && orderData.deliveredItems.length > 0)) {
+          orderItems = orderData.deliveredItems || orderData.items;
+          orderDate = new Date(orderData.lastProcessed || orderData.date);
+        } else {
+          return res.status(403).json({ 
+            error: 'Cette commande n\'a pas encore été livrée. Aucune facture disponible.' 
+          });
+        }
+      } else {
+        // Vérifier si c'est une commande en attente
+        const pendingOrderPath = path.join(dirs.pendingDir, `${orderId}.json`);
+        if (fs.existsSync(pendingOrderPath)) {
+          return res.status(403).json({ 
+            error: 'Cette commande est en attente de traitement. Aucune facture disponible.' 
+          });
+        }
         
-        order = orderById || orderByIndex;
+        // En dernier recours, chercher dans l'ancien format
+        const legacyOrdersPath = path.join(__dirname, 'data_store', `${userId}_orders.json`);
+        if (fs.existsSync(legacyOrdersPath)) {
+          const fileContent = fs.readFileSync(legacyOrdersPath, 'utf8');
+          const orders = JSON.parse(fileContent);
+          
+          // Trouver par l'ID ou par l'index
+          const order = orders.find(o => o.orderId === orderId) || orders[parseInt(orderId, 10)];
+          
+          if (order) {
+            // Vérifier si la commande a été livrée
+            if (order.status === 'completed' || order.status === 'delivered' ||
+               (order.deliveredItems && order.deliveredItems.length > 0)) {
+              orderItems = order.deliveredItems || order.items;
+              orderDate = new Date(order.lastProcessed || order.date);
+            } else {
+              return res.status(403).json({ 
+                error: 'Cette commande n\'a pas encore été livrée. Aucune facture disponible.' 
+              });
+            }
+          } else {
+            return res.status(404).json({ error: 'Commande non trouvée' });
+          }
+        } else {
+          return res.status(404).json({ error: 'Commande non trouvée' });
+        }
       }
     }
 
-    // Si on n'a toujours pas trouvé la commande
-    if (!order) {
-      return res.status(404).json({ error: 'Order not found' });
+    // Si nous n'avons pas d'éléments à facturer
+    if (!orderItems || orderItems.length === 0) {
+      return res.status(404).json({ error: 'Aucun élément à facturer trouvé' });
     }
 
     // Créer un nouveau document PDF
@@ -756,7 +787,7 @@ app.get('/api/download-invoice/:orderId', requireLogin, (req, res) => {
     );
 
     // Détails de la facture
-    const invoiceDate = new Date(order.date);
+    const invoiceDate = orderDate;
     const invoiceNumber = `INV-${invoiceDate.getFullYear()}-${orderId}`;
 
     doc.font('Helvetica-Bold').fontSize(16).text('Facture', 50, 250);
@@ -802,7 +833,7 @@ app.get('/api/download-invoice/:orderId', requireLogin, (req, res) => {
     let yPos = tableTop + 30;
     let totalHT = 0;
 
-    order.items.forEach(item => {
+    orderItems.forEach(item => {
       const itemTotal = parseFloat(item.prix) * item.quantity;
       totalHT += itemTotal;
 

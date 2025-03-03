@@ -42,6 +42,21 @@
         .order-total {
             font-weight: bold;
         }
+        
+        /* Style pour le message de facture non disponible */
+        .invoice-not-available {
+            color: #6c757d;
+            font-style: italic;
+            font-size: 0.9em;
+            display: flex;
+            align-items: center;
+            margin-left: 15px;
+        }
+        
+        .invoice-not-available i {
+            margin-right: 5px;
+            color: #ffc107;
+        }
     </style>
 </head>
 <body>
@@ -107,8 +122,11 @@
             function getStatusClass(status) {
                 switch(status) {
                     case 'shipped':
+                    case 'completed':
+                    case 'delivered':
                         return 'status-shipped';
                     case 'in progress':
+                    case 'pending':
                     default:
                         return 'status-processing';
                 }
@@ -117,9 +135,14 @@
             function getReadableStatus(status) {
                 switch(status) {
                     case 'in progress':
+                    case 'pending':
                         return 'Processing';
                     case 'shipped':
+                    case 'completed':
+                    case 'delivered':
                         return 'Shipped';
+                    case 'partial':
+                        return 'Partially Shipped';
                     default:
                         return status.charAt(0).toUpperCase() + status.slice(1).replace(/_/g, ' ');
                 }
@@ -153,7 +176,9 @@
                         // Créer le contenu de la commande avec un tableau détaillé
                         const orderCard = document.createElement('div');
                         orderCard.className = 'order-card';
-                        orderCard.innerHTML = `
+                        
+                        // HTML pour la carte de commande
+                        let orderHtml = `
                             <div class="order-card-header">
                                 <h3>Order #${orders.length - index}</h3>
                                 <span class="order-status ${getStatusClass(order.status)}">
@@ -186,21 +211,27 @@
                             <div class="order-summary">
                                 <div class="order-summary-total">
                                     Total: ${totalAmount} CHF
-                                    <button class="download-invoice-btn" data-order-index="${index}">
-                                        <i class="fas fa-file-pdf"></i> Download Invoice
-                                    </button>
+                                    ${order.status !== 'pending' && order.status !== 'in progress' ? 
+                                        `<button class="download-invoice-btn" data-order-id="${order.orderId || index}">
+                                            <i class="fas fa-file-pdf"></i> Download Invoice
+                                        </button>` : 
+                                        `<span class="invoice-not-available">
+                                            <i class="fas fa-info-circle"></i> Invoice will be available after delivery
+                                        </span>`
+                                    }
                                 </div>
                             </div>
                         `;
-
+                        
+                        orderCard.innerHTML = orderHtml;
                         ordersContainer.appendChild(orderCard);
                     });
 
                     // Ajouter les écouteurs d'événements pour les boutons de téléchargement
                     document.querySelectorAll('.download-invoice-btn').forEach(button => {
                         button.addEventListener('click', function() {
-                            const orderIndex = this.getAttribute('data-order-index');
-                            window.open(`/api/download-invoice/${orderIndex}`, '_blank');
+                            const orderIdOrIndex = this.getAttribute('data-order-id');
+                            window.open(`/api/download-invoice/${orderIdOrIndex}`, '_blank');
                         });
                     });
                 })
