@@ -1,0 +1,28 @@
+{
+  "orderId": "order_1741044584041",
+  "userId": "luca",
+  "invoiceDate": "2025-03-03T23:30:05.381Z",
+  "items": [
+    {
+      "Nom": "Bells 46 - Ringing bell",
+      "quantity": 12,
+      "prix": "2.00"
+    },
+    {
+      "Nom": "Bells 47 - Traditionnal ringing bell",
+      "quantity": 12,
+      "prix": "2.00"
+    },
+    {
+      "Nom": "Bells 74 - Edelweiss. cow and bell",
+      "quantity": 6,
+      "prix": "1.90"
+    },
+    {
+      "Nom": "Bells 106 - Bella cow",
+      "quantity": 32,
+      "prix": "1.90"
+    }
+  ],
+  "originalOrderDate": "2025-03-03T23:29:44.041Z"
+}

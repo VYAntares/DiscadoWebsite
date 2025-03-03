@@ -850,3 +850,49 @@ main {
     transform: translateY(-2px);
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
+/* Style pour les prix des articles en attente */
+.pending-item .unit-price-column,
+.pending-item .total-column {
+    color: transparent !important;
+    position: relative;
+}
+
+.pending-item .unit-price-column::after,
+.pending-item .total-column::after {
+    content: "-";
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    color: #666;
+}
+
+/* Style pour la section des articles en attente */
+.pending-items-header {
+    background-color: #f5f5f5;
+    padding: 12px 16px;
+    font-weight: 600;
+    text-align: center;
+    margin: 20px 0;
+    border-radius: 6px;
+}
+
+/* Style pour les cellules vides dans les articles en attente */
+.items-table td.empty-cell {
+    text-align: center;
+    color: #999;
+}
+
+/* S'assurer que les articles en attente sont bien distingués visuellement */
+.pending-item {
+    background-color: rgba(255, 193, 7, 0.1);
+}
+
+/* Modifier le style des totaux pour les rendre plus lisibles */
+.order-total {
+    font-size: 18px;
+    font-weight: 700;
+    color: #333;
+    border-top: 1px solid #eee;
+    padding-top: 15px;
+    margin-top: 15px;
+}

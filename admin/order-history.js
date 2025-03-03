@@ -227,22 +227,11 @@ document.addEventListener('DOMContentLoaded', function() {
         const orderDate = formatDate(order.date);
         const processDate = formatDate(order.lastProcessed);
         
-        // Calculer le montant total
+        // Calculer le montant total uniquement pour les articles livrés
         const totalAmount = (order.deliveredItems || []).reduce((total, item) => {
             return total + (parseFloat(item.prix) * item.quantity);
         }, 0).toFixed(2);
 
-        // Calculer le montant des articles en attente si présent
-        let pendingTotalAmount = 0;
-        if (order.remainingItems && order.remainingItems.length > 0) {
-            pendingTotalAmount = order.remainingItems.reduce((total, item) => {
-                return total + (parseFloat(item.prix) * item.quantity);
-            }, 0).toFixed(2);
-        }
-
-        // Calculer le montant total global
-        const globalTotalAmount = (parseFloat(totalAmount) + parseFloat(pendingTotalAmount)).toFixed(2);
-        
         // Statut de la commande (avec option "partiellement livrée" si applicable)
         let statusText = 'COMPLETED';
         let statusClass = 'status-completed';
@@ -321,14 +310,12 @@ document.addEventListener('DOMContentLoaded', function() {
             `;
             
             order.remainingItems.forEach(item => {
-                const itemTotal = (parseFloat(item.prix) * item.quantity).toFixed(2);
-                
                 detailsHTML += `
                     <tr>
                         <td class="qty-column">${item.quantity}</td>
                         <td class="product-column">${item.Nom}</td>
-                        <td class="unit-price-column">${parseFloat(item.prix).toFixed(2)} CHF</td>
-                        <td class="total-column">${itemTotal} CHF</td>
+                        <td class="unit-price-column">-</td>
+                        <td class="total-column">-</td>
                     </tr>
                 `;
             });
@@ -344,7 +331,7 @@ document.addEventListener('DOMContentLoaded', function() {
         detailsHTML += `
             <div class="order-footer">
                 <div class="order-total">
-                    <span>Total: ${globalTotalAmount} CHF</span>
+                    <span>Total: ${totalAmount} CHF</span>
                 </div>
                 <div class="download-invoice-btn-container">
                     <a href="/api/admin/download-invoice/${order.orderId}/${order.userId}" class="download-invoice-btn" target="_blank">
