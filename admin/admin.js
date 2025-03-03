@@ -4,6 +4,24 @@ document.addEventListener('DOMContentLoaded', function() {
     const tabBtns = document.querySelectorAll('.tab-btn');
     const tabContents = document.querySelectorAll('.tab-content');
     
+    // Ensure Orders tab is active by default
+    tabBtns.forEach(btn => btn.classList.remove('active'));
+    tabContents.forEach(content => content.classList.remove('active'));
+    
+    // Get the Orders tab button and content
+    const ordersTabBtn = document.querySelector('.tab-btn[data-tab="orders"]');
+    const ordersTabContent = document.getElementById('orders-tab');
+    
+    // Activate Orders tab
+    if (ordersTabBtn) ordersTabBtn.classList.add('active');
+    if (ordersTabContent) ordersTabContent.classList.add('active');
+    
+    // Load orders data
+    if (typeof loadPendingOrders === 'function') {
+        loadPendingOrders();
+    }
+    
+    // Add click event listeners to tab buttons
     tabBtns.forEach(btn => {
         btn.addEventListener('click', function() {
             // Remove active class from all tabs
@@ -15,7 +33,10 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // Show corresponding content
             const tabId = this.getAttribute('data-tab');
-            document.getElementById(`${tabId}-tab`).classList.add('active');
+            const tabContent = document.getElementById(`${tabId}-tab`);
+            if (tabContent) {
+                tabContent.classList.add('active');
+            }
             
             // Load data if needed
             if (tabId === 'orders' && typeof loadPendingOrders === 'function') {
@@ -79,9 +100,4 @@ document.addEventListener('DOMContentLoaded', function() {
             notification.remove();
         }, 4000);
     };
-    
-    // Load orders data initially
-    if (typeof loadPendingOrders === 'function') {
-        loadPendingOrders();
-    }
 });

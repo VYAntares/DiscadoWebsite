@@ -13,7 +13,6 @@ function loadClientData() {
         </div>
     `;
     
-    // Create a custom endpoint to get all client profiles
     fetch('/api/admin/client-profiles')
         .then(response => {
             if (!response.ok) {
@@ -48,7 +47,7 @@ function loadClientData() {
                             <th>Email</th>
                             <th>Phone</th>
                             <th>Location</th>
-                            <th>Last Updated</th>
+                            <th>Data Source</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
@@ -59,14 +58,42 @@ function loadClientData() {
                 const lastUpdated = client.lastUpdated ? new Date(client.lastUpdated).toLocaleDateString('fr-CH') : 'N/A';
                 const location = client.shopCity || client.city || 'N/A';
                 
+                // Add a data source indicator tag
+                let sourceTag = '';
+                if (client.source) {
+                    let sourceColor = '';
+                    let sourceLabel = '';
+                    
+                    switch(client.source) {
+                        case 'data_client':
+                            sourceColor = '#4CAF50'; // Green
+                            sourceLabel = 'Complete Profile';
+                            break;
+                        case 'data_store_dir':
+                        case 'data_store_json':
+                            sourceColor = '#FF9800'; // Orange
+                            sourceLabel = 'From Orders';
+                            break;
+                        case 'pending_order':
+                            sourceColor = '#2196F3'; // Blue
+                            sourceLabel = 'From Order';
+                            break;
+                        default:
+                            sourceColor = '#9E9E9E'; // Gray
+                            sourceLabel = 'Unknown';
+                    }
+                    
+                    sourceTag = `<span class="source-tag" style="background-color: ${sourceColor}">${sourceLabel}</span>`;
+                }
+                
                 tableHTML += `
                     <tr>
-                        <td>${client.fullName || `${client.firstName} ${client.lastName}`}</td>
+                        <td>${client.fullName || `${client.firstName || ''} ${client.lastName || ''}`}</td>
                         <td>${client.shopName || 'N/A'}</td>
                         <td>${client.email || 'N/A'}</td>
                         <td>${client.phone || 'N/A'}</td>
                         <td>${location}</td>
-                        <td>${lastUpdated}</td>
+                        <td>${sourceTag}</td>
                         <td>
                             <button class="view-client-btn" data-client-id="${client.id}">
                                 <i class="fas fa-eye"></i> View
@@ -140,7 +167,8 @@ function filterClients(searchTerm) {
             (client.email && client.email.toLowerCase().includes(searchTerm)) ||
             (client.phone && client.phone.toLowerCase().includes(searchTerm)) ||
             (client.shopCity && client.shopCity.toLowerCase().includes(searchTerm)) ||
-            (client.city && client.city.toLowerCase().includes(searchTerm))
+            (client.city && client.city.toLowerCase().includes(searchTerm)) ||
+            (client.username && client.username.toLowerCase().includes(searchTerm))
         );
     });
     
@@ -168,14 +196,42 @@ function displayFilteredClients(clients) {
         const lastUpdated = client.lastUpdated ? new Date(client.lastUpdated).toLocaleDateString('fr-CH') : 'N/A';
         const location = client.shopCity || client.city || 'N/A';
         
+        // Add a data source indicator tag
+        let sourceTag = '';
+        if (client.source) {
+            let sourceColor = '';
+            let sourceLabel = '';
+            
+            switch(client.source) {
+                case 'data_client':
+                    sourceColor = '#4CAF50'; // Green
+                    sourceLabel = 'Complete Profile';
+                    break;
+                case 'data_store_dir':
+                case 'data_store_json':
+                    sourceColor = '#FF9800'; // Orange
+                    sourceLabel = 'From Orders';
+                    break;
+                case 'pending_order':
+                    sourceColor = '#2196F3'; // Blue
+                    sourceLabel = 'From Order';
+                    break;
+                default:
+                    sourceColor = '#9E9E9E'; // Gray
+                    sourceLabel = 'Unknown';
+            }
+            
+            sourceTag = `<span class="source-tag" style="background-color: ${sourceColor}">${sourceLabel}</span>`;
+        }
+        
         rowsHTML += `
             <tr>
-                <td>${client.fullName || `${client.firstName} ${client.lastName}`}</td>
+                <td>${client.fullName || `${client.firstName || ''} ${client.lastName || ''}`}</td>
                 <td>${client.shopName || 'N/A'}</td>
                 <td>${client.email || 'N/A'}</td>
                 <td>${client.phone || 'N/A'}</td>
                 <td>${location}</td>
-                <td>${lastUpdated}</td>
+                <td>${sourceTag}</td>
                 <td>
                     <button class="view-client-btn" data-client-id="${client.id}">
                         <i class="fas fa-eye"></i> View
@@ -214,15 +270,54 @@ function viewClientDetails(clientId) {
         ? new Date(client.lastUpdated).toLocaleString('fr-CH') 
         : 'Not available';
     
+    // Determine the data source label
+    let sourceLabel = 'Unknown Source';
+    let sourceClass = 'source-unknown';
+    
+    if (client.source) {
+        switch(client.source) {
+            case 'data_client':
+                sourceLabel = 'Complete Profile (data_client)';
+                sourceClass = 'source-complete';
+                break;
+            case 'data_store_dir':
+                sourceLabel = 'From Order Directory (data_store)';
+                sourceClass = 'source-orders';
+                break;
+            case 'data_store_json':
+                sourceLabel = 'From Order JSON (data_store)';
+                sourceClass = 'source-orders';
+                break;
+            case 'pending_order':
+                sourceLabel = 'From Pending Order';
+                sourceClass = 'source-pending';
+                break;
+        }
+    }
+    
+    // Add source information
+    const sourceInfo = `<div class="source-info ${sourceClass}">${sourceLabel}</div>`;
+    
+    // Display notes if available
+    const notesSection = client.notes 
+        ? `<div class="client-notes"><strong>Notes:</strong> ${client.notes}</div>` 
+        : '';
+    
     // Display client details
     clientDetailsContainer.innerHTML = `
+        ${sourceInfo}
+        ${notesSection}
         <div class="client-details-grid">
             <div class="client-personal-info">
                 <h3>Personal Information</h3>
                 <table class="details-table">
                     <tr>
+                        <th>User ID:</th>
+                        <td>${client.username || 'Not available'}</td>
+                    </tr>
+                    <tr>
                         <th>Full Name:</th>
-                        <td>${client.fullName || `${client.firstName} ${client.lastName}`}</td>
+                        <td>${client.fullName || `${client.firstName || ''} ${client.lastName || ''}`}</td>
                     </tr>
                     <tr>
                         <th>Email:</th>
@@ -273,4 +368,4 @@ document.addEventListener('DOMContentLoaded', function() {
     if (refreshBtn) {
         refreshBtn.addEventListener('click', loadClientData);
     }
-});a
+});
