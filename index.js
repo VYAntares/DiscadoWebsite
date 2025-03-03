@@ -653,6 +653,36 @@ app.get('/api/admin/pending-orders', requireLogin, requireAdmin, (req, res) => {
   }
 });
 
+app.get('/api/admin/client-profiles', requireLogin, requireAdmin, (req, res) => {
+    const dataClientDir = path.join(__dirname, 'data_client');
+    
+    try {
+        // Lire tous les fichiers de profil
+        const profileFiles = fs.readdirSync(dataClientDir)
+            .filter(file => file.endsWith('_profile.json'));
+        
+        const clients = profileFiles.map(file => {
+            const filePath = path.join(dataClientDir, file);
+            // Extraire l'ID du client avant le "_"
+            const clientId = file.split('_')[0];
+            
+            try {
+                const profileData = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+                profileData.clientId = clientId;  // Ajouter l'ID du fichier
+                return profileData;
+            } catch (error) {
+                console.error(`Erreur lors de la lecture du fichier ${file}:`, error);
+                return null;
+            }
+        }).filter(client => client !== null);
+        
+        res.json(clients);
+    } catch (error) {
+        console.error('Erreur lors de la récupération des profils de clients:', error);
+        res.status(500).json({ error: 'Impossible de récupérer les profils' });
+    }
+});
+
 // Configuration des répertoires de données
 const dataDirs = ['./data_store', './data_client', './data'];
 dataDirs.forEach(dir => {

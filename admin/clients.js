@@ -67,12 +67,13 @@ document.addEventListener('DOMContentLoaded', function() {
         clientTableBody.innerHTML = '';
         
         clients.forEach(client => {
-            const fullName = client.fullName || `${client.firstName || ''} ${client.lastName || ''}`.trim() || client.username || 'N/A';
+            // Récupérer l'ID du client depuis client.clientId
+            const clientId = client.clientId || 'N/A';
+            // Concaténer Prénom + Nom pour l'affichage (ou 'N/A' si vide)
+            const fullName = `${client.firstName || ''} ${client.lastName || ''}`.trim() || 'N/A';
             const shopName = client.shopName || 'N/A';
             const email = client.email || 'N/A';
             const phone = client.phone || 'N/A';
-            const clientId = client.username || client.id || 'N/A';
-            const lastUpdated = client.lastUpdated ? formatDate(client.lastUpdated) : 'N/A';
             
             const row = document.createElement('tr');
             row.innerHTML = `
@@ -80,7 +81,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 <td>
                     <span class="client-name">${fullName}</span>
                     <span class="client-shop">${shopName}</span>
-                    ${lastUpdated !== 'N/A' ? `<span class="date-display">Dernière mise à jour: ${lastUpdated}</span>` : ''}
                 </td>
                 <td>
                     <div class="contact-info">
@@ -102,22 +102,31 @@ document.addEventListener('DOMContentLoaded', function() {
         document.querySelectorAll('.view-client-btn').forEach(button => {
             button.addEventListener('click', function() {
                 const clientId = this.getAttribute('data-client-id');
+                console.log('ID client cliqué:', clientId); // Log pour déboguer
                 viewClientDetails(clientId);
             });
         });
     }
     
-    // Fonction pour afficher les détails d'un client
+    // Fonction pour afficher la fenêtre modale des détails d'un client
     function viewClientDetails(clientId) {
         // Animation de chargement dans la modal
         clientDetailsContent.innerHTML = `<div class="loading">Chargement des détails...</div>`;
         clientModal.style.display = 'block';
         
+        console.log('ID du client recherché:', clientId); // Log pour déboguer
+        
         // Charger les détails du client
         fetch('/api/admin/client-profiles')
             .then(response => response.json())
             .then(clients => {
-                const client = clients.find(c => c.username === clientId || c.id === clientId);
+                console.log('Clients récupérés:', clients); // Log pour déboguer
+                
+                // On recherche le client via son clientId
+                const client = clients.find(c => c.clientId === clientId);
+                
+                console.log('Client trouvé:', client); // Log pour déboguer
+                
                 if (client) {
                     displayClientDetails(client);
                 } else {
@@ -125,6 +134,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         <div class="empty-state">
                             <i class="fas fa-user-slash"></i>
                             <p>Client non trouvé</p>
+                            <p>Détails recherchés : ${clientId}</p>
                         </div>
                     `;
                 }
@@ -141,9 +151,10 @@ document.addEventListener('DOMContentLoaded', function() {
             });
     }
     
-    // Fonction pour afficher les détails du client dans la modal
+    // Fonction pour afficher les détails du client dans la modale
     function displayClientDetails(client) {
-        clientDetailsTitle.textContent = `Détails du client: ${client.fullName || client.username || 'N/A'}`;
+        // Mettre en titre l’ID du client
+        clientDetailsTitle.textContent = `Détails du client: ${client.clientId || 'N/A'}`;
         
         // Formatter la date de dernière mise à jour
         const lastUpdated = client.lastUpdated ? formatDate(client.lastUpdated) : 'N/A';
@@ -155,7 +166,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 <div class="client-details-grid">
                     <div class="detail-item">
                         <span class="detail-label">ID Client:</span>
-                        <span class="detail-value">${client.username || client.id || 'N/A'}</span>
+                        <span class="detail-value">${client.clientId || 'N/A'}</span>
                     </div>
                     <div class="detail-item">
                         <span class="detail-label">Prénom:</span>
@@ -164,10 +175,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     <div class="detail-item">
                         <span class="detail-label">Nom:</span>
                         <span class="detail-value">${client.lastName || 'N/A'}</span>
-                    </div>
-                    <div class="detail-item">
-                        <span class="detail-label">Nom complet:</span>
-                        <span class="detail-value">${client.fullName || `${client.firstName || ''} ${client.lastName || ''}`.trim() || 'N/A'}</span>
                     </div>
                     <div class="detail-item">
                         <span class="detail-label">Email:</span>
@@ -211,24 +218,24 @@ document.addEventListener('DOMContentLoaded', function() {
                     <h4>Informations système</h4>
         `;
         
-        // Parcourir toutes les propriétés et les afficher
+        // Propriétés à ignorer (déjà affichées plus haut)
         const ignoredProps = [
             'firstName', 'lastName', 'fullName', 'email', 'phone', 
             'shopName', 'shopAddress', 'shopCity', 'shopZipCode',
-            'address', 'city', 'postalCode', 'username', 'id'
+            'address', 'city', 'postalCode', 'username', 'id', 'clientId'
         ];
         
-        // Afficher d'abord la date de dernière mise à jour
+        // Afficher la date de dernière mise à jour si elle existe
         if (client.lastUpdated) {
             html += `<p><strong>Dernière mise à jour:</strong> ${lastUpdated}</p>`;
         }
         
-        // Puis toutes les autres propriétés
+        // Afficher les autres propriétés non ignorées
         for (const [key, value] of Object.entries(client)) {
             if (!ignoredProps.includes(key) && key !== 'lastUpdated') {
                 let displayValue = value;
                 
-                // Formater les valeurs en fonction du type
+                // Formater selon le type
                 if (typeof value === 'object' && value !== null) {
                     displayValue = JSON.stringify(value);
                 } else if (typeof value === 'boolean') {
@@ -283,29 +290,31 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(response => response.json())
             .then(clients => {
                 const filteredClients = clients.filter(client => {
-                    const fullName = (client.fullName || `${client.firstName || ''} ${client.lastName || ''}`.trim() || '').toLowerCase();
+                    const fullName = (`${client.firstName || ''} ${client.lastName || ''}`).toLowerCase().trim();
                     const shopName = (client.shopName || '').toLowerCase();
                     const email = (client.email || '').toLowerCase();
                     const phone = (client.phone || '').toLowerCase();
-                    const username = (client.username || client.id || '').toLowerCase();
+                    const username = (client.username || '').toLowerCase();
                     const city = (client.shopCity || client.city || '').toLowerCase();
+                    const cId = (client.clientId || '').toLowerCase();  // Pour pouvoir chercher par ID
                     
-                    return fullName.includes(searchValue) ||
-                           shopName.includes(searchValue) ||
-                           email.includes(searchValue) ||
-                           phone.includes(searchValue) ||
-                           username.includes(searchValue) ||
-                           city.includes(searchValue);
+                    return (
+                        fullName.includes(searchValue) ||
+                        shopName.includes(searchValue) ||
+                        email.includes(searchValue) ||
+                        phone.includes(searchValue) ||
+                        username.includes(searchValue) ||
+                        city.includes(searchValue) ||
+                        cId.includes(searchValue)
+                    );
                 });
                 
                 displayClients(filteredClients);
                 
                 // Afficher un message indiquant les résultats de recherche
                 if (filteredClients.length > 0) {
-                    // Ajouter une notification indiquant les résultats
                     showNotification(`${filteredClients.length} client(s) trouvé(s) pour "${searchValue}"`, 'info');
                 } else {
-                    // Aucun résultat
                     showNotification(`Aucun client trouvé pour "${searchValue}"`, 'info');
                 }
             })
