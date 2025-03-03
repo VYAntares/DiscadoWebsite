@@ -87,6 +87,62 @@ function requireCompleteProfile(req, res, next) {
   next();
 }
 
+// Fonction auxiliaire pour mettre à jour le fichier de commande legacy
+function updateLegacyOrderFile(userId, orderId, updatedOrder) {
+  const legacyOrdersPath = path.join(__dirname, 'data_store', `${userId}_orders.json`);
+  
+  if (fs.existsSync(legacyOrdersPath)) {
+    try {
+      // Lire le fichier existant
+      const fileContent = fs.readFileSync(legacyOrdersPath, 'utf8');
+      const orders = JSON.parse(fileContent);
+      
+      // Trouver l'index de la commande
+      const orderIndex = orders.findIndex(order => 
+        order.orderId === orderId || 
+        (order.date === updatedOrder.date && JSON.stringify(order.items) === JSON.stringify(updatedOrder.items))
+      );
+      
+      if (orderIndex !== -1) {
+        // Mettre à jour ou remplacer la commande
+        orders[orderIndex] = updatedOrder;
+        
+        // Enregistrer le fichier mis à jour
+        fs.writeFileSync(legacyOrdersPath, JSON.stringify(orders, null, 2));
+      }
+    } catch (error) {
+      console.error('Erreur lors de la mise à jour du fichier de commande legacy:', error);
+    }
+  }
+}
+
+// Fonction pour assurer que la structure de répertoires des commandes existe
+function ensureUserOrderDirectories(userId) {
+  // Répertoire principal des commandes de l'utilisateur
+  const userOrdersDir = path.join(__dirname, 'data_store', `${userId}_orders`);
+  if (!fs.existsSync(userOrdersDir)) {
+    fs.mkdirSync(userOrdersDir, { recursive: true });
+  }
+  
+  // Création des sous-répertoires
+  const pendingDir = path.join(userOrdersDir, 'pending');
+  const treatedDir = path.join(userOrdersDir, 'treated');
+  const deliveredDir = path.join(userOrdersDir, 'delivered');
+  
+  [pendingDir, treatedDir, deliveredDir].forEach(dir => {
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+  });
+  
+  return {
+    userOrdersDir,
+    pendingDir,
+    treatedDir,
+    deliveredDir
+  };
+}
+
 // Routes principales
 app.get('/', (req, res) => {
   if (req.session.user) {
@@ -287,50 +343,307 @@ app.get('/api/products', (req, res) => {
 app.post('/api/save-order', requireLogin, (req, res) => {
   const userId = req.session.user.username;
   const cartItems = req.body.items;
+  const keepLegacyFormat = req.body.keepLegacyFormat || false; // Paramètre optionnel
+  
+  // Créer un ID unique pour la commande
+  const orderId = `order_${Date.now()}`;
   
   // Créer un objet commande
   const order = {
+    orderId: orderId,
     userId: userId,
     items: cartItems,
-    status: 'in progress',
+    status: 'pending',
     date: new Date().toISOString()
   };
   
-  // Vérifier si l'utilisateur a déjà des commandes
-  const dataStoreDir = path.join(__dirname, 'data_store');
-  if (!fs.existsSync(dataStoreDir)) {
-    fs.mkdirSync(dataStoreDir);
+  // S'assurer que les répertoires utilisateur existent
+  const dirs = ensureUserOrderDirectories(userId);
+  
+  // Chemin pour enregistrer la commande dans le répertoire pending
+  const orderFilePath = path.join(dirs.pendingDir, `${orderId}.json`);
+  
+  try {
+    // Enregistrer la commande dans le répertoire pending
+    fs.writeFileSync(orderFilePath, JSON.stringify(order, null, 2));
+    
+    // Enregistrer dans le format legacy si demandé
+    if (keepLegacyFormat) {
+      const legacyOrdersPath = path.join(__dirname, 'data_store', `${userId}_orders.json`);
+      let legacyOrders = [];
+      
+      if (fs.existsSync(legacyOrdersPath)) {
+        // Lire le fichier existant
+        const fileContent = fs.readFileSync(legacyOrdersPath, 'utf8');
+        legacyOrders = JSON.parse(fileContent);
+      }
+      
+      // Ajouter la nouvelle commande
+      legacyOrders.push(order);
+      
+      // Enregistrer dans le fichier legacy
+      fs.writeFileSync(legacyOrdersPath, JSON.stringify(legacyOrders, null, 2));
+    }
+    
+    res.json({ success: true, message: 'Commande enregistrée', orderId: orderId });
+  } catch (error) {
+    console.error('Erreur lors de l\'enregistrement de la commande:', error);
+    res.status(500).json({ success: false, message: 'Erreur lors de l\'enregistrement de la commande' });
   }
-  
-  const userOrdersPath = path.join(dataStoreDir, `${userId}_orders.json`);
-  let userOrders = [];
-  
-  if (fs.existsSync(userOrdersPath)) {
-    // Lire le fichier existant
-    const fileContent = fs.readFileSync(userOrdersPath, 'utf8');
-    userOrders = JSON.parse(fileContent);
-  }
-  
-  // Ajouter la nouvelle commande
-  userOrders.push(order);
-  
-  // Sauvegarder dans le fichier
-  fs.writeFileSync(userOrdersPath, JSON.stringify(userOrders, null, 2));
-  
-  res.json({ success: true, message: 'Commande enregistrée' });
 });
 
 // Route pour récupérer les commandes d'un utilisateur
 app.get('/api/user-orders', requireLogin, (req, res) => {
   const userId = req.session.user.username;
-  const userOrdersPath = path.join(__dirname, 'data_store', `${userId}_orders.json`);
+  const dirs = ensureUserOrderDirectories(userId);
   
-  if (fs.existsSync(userOrdersPath)) {
-    const fileContent = fs.readFileSync(userOrdersPath, 'utf8');
-    const orders = JSON.parse(fileContent);
-    res.json(orders);
-  } else {
-    res.json([]);
+  try {
+    // Créer un tableau pour contenir toutes les commandes
+    let allOrders = [];
+    
+    // Fonction pour lire les commandes d'un répertoire
+    const readOrdersFromDir = (dirPath, status) => {
+      if (fs.existsSync(dirPath)) {
+        const files = fs.readdirSync(dirPath).filter(file => file.endsWith('.json'));
+        
+        files.forEach(file => {
+          const orderPath = path.join(dirPath, file);
+          const orderContent = fs.readFileSync(orderPath, 'utf8');
+          const orderData = JSON.parse(orderContent);
+          
+          // Définir le statut en fonction du répertoire si pas déjà défini
+          if (!orderData.status) {
+            orderData.status = status;
+          }
+          
+          allOrders.push(orderData);
+        });
+      }
+    };
+    
+    // Lire depuis tous les répertoires
+    readOrdersFromDir(dirs.pendingDir, 'pending');
+    readOrdersFromDir(dirs.treatedDir, 'treated');
+    
+    // Ajouter les informations de livraison depuis le répertoire delivered
+    if (fs.existsSync(dirs.deliveredDir)) {
+      const invoiceFiles = fs.readdirSync(dirs.deliveredDir).filter(file => file.endsWith('.json'));
+      
+      invoiceFiles.forEach(file => {
+        const invoicePath = path.join(dirs.deliveredDir, file);
+        const invoiceContent = fs.readFileSync(invoicePath, 'utf8');
+        const invoiceData = JSON.parse(invoiceContent);
+        
+        // Chercher la commande correspondante
+        const relatedOrder = allOrders.find(order => order.orderId === invoiceData.orderId);
+        
+        if (relatedOrder) {
+          // Ajouter les informations de livraison à la commande
+          relatedOrder.deliveredInvoice = invoiceData;
+        }
+      });
+    }
+    
+    // Si aucune commande trouvée dans la nouvelle structure, essayer le fichier legacy
+    if (allOrders.length === 0) {
+      const legacyOrdersPath = path.join(__dirname, 'data_store', `${userId}_orders.json`);
+      
+      if (fs.existsSync(legacyOrdersPath)) {
+        const fileContent = fs.readFileSync(legacyOrdersPath, 'utf8');
+        allOrders = JSON.parse(fileContent);
+        
+        // Migrer les commandes legacy vers la nouvelle structure (optionnel)
+        allOrders.forEach(order => {
+          // Générer un ID s'il n'existe pas
+          if (!order.orderId) {
+            order.orderId = `order_${new Date(order.date).getTime()}`;
+          }
+          
+          // Enregistrer dans le répertoire approprié en fonction du statut
+          let targetDir;
+          if (order.status === 'completed' || order.status === 'partial') {
+            targetDir = dirs.treatedDir;
+          } else {
+            targetDir = dirs.pendingDir;
+          }
+          
+          const orderPath = path.join(targetDir, `${order.orderId}.json`);
+          fs.writeFileSync(orderPath, JSON.stringify(order, null, 2));
+          
+          // Si la commande a été livrée, créer également une facture
+          if (order.deliveredItems && order.deliveredItems.length > 0) {
+            const deliveryInvoice = {
+              orderId: order.orderId,
+              userId: userId,
+              invoiceDate: order.lastProcessed || new Date().toISOString(),
+              items: order.deliveredItems,
+              originalOrderDate: order.date
+            };
+            
+            fs.writeFileSync(
+              path.join(dirs.deliveredDir, `${order.orderId}_invoice.json`), 
+              JSON.stringify(deliveryInvoice, null, 2)
+            );
+          }
+        });
+      }
+    }
+    
+    // Trier les commandes par date (les plus récentes d'abord)
+    allOrders.sort((a, b) => new Date(b.date) - new Date(a.date));
+    
+    res.json(allOrders);
+  } catch (error) {
+    console.error('Erreur lors de la récupération des commandes:', error);
+    res.status(500).json({ error: 'Impossible de récupérer les commandes' });
+  }
+});
+
+// Route admin pour traiter une commande
+app.post('/api/admin/process-order', requireLogin, requireAdmin, (req, res) => {
+  const { userId, orderId, deliveredItems } = req.body;
+  
+  if (!userId || !orderId || !Array.isArray(deliveredItems)) {
+    return res.status(400).json({ error: 'Champs requis manquants ou invalides' });
+  }
+  
+  try {
+    const dirs = ensureUserOrderDirectories(userId);
+    const sourcePath = path.join(dirs.pendingDir, `${orderId}.json`);
+    
+    // Vérifier si la commande existe
+    if (!fs.existsSync(sourcePath)) {
+      return res.status(404).json({ error: 'Commande non trouvée' });
+    }
+    
+    // Lire la commande
+    const orderContent = fs.readFileSync(sourcePath, 'utf8');
+    const orderData = JSON.parse(orderContent);
+    
+    // Calculer les articles non livrés
+    const remainingItems = [];
+    
+    orderData.items.forEach(originalItem => {
+      const deliveredItem = deliveredItems.find(item => 
+        item.Nom === originalItem.Nom && item.categorie === originalItem.categorie
+      );
+      
+      // Si l'article n'est pas dans la liste des articles livrés ou si la quantité livrée est inférieure
+      if (!deliveredItem || deliveredItem.quantity < originalItem.quantity) {
+        const remainingQuantity = deliveredItem 
+          ? originalItem.quantity - deliveredItem.quantity 
+          : originalItem.quantity;
+          
+        remainingItems.push({
+          ...originalItem,
+          quantity: remainingQuantity
+        });
+      }
+    });
+    
+    // Créer l'objet pour la commande traitée
+    const treatedOrder = {
+      ...orderData,
+      status: remainingItems.length > 0 ? 'partial' : 'completed',
+      lastProcessed: new Date().toISOString(),
+      deliveredItems: deliveredItems,
+      remainingItems: remainingItems
+    };
+    
+    // Créer l'objet pour la facture de livraison
+    const deliveryInvoice = {
+      orderId: orderId,
+      userId: userId,
+      invoiceDate: new Date().toISOString(),
+      items: deliveredItems,
+      originalOrderDate: orderData.date
+    };
+    
+    // Enregistrer la commande traitée
+    fs.writeFileSync(
+      path.join(dirs.treatedDir, `${orderId}.json`), 
+      JSON.stringify(treatedOrder, null, 2)
+    );
+    
+    // Enregistrer la facture de livraison
+    fs.writeFileSync(
+      path.join(dirs.deliveredDir, `${orderId}_invoice.json`), 
+      JSON.stringify(deliveryInvoice, null, 2)
+    );
+    
+    // Supprimer la commande du répertoire pending
+    fs.unlinkSync(sourcePath);
+    
+    // Mettre à jour le fichier legacy pour la compatibilité
+    updateLegacyOrderFile(userId, orderId, treatedOrder);
+    
+    res.json({ 
+      success: true, 
+      message: 'Commande traitée avec succès',
+      status: treatedOrder.status
+    });
+  } catch (error) {
+    console.error('Erreur lors du traitement de la commande:', error);
+    res.status(500).json({ error: 'Impossible de traiter la commande' });
+  }
+});
+
+// Route admin pour voir toutes les commandes en attente
+app.get('/api/admin/pending-orders', requireLogin, requireAdmin, (req, res) => {
+  try {
+    const dataStoreDir = path.join(__dirname, 'data_store');
+    const userDirs = fs.readdirSync(dataStoreDir)
+      .filter(item => 
+        fs.statSync(path.join(dataStoreDir, item)).isDirectory() && 
+        item.endsWith('_orders')
+      );
+    
+    let pendingOrders = [];
+    
+    userDirs.forEach(userDir => {
+      const userId = userDir.replace('_orders', '');
+      const pendingDir = path.join(dataStoreDir, userDir, 'pending');
+      
+      if (fs.existsSync(pendingDir)) {
+        const files = fs.readdirSync(pendingDir).filter(file => file.endsWith('.json'));
+        
+        files.forEach(file => {
+          const orderPath = path.join(pendingDir, file);
+          const orderContent = fs.readFileSync(orderPath, 'utf8');
+          const orderData = JSON.parse(orderContent);
+          
+          // Ajouter l'ID utilisateur pour aider à identifier la commande
+          orderData.userId = userId;
+          
+          // Essayer de récupérer les informations de profil utilisateur
+          const userProfilePath = path.join(__dirname, 'data_client', `${userId}_profile.json`);
+          if (fs.existsSync(userProfilePath)) {
+            try {
+              const profileContent = fs.readFileSync(userProfilePath, 'utf8');
+              const profileData = JSON.parse(profileContent);
+              orderData.userProfile = {
+                fullName: profileData.fullName || `${profileData.firstName} ${profileData.lastName}`,
+                shopName: profileData.shopName,
+                email: profileData.email,
+                phone: profileData.phone
+              };
+            } catch (error) {
+              console.error(`Erreur lors de la lecture du profil pour ${userId}:`, error);
+            }
+          }
+          
+          pendingOrders.push(orderData);
+        });
+      }
+    });
+    
+    // Trier les commandes par date (les plus anciennes d'abord pour traiter en FIFO)
+    pendingOrders.sort((a, b) => new Date(a.date) - new Date(b.date));
+    
+    res.json(pendingOrders);
+  } catch (error) {
+    console.error('Erreur lors de la récupération des commandes en attente:', error);
+    res.status(500).json({ error: 'Impossible de récupérer les commandes en attente' });
   }
 });
 
@@ -344,10 +657,12 @@ dataDirs.forEach(dir => {
 
 app.get('/api/download-invoice/:orderId', requireLogin, (req, res) => {
   const userId = req.session.user.username;
-  const orderId = parseInt(req.params.orderId, 10);
+  const orderId = req.params.orderId; // Ne pas convertir en entier, c'est une chaîne
   const userProfilePath = path.join(__dirname, 'data_client', `${userId}_profile.json`);
-  const ordersPath = path.join(__dirname, 'data_store', `${userId}_orders.json`);
-
+  
+  // Utiliser la structure de dossiers
+  const dirs = ensureUserOrderDirectories(userId);
+  
   try {
     // Vérifier que le fichier de profil existe
     if (!fs.existsSync(userProfilePath)) {
@@ -358,12 +673,44 @@ app.get('/api/download-invoice/:orderId', requireLogin, (req, res) => {
     const profileContent = fs.readFileSync(userProfilePath, 'utf8');
     const userProfile = JSON.parse(profileContent);
 
-    // Lire les commandes de l'utilisateur
-    const fileContent = fs.readFileSync(ordersPath, 'utf8');
-    const orders = JSON.parse(fileContent);
+    // Chercher la commande dans les répertoires treated et pending
+    let orderPath;
+    let order;
+    
+    // Chercher d'abord dans treated
+    const treatedOrderPath = path.join(dirs.treatedDir, `${orderId}.json`);
+    if (fs.existsSync(treatedOrderPath)) {
+      orderPath = treatedOrderPath;
+      const orderContent = fs.readFileSync(orderPath, 'utf8');
+      order = JSON.parse(orderContent);
+    } 
+    
+    // Sinon chercher dans pending
+    if (!order) {
+      const pendingOrderPath = path.join(dirs.pendingDir, `${orderId}.json`);
+      if (fs.existsSync(pendingOrderPath)) {
+        orderPath = pendingOrderPath;
+        const orderContent = fs.readFileSync(orderPath, 'utf8');
+        order = JSON.parse(orderContent);
+      }
+    }
+    
+    // Si on n'a pas trouvé la commande, chercher dans l'ancien format
+    if (!order) {
+      const legacyOrdersPath = path.join(__dirname, 'data_store', `${userId}_orders.json`);
+      if (fs.existsSync(legacyOrdersPath)) {
+        const fileContent = fs.readFileSync(legacyOrdersPath, 'utf8');
+        const orders = JSON.parse(fileContent);
+        
+        // Trouver par l'index ou par l'ID
+        const orderById = orders.find(o => o.orderId === orderId);
+        const orderByIndex = orders[parseInt(orderId, 10)];
+        
+        order = orderById || orderByIndex;
+      }
+    }
 
-    // Trouver la commande spécifique
-    const order = orders[orderId];
+    // Si on n'a toujours pas trouvé la commande
     if (!order) {
       return res.status(404).json({ error: 'Order not found' });
     }
@@ -375,7 +722,7 @@ app.get('/api/download-invoice/:orderId', requireLogin, (req, res) => {
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader(
       'Content-Disposition',
-      `attachment; filename=Invoice_${userId}_${new Date(order.date).toISOString().split('T')[0]}.pdf`
+      `attachment; filename=Invoice_${userId}_${orderId}.pdf`
     );
 
     // Pipe du PDF directement dans la réponse
@@ -410,7 +757,7 @@ app.get('/api/download-invoice/:orderId', requireLogin, (req, res) => {
 
     // Détails de la facture
     const invoiceDate = new Date(order.date);
-    const invoiceNumber = `INV-${invoiceDate.getFullYear()}-${(orderId + 1).toString().padStart(4, '0')}`;
+    const invoiceNumber = `INV-${invoiceDate.getFullYear()}-${orderId}`;
 
     doc.font('Helvetica-Bold').fontSize(16).text('Facture', 50, 250);
     addHeaderElement(doc, `Numéro de facture: ${invoiceNumber}`, 50, 280);
@@ -445,8 +792,8 @@ app.get('/api/download-invoice/:orderId', requireLogin, (req, res) => {
     // Épaisseur de trait
     doc.lineWidth(1.2);
 
-    // Ligne séparatrice en-tête : on étend un peu plus loin que le total
-    const lineEnd = 50 + totalWidth; // Ajustez le +30 pour aller un peu plus à droite
+    // Ligne séparatrice en-tête
+    const lineEnd = 50 + totalWidth;
     doc.moveTo(50, tableTop + 20)
        .lineTo(lineEnd, tableTop + 20)
        .stroke();
@@ -504,15 +851,13 @@ app.get('/api/download-invoice/:orderId', requireLogin, (req, res) => {
        .lineTo(lineEnd, yPos + 10)
        .stroke();
 
-    // **Alignement des totaux** sous « Prix unitaire » et « Total »
+    // Alignement des totaux
     doc.font('Helvetica-Bold').fontSize(10);
 
-    // On calcule la position de la troisième colonne (prix unitaire)
-    // et de la quatrième (total).
-    const col3Start = 50 + columns[0].width + columns[1].width; // début de la colonne 3
-    const col4Start = col3Start + columns[2].width;             // début de la colonne 4
+    const col3Start = 50 + columns[0].width + columns[1].width;
+    const col4Start = col3Start + columns[2].width;
 
-    // TOTaux (labels dans la 3e col, montants dans la 4e col)
+    // Totaux
     doc.text('TOTAL HT', col3Start, yPos + 20, {
       width: columns[2].width,
       align: 'right'
