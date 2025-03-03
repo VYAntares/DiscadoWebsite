@@ -1022,8 +1022,8 @@ app.get('/api/download-invoice/:orderId', requireLogin, (req, res) => {
 
     // Conditions de paiement
     doc.font('Helvetica').fontSize(10);
-    doc.text('Conditions de paiement : Net 30 jours', 50, yPos + 120);
-    doc.text('Veuillez effectuer le paiement par virement bancaire', 50, yPos + 135);
+    // doc.text('Conditions de paiement : Net 30 jours', 50, yPos + 120);
+    // doc.text('Veuillez effectuer le paiement par virement bancaire', 50, yPos + 135);
 
     // Pied de page
     doc.text('Merci pour votre commande !', 50, yPos + 180, { align: 'center' });
