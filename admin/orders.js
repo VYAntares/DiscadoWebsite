@@ -201,8 +201,8 @@ document.addEventListener('DOMContentLoaded', function() {
                         <thead>
                             <tr>
                                 <th>Article</th>
-                                <th>Quantité Commandée</th>
-                                <th>Quantité Livrée</th>
+                                <th>Qty Demandé</th>
+                                <th>Qty Livré</th>
                             </tr>
                         </thead>
                         <tbody>
