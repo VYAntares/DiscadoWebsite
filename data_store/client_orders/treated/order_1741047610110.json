@@ -1,5 +1,5 @@
 {
-  "orderId": "order_1741042912806",
+  "orderId": "order_1741047610110",
   "userId": "client",
   "items": [
     {
@@ -22,11 +22,18 @@
       "imageUrl": "/images/bags/Bags314.jpg",
       "categorie": "bags",
       "quantity": 12
+    },
+    {
+      "Nom": "Bags 315 - Banana bag Switzerland",
+      "prix": "3.00",
+      "imageUrl": "/images/bags/Bags315.jpg",
+      "categorie": "bags",
+      "quantity": 12
     }
   ],
-  "status": "completed",
-  "date": "2025-03-03T23:01:52.806Z",
-  "lastProcessed": "2025-03-03T23:02:37.396Z",
+  "status": "partial",
+  "date": "2025-03-04T00:20:10.110Z",
+  "lastProcessed": "2025-03-04T00:20:33.575Z",
   "deliveredItems": [
     {
       "Nom": "Bags 312 - Small backpack Switzerland",
@@ -40,9 +47,24 @@
     },
     {
       "Nom": "Bags 314 - Big bag with cities in blue",
-      "quantity": 12,
+      "quantity": 6,
       "prix": "5.00"
     }
   ],
-  "remainingItems": []
+  "remainingItems": [
+    {
+      "Nom": "Bags 314 - Big bag with cities in blue",
+      "prix": "5.00",
+      "imageUrl": "/images/bags/Bags314.jpg",
+      "categorie": "bags",
+      "quantity": 6
+    },
+    {
+      "Nom": "Bags 315 - Banana bag Switzerland",
+      "prix": "3.00",
+      "imageUrl": "/images/bags/Bags315.jpg",
+      "categorie": "bags",
+      "quantity": 12
+    }
+  ]
 }

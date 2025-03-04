@@ -1648,3 +1648,81 @@ li.product-item {
         margin-top: 10px;
     }
 }
+/* Styles pour la carte des articles en attente de livraison */
+.pending-delivery-card {
+    background-color: #fff8e1;
+    border-left: 4px solid #ffc107;
+}
+
+.pending-delivery-card .order-card-header {
+    border-bottom-color: #ffeeba;
+}
+
+.pending-delivery-card .order-status {
+    background-color: #ffc107;
+    color: #212529;
+}
+
+.category-header {
+    padding: 10px 15px;
+    margin: 15px 0 10px 0;
+    background-color: #f8f9fa;
+    border-radius: 6px;
+    font-size: 1.1em;
+    color: #495057;
+    font-weight: 600;
+}
+
+.category-section {
+    margin-bottom: 25px;
+}
+
+/* Style pour la note d'information */
+.pending-delivery-note {
+    background-color: #f8f9fa;
+    padding: 15px;
+    border-radius: 6px;
+    margin: 10px 0;
+    font-size: 0.9em;
+    color: #666;
+    display: flex;
+    align-items: center;
+}
+
+.pending-delivery-note i {
+    margin-right: 10px;
+    color: #ffc107;
+    font-size: 1.2em;
+}
+
+/* Style pour les lignes des articles en attente */
+tr.pending-item {
+    background-color: rgba(255, 193, 7, 0.1);
+}
+
+tr.pending-item td {
+    color: #6c757d;
+}
+
+/* Animation subtile pour attirer l'attention */
+.pending-delivery-card {
+    position: relative;
+    overflow: hidden;
+}
+
+.pending-delivery-card::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(to right, #ffc107, transparent);
+    animation: pendingPulse 2s infinite;
+}
+
+@keyframes pendingPulse {
+    0% { opacity: 0.3; }
+    50% { opacity: 1; }
+    100% { opacity: 0.3; }
+}

@@ -117,7 +117,7 @@ function updateLegacyOrderFile(userId, orderId, updatedOrder) {
   }
 }
 
-// Fonction pour assurer que la structure de répertoires des commandes existe
+// Fonction pour assurer que la structure de répertoires des commandes existe, avec to-deliver
 function ensureUserOrderDirectories(userId) {
   // Répertoire principal des commandes de l'utilisateur
   const userOrdersDir = path.join(__dirname, 'data_store', `${userId}_orders`);
@@ -129,8 +129,9 @@ function ensureUserOrderDirectories(userId) {
   const pendingDir = path.join(userOrdersDir, 'pending');
   const treatedDir = path.join(userOrdersDir, 'treated');
   const deliveredDir = path.join(userOrdersDir, 'delivered');
+  const toDeliverDir = path.join(userOrdersDir, 'to-deliver'); // Nouveau répertoire
   
-  [pendingDir, treatedDir, deliveredDir].forEach(dir => {
+  [pendingDir, treatedDir, deliveredDir, toDeliverDir].forEach(dir => {
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true });
     }
@@ -140,7 +141,8 @@ function ensureUserOrderDirectories(userId) {
     userOrdersDir,
     pendingDir,
     treatedDir,
-    deliveredDir
+    deliveredDir,
+    toDeliverDir // Ajouter le nouveau répertoire au retour de la fonction
   };
 }
 
@@ -450,7 +452,7 @@ app.post('/api/save-order', requireLogin, (req, res) => {
   }
 });
 
-// Route pour récupérer les commandes d'un utilisateur
+// Fonction modifiée pour récupérer les commandes d'un utilisateur avec to-deliver
 app.get('/api/user-orders', requireLogin, (req, res) => {
   const userId = req.session.user.username;
   const dirs = ensureUserOrderDirectories(userId);
@@ -502,6 +504,42 @@ app.get('/api/user-orders', requireLogin, (req, res) => {
       });
     }
     
+    // Ajouter les articles restant à livrer (to-deliver)
+    const toDeliverDir = path.join(dirs.userOrdersDir, 'to-deliver');
+    const toDeliverPath = path.join(toDeliverDir, 'to-deliver.json');
+    
+    if (fs.existsSync(toDeliverPath)) {
+      const toDeliverContent = fs.readFileSync(toDeliverPath, 'utf8');
+      const toDeliverItems = JSON.parse(toDeliverContent);
+      
+      // S'il y a des articles en attente, créer une "commande" spéciale pour les afficher
+      if (toDeliverItems && toDeliverItems.length > 0) {
+        // Regrouper les articles par catégorie pour un meilleur affichage
+        const groupedItems = {};
+        toDeliverItems.forEach(item => {
+          const category = item.categorie || 'autres';
+          if (!groupedItems[category]) {
+            groupedItems[category] = [];
+          }
+          groupedItems[category].push(item);
+        });
+        
+        // Créer une pseudo-commande pour afficher les articles en attente
+        const pendingDeliveryOrder = {
+          orderId: 'pending-delivery',
+          userId: userId,
+          status: 'pending-delivery',
+          date: new Date().toISOString(),
+          items: toDeliverItems,
+          isToDeliverItems: true,
+          groupedItems: groupedItems
+        };
+        
+        // Ajouter en premier dans la liste des commandes
+        allOrders.unshift(pendingDeliveryOrder);
+      }
+    }
+    
     // Si aucune commande trouvée dans la nouvelle structure, essayer le fichier legacy
     if (allOrders.length === 0) {
       const legacyOrdersPath = path.join(__dirname, 'data_store', `${userId}_orders.json`);
@@ -547,16 +585,23 @@ app.get('/api/user-orders', requireLogin, (req, res) => {
       }
     }
     
-    // Trier les commandes par date (les plus récentes d'abord)
-    allOrders.sort((a, b) => new Date(b.date) - new Date(a.date));
+    // Trier les commandes par date (les plus récentes d'abord) sauf la commande spéciale to-deliver
+    const pendingDelivery = allOrders.find(order => order.orderId === 'pending-delivery');
+    let regularOrders = allOrders.filter(order => order.orderId !== 'pending-delivery');
     
-    res.json(allOrders);
+    regularOrders.sort((a, b) => new Date(b.date) - new Date(a.date));
+    
+    // Réintégrer la commande spéciale en premier si elle existe
+    if (pendingDelivery) {
+      regularOrders.unshift(pendingDelivery);
+    }
+    
+    res.json(regularOrders);
   } catch (error) {
     console.error('Erreur lors de la récupération des commandes:', error);
     res.status(500).json({ error: 'Impossible de récupérer les commandes' });
   }
 });
-
 // Route pour obtenir le profil d'un client spécifique
 app.get('/api/admin/client-profile/:userId', requireLogin, requireAdmin, (req, res) => {
   const userId = req.params.userId;
@@ -576,7 +621,7 @@ app.get('/api/admin/client-profile/:userId', requireLogin, requireAdmin, (req, r
   }
 });
 
-// Route admin pour traiter une commande
+// Fonction modifiée pour le traitement des commandes avec gestion des articles restants
 app.post('/api/admin/process-order', requireLogin, requireAdmin, (req, res) => {
   const { userId, orderId, deliveredItems } = req.body;
   
@@ -647,6 +692,45 @@ app.post('/api/admin/process-order', requireLogin, requireAdmin, (req, res) => {
           path.join(dirs.deliveredDir, `${orderId}_invoice.json`), 
           JSON.stringify(deliveryInvoice, null, 2)
       );
+      
+      // Si des articles restent à livrer, les ajouter au document to-deliver
+      if (remainingItems.length > 0) {
+          // Créer le répertoire to-deliver s'il n'existe pas
+          const toDeliverDir = path.join(dirs.userOrdersDir, 'to-deliver');
+          if (!fs.existsSync(toDeliverDir)) {
+              fs.mkdirSync(toDeliverDir, { recursive: true });
+          }
+          
+          const toDeliverPath = path.join(toDeliverDir, `to-deliver.json`);
+          let toDeliverItems = [];
+          
+          // Vérifier si le fichier to-deliver existe déjà
+          if (fs.existsSync(toDeliverPath)) {
+              // Lire les articles existants
+              const toDeliverContent = fs.readFileSync(toDeliverPath, 'utf8');
+              toDeliverItems = JSON.parse(toDeliverContent);
+          }
+          
+          // Fusionner avec les nouveaux articles restants
+          remainingItems.forEach(newItem => {
+              const existingItemIndex = toDeliverItems.findIndex(item => 
+                  item.Nom === newItem.Nom && item.categorie === newItem.categorie
+              );
+              
+              if (existingItemIndex !== -1) {
+                  // Si l'article existe et que la nouvelle quantité est plus grande, mettre à jour
+                  if (newItem.quantity > toDeliverItems[existingItemIndex].quantity) {
+                      toDeliverItems[existingItemIndex].quantity = newItem.quantity;
+                  }
+              } else {
+                  // Sinon, ajouter le nouvel article
+                  toDeliverItems.push(newItem);
+              }
+          });
+          
+          // Enregistrer les articles mis à jour
+          fs.writeFileSync(toDeliverPath, JSON.stringify(toDeliverItems, null, 2));
+      }
       
       // Supprimer la commande du répertoire pending
       fs.unlinkSync(sourcePath);

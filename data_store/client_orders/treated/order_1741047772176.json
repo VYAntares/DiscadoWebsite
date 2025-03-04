@@ -1,0 +1,54 @@
+{
+  "orderId": "order_1741047772176",
+  "userId": "client",
+  "items": [
+    {
+      "Nom": "Bags 314 - Big bag with cities in blue",
+      "prix": "5.00",
+      "imageUrl": "/images/bags/Bags314.jpg",
+      "categorie": "bags",
+      "quantity": 12
+    },
+    {
+      "Nom": "Bags 315 - Banana bag Switzerland",
+      "prix": "3.00",
+      "imageUrl": "/images/bags/Bags315.jpg",
+      "categorie": "bags",
+      "quantity": 6
+    },
+    {
+      "Nom": "Bags 313 - Big bag with cities in beige",
+      "prix": "5.00",
+      "imageUrl": "/images/bags/Bags313.jpg",
+      "categorie": "bags",
+      "quantity": 8
+    }
+  ],
+  "status": "partial",
+  "date": "2025-03-04T00:22:52.176Z",
+  "lastProcessed": "2025-03-04T00:24:14.479Z",
+  "deliveredItems": [],
+  "remainingItems": [
+    {
+      "Nom": "Bags 314 - Big bag with cities in blue",
+      "prix": "5.00",
+      "imageUrl": "/images/bags/Bags314.jpg",
+      "categorie": "bags",
+      "quantity": 12
+    },
+    {
+      "Nom": "Bags 315 - Banana bag Switzerland",
+      "prix": "3.00",
+      "imageUrl": "/images/bags/Bags315.jpg",
+      "categorie": "bags",
+      "quantity": 6
+    },
+    {
+      "Nom": "Bags 313 - Big bag with cities in beige",
+      "prix": "5.00",
+      "imageUrl": "/images/bags/Bags313.jpg",
+      "categorie": "bags",
+      "quantity": 8
+    }
+  ]
+}
