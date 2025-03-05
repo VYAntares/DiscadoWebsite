@@ -4,6 +4,7 @@ const PDFDocument = require('pdfkit');
 const path = require('path');
 const fs = require('fs');
 const csv = require('csv-parser');
+const { kMaxLength } = require('buffer');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -843,6 +844,362 @@ dataDirs.forEach(dir => {
   }
 });
 
+// Fonction pour générer les factures PDF avec gestion des pages multiples
+function generateInvoicePDF(doc, orderItems, userProfile, orderDate, orderId, remainingItems = []) {
+  // Fonction pour ajouter un élément d'en-tête
+  function addHeaderElement(text, x, y, options = {}) {
+    doc.font('Helvetica').fontSize(10).text(text, x, y, options);
+  }
+
+  // Compteur de pages pour la numérotation
+  let pageCount = 0;
+  const totalPages = calculateTotalPages(orderItems, remainingItems);
+  
+  // Fonction pour calculer le nombre total de pages
+  function calculateTotalPages(items, remainingItems) {
+    // Estimation du nombre d'éléments par page (après l'en-tête de la première page)
+    const itemsPerFirstPage = 10; // Approximation
+    const itemsPerPage = 15; // Approximation pour les pages suivantes
+    
+    let pages = 1; // Commencer à 1 pour la première page
+    
+    // Calculer les pages pour les articles livrés
+    if (items.length > itemsPerFirstPage) {
+      pages += Math.ceil((items.length - itemsPerFirstPage) / itemsPerPage);
+    }
+    
+    // Ajouter des pages pour les articles restants
+    if (remainingItems && remainingItems.length > 0) {
+      // Une page pour l'en-tête et quelques articles restants
+      pages += Math.ceil((remainingItems.length - itemsPerFirstPage) / itemsPerPage);
+    }
+    
+    return pages;
+  }
+  
+  // Fonction pour ajouter le numéro de page
+  function addPageNumber() {
+    pageCount++;
+    doc.font('Helvetica').fontSize(8);
+    doc.text(
+      `Page ${pageCount}/${totalPages}`,
+      doc.page.width - 50, // Position X (marge droite)
+      doc.page.height - 20, // Position Y (bas de page)
+      { align: 'right' }
+    );
+  }
+
+  // En-tête de la facture - Logo, infos entreprise, infos client
+  function addInvoiceHeader() {
+    // Logo de l'entreprise
+    doc.image(path.join(__dirname, 'public', 'images', 'logo_discado_noir.png'), 50, 45, { width: 100 });
+
+    // Informations de l'émetteur
+    addHeaderElement('Discado Sàrl', 50, 150);
+    addHeaderElement('Rue de Lausanne 7', 50, 165);
+    addHeaderElement('1020 Morges, Switzerland', 50, 180);
+    addHeaderElement('VAT : CHE-123.456.789', 50, 195);
+
+    // Informations du client
+    const clientY = 150;
+    addHeaderElement('To:', 350, clientY);
+    addHeaderElement(`${userProfile.firstName} ${userProfile.lastName}`, 350, clientY + 15);
+    addHeaderElement(userProfile.shopName, 350, clientY + 30);
+    addHeaderElement(userProfile.shopAddress || userProfile.address, 350, clientY + 45);
+    addHeaderElement(
+      `${userProfile.shopZipCode || userProfile.postalCode} ${userProfile.shopCity || userProfile.city}`,
+      350,
+      clientY + 60
+    );
+
+    // Détails de la facture
+    const invoiceDate = orderDate;
+
+    doc.font('Helvetica-Bold').fontSize(16).text('Delivery Note', 50, 250);
+    addHeaderElement(`Order processing date: ${invoiceDate.toLocaleDateString('Fr')}`, 50, 280);
+
+    return 350; // Retourne la position Y après l'en-tête
+  }
+
+  // Fonction pour ajouter l'en-tête du tableau
+  function addTableHeader(yPosition) {
+    // Configuration des colonnes du tableau
+    const columns = [
+      { title: 'Description',    width: 200, align: 'left' },
+      { title: 'Quantity',       width:  70, align: 'center' },
+      { title: 'Unit Price',     width: 100, align: 'right' },
+      { title: 'Total',          width: 100, align: 'right' }
+    ];
+
+    // Position X de départ
+    let currentX = 50;
+
+    // En-tête du tableau
+    doc.font('Helvetica-Bold').fontSize(10);
+
+    columns.forEach(col => {
+      doc.text(col.title, currentX, yPosition, {
+        width: col.width,
+        align: col.align
+      });
+      currentX += col.width;
+    });
+
+    // Épaisseur de trait
+    doc.lineWidth(1.2);
+
+    // Ligne séparatrice en-tête
+    const lineEnd = 50 + columns.reduce((sum, col) => sum + col.width, 0);
+    doc.moveTo(50, yPosition + 20)
+       .lineTo(lineEnd, yPosition + 20)
+       .stroke();
+
+    return { yPosition: yPosition + 30, columns, lineEnd };
+  }
+
+  // Fonction pour déterminer si on a besoin d'une nouvelle page
+  function needsNewPage(currentYPos, requiredHeight = 50) {
+    return currentYPos + requiredHeight > doc.page.height - 40;
+  }
+
+  // Fonction pour ajouter une nouvelle page
+  function addNewPage() {
+    // Ajouter le numéro de page à la page courante avant d'ajouter une nouvelle page
+    addPageNumber();
+    
+    // Ajouter une nouvelle page
+    doc.addPage();
+    
+    // Réajouter l'en-tête du tableau sur la nouvelle page
+    return addTableHeader(50).yPosition;
+  }
+
+  // Ajouter l'en-tête de la facture
+  let yPos = addInvoiceHeader();
+
+  // Ajouter l'en-tête du tableau
+  const { yPosition, columns, lineEnd } = addTableHeader(yPos);
+  yPos = yPosition;
+
+  // Lignes d'articles
+  let totalHT = 0;
+
+  orderItems.forEach((item, index) => {
+    // Vérifier si on a besoin d'une nouvelle page
+    if (needsNewPage(yPos, 30)) {
+      yPos = addNewPage();
+    }
+
+    const itemTotal = parseFloat(item.prix) * item.quantity;
+    totalHT += itemTotal;
+
+    doc.font('Helvetica').fontSize(10);
+
+    // On réinitialise la position de départ pour chaque ligne
+    let xPos = 50;
+
+    // Désignation - Gérer le texte qui peut s'étendre sur plusieurs lignes
+    const textOptions = {
+      width: columns[0].width,
+      align: columns[0].align
+    };
+    
+    // Mesurer la hauteur que prendra le texte
+    const textHeight = doc.heightOfString(item.Nom, textOptions);
+    const rowHeight = Math.max(textHeight, 20); // Minimum 20px de hauteur
+
+    // Vérifier à nouveau si on a besoin d'une nouvelle page avec la hauteur calculée
+    if (needsNewPage(yPos, rowHeight)) {
+      yPos = addNewPage();
+    }
+
+    doc.text(item.Nom, xPos, yPos, textOptions);
+    xPos += columns[0].width;
+
+    // Quantité
+    doc.text(String(item.quantity), xPos, yPos, {
+      width: columns[1].width,
+      align: columns[1].align
+    });
+    xPos += columns[1].width;
+
+    // Prix unitaire
+    doc.text(`${parseFloat(item.prix).toFixed(2)} CHF`, xPos, yPos, {
+      width: columns[2].width,
+      align: columns[2].align
+    });
+    xPos += columns[2].width;
+
+    // Total
+    doc.text(`${itemTotal.toFixed(2)} CHF`, xPos, yPos, {
+      width: columns[3].width,
+      align: columns[3].align
+    });
+
+    yPos += rowHeight + 10; // Ajouter de l'espace entre les lignes
+  });
+
+  // Calculs et totaux
+  const TVA = 0.081; // Taux de TVA suisse standard (8.1%)
+  const montantTVA = totalHT * TVA;
+  const totalTTC = totalHT + montantTVA;
+
+  // Vérifier si on a besoin d'une nouvelle page pour les totaux
+  const spaceNeededForTotals = 100; // Espace approximatif nécessaire pour les totaux
+  
+  // Si on est vraiment trop bas dans la page actuelle pour les totaux
+  if (needsNewPage(yPos, spaceNeededForTotals)) {
+    yPos = addNewPage();
+  }
+
+  // Ligne séparatrice avant les totaux
+  doc.moveTo(50, yPos + 5)
+     .lineTo(lineEnd, yPos + 5)
+     .stroke();
+
+  // Alignement des totaux
+  doc.font('Helvetica-Bold').fontSize(10);
+
+  const col3Start = 50 + columns[0].width + columns[1].width;
+  const col4Start = col3Start + columns[2].width;
+
+  // Totaux - positionnés plus près de la dernière ligne
+  yPos += 15; // Espace réduit
+  doc.text('SUBTOTAL', col3Start, yPos, {
+    width: columns[2].width,
+    align: 'right'
+  });
+  doc.text(`${totalHT.toFixed(2)} CHF`, col4Start, yPos, {
+    width: columns[3].width,
+    align: 'right'
+  });
+
+  yPos += 15; // Espace réduit
+  doc.text('VAT 8.1%', col3Start, yPos, {
+    width: columns[2].width,
+    align: 'right'
+  });
+  doc.text(`${montantTVA.toFixed(2)} CHF`, col4Start, yPos, {
+    width: columns[3].width,
+    align: 'right'
+  });
+
+  yPos += 15; // Espace réduit
+  doc.text('TOTAL', col3Start, yPos, {
+    width: columns[2].width,
+    align: 'right'
+  });
+  doc.text(`${totalTTC.toFixed(2)} CHF`, col4Start, yPos, {
+    width: columns[3].width,
+    align: 'right'
+  });
+
+  // Pied de page avec moins d'espace
+  yPos += 25;
+  doc.font('Helvetica').fontSize(10);
+  doc.text('Thank you for your order!', 50, yPos, { align: 'center', width: doc.page.width - 100 });
+  
+  // Ajouter le numéro de page à la page courante
+  addPageNumber();
+  
+  // ======== SECTION ITEMS TO DELIVER (ARTICLES RESTANTS) ========
+  // Vérifier s'il y a des articles restants à livrer
+  if (remainingItems && remainingItems.length > 0) {
+    // Ajouter une nouvelle page pour les articles restants
+    doc.addPage();
+    
+    // Titre de la section "À livrer"
+    doc.font('Helvetica-Bold').fontSize(16).text('Items to be delivered later', 50, 50);
+    doc.font('Helvetica').fontSize(10).text('The following items from your order will be delivered at a later date.', 50, 80);
+    
+    // Ajouter l'en-tête du tableau pour les articles à livrer
+    const toDeliverTable = addTableHeader(120);
+    let toDeliverYPos = toDeliverTable.yPosition;
+    
+    // Afficher les articles restants à livrer
+    remainingItems.forEach((item) => {
+      // Vérifier si on a besoin d'une nouvelle page
+      if (needsNewPage(toDeliverYPos, 30)) {
+        // Ajouter le numéro de page avant de passer à la nouvelle page
+        addPageNumber();
+        
+        doc.addPage();
+        const newHeader = addTableHeader(50);
+        toDeliverYPos = newHeader.yPosition;
+      }
+      
+      const itemTotal = parseFloat(item.prix) * item.quantity;
+      
+      doc.font('Helvetica').fontSize(10);
+      
+      // On réinitialise la position de départ pour chaque ligne
+      let xPos = 50;
+      
+      // Désignation avec gestion multi-lignes
+      const textOptions = {
+        width: toDeliverTable.columns[0].width,
+        align: toDeliverTable.columns[0].align
+      };
+      
+      // Mesurer la hauteur que prendra le texte
+      const textHeight = doc.heightOfString(item.Nom, textOptions);
+      const rowHeight = Math.max(textHeight, 20);
+      
+      // Vérifier à nouveau si on a besoin d'une nouvelle page
+      if (needsNewPage(toDeliverYPos, rowHeight)) {
+        // Ajouter le numéro de page avant de passer à la nouvelle page
+        addPageNumber();
+        
+        doc.addPage();
+        const newHeader = addTableHeader(50);
+        toDeliverYPos = newHeader.yPosition;
+      }
+      
+      // Désignation
+      doc.text(item.Nom, xPos, toDeliverYPos, textOptions);
+      xPos += toDeliverTable.columns[0].width;
+      
+      // Quantité
+      doc.text(String(item.quantity), xPos, toDeliverYPos, {
+        width: toDeliverTable.columns[1].width,
+        align: toDeliverTable.columns[1].align
+      });
+      xPos += toDeliverTable.columns[1].width;
+      
+      // Prix unitaire
+      doc.text(`${parseFloat(item.prix).toFixed(2)} CHF`, xPos, toDeliverYPos, {
+        width: toDeliverTable.columns[2].width,
+        align: toDeliverTable.columns[2].align
+      });
+      xPos += toDeliverTable.columns[2].width;
+      
+      // Total
+      doc.text(`${itemTotal.toFixed(2)} CHF`, xPos, toDeliverYPos, {
+        width: toDeliverTable.columns[3].width,
+        align: toDeliverTable.columns[3].align
+      });
+      
+      toDeliverYPos += rowHeight + 10;
+    });
+    
+    // Note en bas de la page des articles à livrer
+    if (needsNewPage(toDeliverYPos, 30)) {
+      // Ajouter le numéro de page avant de passer à la nouvelle page
+      addPageNumber();
+      
+      doc.addPage();
+      toDeliverYPos = 50;
+    }
+    
+    toDeliverYPos += 30;
+    doc.font('Helvetica').fontSize(10);
+    doc.text('These items will be delivered as soon as they are available in stock.', 50, toDeliverYPos, { align: 'center', width: doc.page.width - 100 });
+    
+    // Ajouter le numéro de page à la dernière page
+    addPageNumber();
+  }
+}
+
 app.get('/api/download-invoice/:orderId', requireLogin, (req, res) => {
   const userId = req.session.user.username;
   const orderId = req.params.orderId;
@@ -891,6 +1248,10 @@ app.get('/api/download-invoice/:orderId', requireLogin, (req, res) => {
             error: 'Cette commande n\'a pas encore été livrée. Aucune facture disponible.' 
           });
         }
+        let remainingItems = [];
+        if (orderData.remainingItems && orderData.remainingItems.length > 0) {
+          remainingItems = orderData.remainingItems;
+        }
       } else {
         // Vérifier si c'est une commande en attente
         const pendingOrderPath = path.join(dirs.pendingDir, `${orderId}.json`);
@@ -933,6 +1294,7 @@ app.get('/api/download-invoice/:orderId', requireLogin, (req, res) => {
     if (!orderItems || orderItems.length === 0) {
       return res.status(404).json({ error: 'Aucun élément à facturer trouvé' });
     }
+    
 
     // Créer un nouveau document PDF
     const doc = new PDFDocument({ size: 'A4', margin: 50 });
@@ -947,170 +1309,8 @@ app.get('/api/download-invoice/:orderId', requireLogin, (req, res) => {
     // Pipe du PDF directement dans la réponse
     doc.pipe(res);
 
-    // Fonction pour ajouter un élément d'en-tête
-    function addHeaderElement(doc, text, x, y, options = {}) {
-      doc.font('Helvetica').fontSize(10).text(text, x, y, options);
-    }
-
-    // Logo de l'entreprise
-    doc.image(path.join(__dirname, 'public', 'images', 'logo_discado_noir.png'), 50, 45, { width: 100 });
-
-    // Informations de l'émetteur
-    addHeaderElement(doc, 'Discado Sàrl', 50, 150);
-    addHeaderElement(doc, 'Rue de Lausanne 7', 50, 165);
-    addHeaderElement(doc, '1020 Morges, Suisse', 50, 180);
-    addHeaderElement(doc, 'TVA : CHE-123.456.789', 50, 195);
-
-    // Informations du client
-    const clientY = 150;
-    addHeaderElement(doc, 'Facture à :', 350, clientY);
-    addHeaderElement(doc, `${userProfile.firstName} ${userProfile.lastName}`, 350, clientY + 15);
-    addHeaderElement(doc, userProfile.shopName, 350, clientY + 30);
-    addHeaderElement(doc, userProfile.shopAddress || userProfile.address, 350, clientY + 45);
-    addHeaderElement(
-      doc,
-      `${userProfile.shopZipCode || userProfile.postalCode} ${userProfile.shopCity || userProfile.city}`,
-      350,
-      clientY + 60
-    );
-
-    // Détails de la facture
-    const invoiceDate = orderDate;
-    const invoiceNumber = `INV-${invoiceDate.getFullYear()}-${orderId}`;
-
-    doc.font('Helvetica-Bold').fontSize(16).text('Facture', 50, 250);
-    addHeaderElement(doc, `Numéro de facture: ${invoiceNumber}`, 50, 280);
-    addHeaderElement(doc, `Date de facturation: ${invoiceDate.toLocaleDateString('fr-CH')}`, 50, 295);
-
-    // Configuration des colonnes du tableau
-    const tableTop = 350;
-    const columns = [
-      { title: 'Désignation',   width: 200, align: 'left' },
-      { title: 'Quantité',     width:  70, align: 'center' },
-      { title: 'Prix unitaire',width: 100, align: 'right' },
-      { title: 'Total',        width: 100, align: 'right' }
-    ];
-
-    // Calcul de la largeur totale des colonnes
-    const totalWidth = columns.reduce((sum, col) => sum + col.width, 0);
-
-    // Position X de départ
-    let currentX = 50;
-
-    // En-tête du tableau
-    doc.font('Helvetica-Bold').fontSize(10);
-
-    columns.forEach(col => {
-      doc.text(col.title, currentX, tableTop, {
-        width: col.width,
-        align: col.align
-      });
-      currentX += col.width;
-    });
-
-    // Épaisseur de trait
-    doc.lineWidth(1.2);
-
-    // Ligne séparatrice en-tête
-    const lineEnd = 50 + totalWidth;
-    doc.moveTo(50, tableTop + 20)
-       .lineTo(lineEnd, tableTop + 20)
-       .stroke();
-
-    // Lignes d'articles
-    let yPos = tableTop + 30;
-    let totalHT = 0;
-
-    orderItems.forEach(item => {
-      const itemTotal = parseFloat(item.prix) * item.quantity;
-      totalHT += itemTotal;
-
-      doc.font('Helvetica').fontSize(10);
-
-      // On réinitialise la position de départ pour chaque ligne
-      let xPos = 50;
-
-      // Désignation
-      doc.text(item.Nom, xPos, yPos, {
-        width: columns[0].width,
-        align: columns[0].align
-      });
-      xPos += columns[0].width;
-
-      // Quantité
-      doc.text(String(item.quantity), xPos, yPos, {
-        width: columns[1].width,
-        align: columns[1].align
-      });
-      xPos += columns[1].width;
-
-      // Prix unitaire
-      doc.text(`${parseFloat(item.prix).toFixed(2)} CHF`, xPos, yPos, {
-        width: columns[2].width,
-        align: columns[2].align
-      });
-      xPos += columns[2].width;
-
-      // Total
-      doc.text(`${itemTotal.toFixed(2)} CHF`, xPos, yPos, {
-        width: columns[3].width,
-        align: columns[3].align
-      });
-
-      yPos += 20;
-    });
-
-    // Calculs et totaux
-    const TVA = 0.077; // Taux de TVA suisse standard (7.7%)
-    const montantTVA = totalHT * TVA;
-    const totalTTC = totalHT + montantTVA;
-
-    // Ligne séparatrice avant les totaux
-    doc.moveTo(50, yPos + 10)
-       .lineTo(lineEnd, yPos + 10)
-       .stroke();
-
-    // Alignement des totaux
-    doc.font('Helvetica-Bold').fontSize(10);
-
-    const col3Start = 50 + columns[0].width + columns[1].width;
-    const col4Start = col3Start + columns[2].width;
-
-    // Totaux
-    doc.text('TOTAL HT', col3Start, yPos + 20, {
-      width: columns[2].width,
-      align: 'right'
-    });
-    doc.text(`${totalHT.toFixed(2)} CHF`, col4Start, yPos + 20, {
-      width: columns[3].width,
-      align: 'right'
-    });
-
-    doc.text('TVA 7.7%', col3Start, yPos + 40, {
-      width: columns[2].width,
-      align: 'right'
-    });
-    doc.text(`${montantTVA.toFixed(2)} CHF`, col4Start, yPos + 40, {
-      width: columns[3].width,
-      align: 'right'
-    });
-
-    doc.text('TOTAL TTC', col3Start, yPos + 60, {
-      width: columns[2].width,
-      align: 'right'
-    });
-    doc.text(`${totalTTC.toFixed(2)} CHF`, col4Start, yPos + 60, {
-      width: columns[3].width,
-      align: 'right'
-    });
-
-    // Conditions de paiement
-    doc.font('Helvetica').fontSize(10);
-    // doc.text('Conditions de paiement : Net 30 jours', 50, yPos + 120);
-    // doc.text('Veuillez effectuer le paiement par virement bancaire', 50, yPos + 135);
-
-    // Pied de page
-    doc.text('Merci pour votre commande !', 50, yPos + 180, { align: 'center' });
+    // Utiliser la fonction de génération de facture
+    generateInvoicePDF(doc, orderItems, userProfile, orderDate, orderId, remainingItems);
 
     // Finaliser le PDF
     doc.end();
@@ -1121,10 +1321,104 @@ app.get('/api/download-invoice/:orderId', requireLogin, (req, res) => {
   }
 });
 
-// Route for the Order History page
-app.get('/admin/order-history', requireLogin, requireAdmin, (req, res) => {
-  res.sendFile(path.join(__dirname, 'admin', 'order-history.html'));
+app.get('/api/admin/download-invoice/:orderId/:userId', requireLogin, requireAdmin, (req, res) => {
+  const { orderId, userId } = req.params;
+  const userProfilePath = path.join(__dirname, 'data_client', `${userId}_profile.json`);
+  
+  // Utiliser la structure de dossiers
+  const dirs = ensureUserOrderDirectories(userId);
+  
+  try {
+    // Vérifier que le fichier de profil existe
+    if (!fs.existsSync(userProfilePath)) {
+      return res.status(404).json({ error: 'User profile not found' });
+    }
+
+    // Lire le profil utilisateur
+    const profileContent = fs.readFileSync(userProfilePath, 'utf8');
+    const userProfile = JSON.parse(profileContent);
+
+    // Chercher la facture dans le répertoire delivered
+    const invoicePath = path.join(dirs.deliveredDir, `${orderId}_invoice.json`);
+    let invoiceData;
+    let orderItems;
+    let orderDate;
+    let remainingItems = []; // Initialiser ici
+    
+    // Si nous avons une facture dans le dossier delivered
+    if (fs.existsSync(invoicePath)) {
+      const invoiceContent = fs.readFileSync(invoicePath, 'utf8');
+      invoiceData = JSON.parse(invoiceContent);
+      orderItems = invoiceData.items;
+      orderDate = new Date(invoiceData.invoiceDate || invoiceData.originalOrderDate);
+      
+      // Vérifier s'il existe une commande traité avec des articles restants
+      const treatedOrderPath = path.join(dirs.treatedDir, `${orderId}.json`);
+      if (fs.existsSync(treatedOrderPath)) {
+        const orderContent = fs.readFileSync(treatedOrderPath, 'utf8');
+        const orderData = JSON.parse(orderContent);
+        if (orderData.remainingItems && orderData.remainingItems.length > 0) {
+          remainingItems = orderData.remainingItems;
+        }
+      }
+    } 
+    // Sinon, chercher dans le dossier treated pour les commandes déjà traitées
+    else {
+      const treatedOrderPath = path.join(dirs.treatedDir, `${orderId}.json`);
+      if (fs.existsSync(treatedOrderPath)) {
+        const orderContent = fs.readFileSync(treatedOrderPath, 'utf8');
+        const orderData = JSON.parse(orderContent);
+        
+        // Si la commande est marquée comme completed ou a des items livrés
+        if (orderData.status === 'completed' || 
+           (orderData.deliveredItems && orderData.deliveredItems.length > 0)) {
+          orderItems = orderData.deliveredItems || orderData.items;
+          orderDate = new Date(orderData.lastProcessed || orderData.date);
+          
+          // Récupérer les articles restants à livrer
+          if (orderData.remainingItems && orderData.remainingItems.length > 0) {
+            remainingItems = orderData.remainingItems;
+          }
+        } else {
+          return res.status(403).json({ 
+            error: 'Cette commande n\'a pas encore été livrée. Aucune facture disponible.' 
+          });
+        }
+      } else {
+        return res.status(404).json({ error: 'Commande non trouvée' });
+      }
+    }
+
+    // Si nous n'avons pas d'éléments à facturer
+    if (!orderItems || orderItems.length === 0) {
+      return res.status(404).json({ error: 'Aucun élément à facturer trouvé' });
+    }
+
+    // Créer un nouveau document PDF
+    const doc = new PDFDocument({ size: 'A4', margin: 50 });
+    
+    // Définir l'en-tête pour le téléchargement
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename=Invoice_${userId}_${orderId}.pdf`
+    );
+
+    // Pipe du PDF directement dans la réponse
+    doc.pipe(res);
+
+    // Utiliser la fonction de génération de facture
+    generateInvoicePDF(doc, orderItems, userProfile, orderDate, orderId, remainingItems);
+
+    // Finaliser le PDF
+    doc.end();
+
+  } catch (error) {
+    console.error('Error generating invoice:', error);
+    res.status(500).json({ error: 'Could not generate invoice' });
+  }
 });
+
 
 // API route to get all treated orders
 app.get('/api/admin/treated-orders', requireLogin, requireAdmin, (req, res) => {
@@ -1230,246 +1524,6 @@ app.get('/api/admin/order-details/:orderId/:userId', requireLogin, requireAdmin,
   }
 });
 
-// API route for admin to download any invoice
-app.get('/api/admin/download-invoice/:orderId/:userId', requireLogin, requireAdmin, (req, res) => {
-  const { orderId, userId } = req.params;
-  const userProfilePath = path.join(__dirname, 'data_client', `${userId}_profile.json`);
-  
-  // Utiliser la structure de dossiers
-  const dirs = ensureUserOrderDirectories(userId);
-  
-  try {
-    // Vérifier que le fichier de profil existe
-    if (!fs.existsSync(userProfilePath)) {
-      return res.status(404).json({ error: 'User profile not found' });
-    }
-
-    // Lire le profil utilisateur
-    const profileContent = fs.readFileSync(userProfilePath, 'utf8');
-    const userProfile = JSON.parse(profileContent);
-
-    // Chercher la facture dans le répertoire delivered
-    const invoicePath = path.join(dirs.deliveredDir, `${orderId}_invoice.json`);
-    let invoiceData;
-    let orderItems;
-    let orderDate;
-    
-    // Si nous avons une facture dans le dossier delivered
-    if (fs.existsSync(invoicePath)) {
-      const invoiceContent = fs.readFileSync(invoicePath, 'utf8');
-      invoiceData = JSON.parse(invoiceContent);
-      orderItems = invoiceData.items;
-      orderDate = new Date(invoiceData.invoiceDate || invoiceData.originalOrderDate);
-    } 
-    // Sinon, chercher dans le dossier treated pour les commandes déjà traitées
-    else {
-      const treatedOrderPath = path.join(dirs.treatedDir, `${orderId}.json`);
-      if (fs.existsSync(treatedOrderPath)) {
-        const orderContent = fs.readFileSync(treatedOrderPath, 'utf8');
-        const orderData = JSON.parse(orderContent);
-        
-        // Si la commande est marquée comme completed ou a des items livrés
-        if (orderData.status === 'completed' || 
-           (orderData.deliveredItems && orderData.deliveredItems.length > 0)) {
-          orderItems = orderData.deliveredItems || orderData.items;
-          orderDate = new Date(orderData.lastProcessed || orderData.date);
-        } else {
-          return res.status(403).json({ 
-            error: 'Cette commande n\'a pas encore été livrée. Aucune facture disponible.' 
-          });
-        }
-      } else {
-        return res.status(404).json({ error: 'Commande non trouvée' });
-      }
-    }
-
-    // Si nous n'avons pas d'éléments à facturer
-    if (!orderItems || orderItems.length === 0) {
-      return res.status(404).json({ error: 'Aucun élément à facturer trouvé' });
-    }
-
-    // Créer un nouveau document PDF
-    const doc = new PDFDocument({ size: 'A4', margin: 50 });
-    
-    // Définir l'en-tête pour le téléchargement
-    res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader(
-      'Content-Disposition',
-      `attachment; filename=Invoice_${userId}_${orderId}.pdf`
-    );
-
-    // Pipe du PDF directement dans la réponse
-    doc.pipe(res);
-
-    // Fonction pour ajouter un élément d'en-tête
-    function addHeaderElement(doc, text, x, y, options = {}) {
-      doc.font('Helvetica').fontSize(10).text(text, x, y, options);
-    }
-
-    // Logo de l'entreprise
-    doc.image(path.join(__dirname, 'public', 'images', 'logo_discado_noir.png'), 50, 45, { width: 100 });
-
-    // Informations de l'émetteur
-    addHeaderElement(doc, 'Discado Sàrl', 50, 150);
-    addHeaderElement(doc, 'Rue de Lausanne 7', 50, 165);
-    addHeaderElement(doc, '1020 Morges, Suisse', 50, 180);
-    addHeaderElement(doc, 'TVA : CHE-123.456.789', 50, 195);
-
-    // Informations du client
-    const clientY = 150;
-    addHeaderElement(doc, 'Facture à :', 350, clientY);
-    addHeaderElement(doc, `${userProfile.firstName} ${userProfile.lastName}`, 350, clientY + 15);
-    addHeaderElement(doc, userProfile.shopName, 350, clientY + 30);
-    addHeaderElement(doc, userProfile.shopAddress || userProfile.address, 350, clientY + 45);
-    addHeaderElement(
-      doc,
-      `${userProfile.shopZipCode || userProfile.postalCode} ${userProfile.shopCity || userProfile.city}`,
-      350,
-      clientY + 60
-    );
-
-    // Détails de la facture
-    const invoiceDate = orderDate;
-    const invoiceNumber = `INV-${invoiceDate.getFullYear()}-${orderId}`;
-
-    doc.font('Helvetica-Bold').fontSize(16).text('Facture', 50, 250);
-    addHeaderElement(doc, `Numéro de facture: ${invoiceNumber}`, 50, 280);
-    addHeaderElement(doc, `Date de facturation: ${invoiceDate.toLocaleDateString('fr-CH')}`, 50, 295);
-
-    // Configuration des colonnes du tableau
-    const tableTop = 350;
-    const columns = [
-      { title: 'Désignation',   width: 200, align: 'left' },
-      { title: 'Quantité',     width:  70, align: 'center' },
-      { title: 'Prix unitaire',width: 100, align: 'right' },
-      { title: 'Total',        width: 100, align: 'right' }
-    ];
-
-    // Calcul de la largeur totale des colonnes
-    const totalWidth = columns.reduce((sum, col) => sum + col.width, 0);
-
-    // Position X de départ
-    let currentX = 50;
-
-    // En-tête du tableau
-    doc.font('Helvetica-Bold').fontSize(10);
-
-    columns.forEach(col => {
-      doc.text(col.title, currentX, tableTop, {
-        width: col.width,
-        align: col.align
-      });
-      currentX += col.width;
-    });
-
-    // Épaisseur de trait
-    doc.lineWidth(1.2);
-
-    // Ligne séparatrice en-tête
-    const lineEnd = 50 + totalWidth;
-    doc.moveTo(50, tableTop + 20)
-       .lineTo(lineEnd, tableTop + 20)
-       .stroke();
-
-    // Lignes d'articles
-    let yPos = tableTop + 30;
-    let totalHT = 0;
-
-    orderItems.forEach(item => {
-      const itemTotal = parseFloat(item.prix) * item.quantity;
-      totalHT += itemTotal;
-
-      doc.font('Helvetica').fontSize(10);
-
-      // On réinitialise la position de départ pour chaque ligne
-      let xPos = 50;
-
-      // Désignation
-      doc.text(item.Nom, xPos, yPos, {
-        width: columns[0].width,
-        align: columns[0].align
-      });
-      xPos += columns[0].width;
-
-      // Quantité
-      doc.text(String(item.quantity), xPos, yPos, {
-        width: columns[1].width,
-        align: columns[1].align
-      });
-      xPos += columns[1].width;
-
-      // Prix unitaire
-      doc.text(`${parseFloat(item.prix).toFixed(2)} CHF`, xPos, yPos, {
-        width: columns[2].width,
-        align: columns[2].align
-      });
-      xPos += columns[2].width;
-
-      // Total
-      doc.text(`${itemTotal.toFixed(2)} CHF`, xPos, yPos, {
-        width: columns[3].width,
-        align: columns[3].align
-      });
-
-      yPos += 20;
-    });
-
-    // Calculs et totaux
-    const TVA = 0.077; // Taux de TVA suisse standard (7.7%)
-    const montantTVA = totalHT * TVA;
-    const totalTTC = totalHT + montantTVA;
-
-    // Ligne séparatrice avant les totaux
-    doc.moveTo(50, yPos + 10)
-       .lineTo(lineEnd, yPos + 10)
-       .stroke();
-
-    // Alignement des totaux
-    doc.font('Helvetica-Bold').fontSize(10);
-
-    const col3Start = 50 + columns[0].width + columns[1].width;
-    const col4Start = col3Start + columns[2].width;
-
-    // Totaux
-    doc.text('TOTAL HT', col3Start, yPos + 20, {
-      width: columns[2].width,
-      align: 'right'
-    });
-    doc.text(`${totalHT.toFixed(2)} CHF`, col4Start, yPos + 20, {
-      width: columns[3].width,
-      align: 'right'
-    });
-
-    doc.text('TVA 7.7%', col3Start, yPos + 40, {
-      width: columns[2].width,
-      align: 'right'
-    });
-    doc.text(`${montantTVA.toFixed(2)} CHF`, col4Start, yPos + 40, {
-      width: columns[3].width,
-      align: 'right'
-    });
-
-    doc.text('TOTAL TTC', col3Start, yPos + 60, {
-      width: columns[2].width,
-      align: 'right'
-    });
-    doc.text(`${totalTTC.toFixed(2)} CHF`, col4Start, yPos + 60, {
-      width: columns[3].width,
-      align: 'right'
-    });
-
-    // Pied de page
-    doc.font('Helvetica').fontSize(10);
-    doc.text('Merci pour votre commande !', 50, yPos + 180, { align: 'center' });
-
-    // Finaliser le PDF
-    doc.end();
-
-  } catch (error) {
-    console.error('Error generating invoice:', error);
-    res.status(500).json({ error: 'Could not generate invoice' });
-  }
-});
 
 // Add this route to your index.js file
 

@@ -1,0 +1,106 @@
+{
+  "orderId": "order_1741127941402",
+  "userId": "client",
+  "items": [
+    {
+      "Nom": "Magnet 1 - Genève water jet relief (horloge)",
+      "prix": "1.70",
+      "imageUrl": "/images/magnet/Magnet1.jpg",
+      "categorie": "magnet",
+      "quantity": 24
+    },
+    {
+      "Nom": "Magnet 2 - Genève water jet relief",
+      "prix": "1.70",
+      "imageUrl": "/images/magnet/Magnet2.jpg",
+      "categorie": "magnet",
+      "quantity": 24
+    },
+    {
+      "Nom": "Magnet 3 - Genève boat relief",
+      "prix": "1.70",
+      "imageUrl": "/images/magnet/Magnet3.jpg",
+      "categorie": "magnet",
+      "quantity": 24
+    },
+    {
+      "Nom": "Magnet 157 - Genève cuckoo",
+      "prix": "1.70",
+      "imageUrl": "/images/magnet/Magnet157.jpg",
+      "categorie": "magnet",
+      "quantity": 24
+    },
+    {
+      "Nom": "Magnet 182 - Red cow head",
+      "prix": "1.70",
+      "imageUrl": "/images/magnet/Magnet182.jpg",
+      "categorie": "magnet",
+      "quantity": 12
+    },
+    {
+      "Nom": "Magnet 183 - Red cow",
+      "prix": "1.70",
+      "imageUrl": "/images/magnet/Magnet183.jpg",
+      "categorie": "magnet",
+      "quantity": 48
+    },
+    {
+      "Nom": "Magnet 184 - BW cow switzerland",
+      "prix": "1.70",
+      "imageUrl": "/images/magnet/Magnet184.jpg",
+      "categorie": "magnet",
+      "quantity": 48
+    }
+  ],
+  "status": "partial",
+  "date": "2025-03-04T22:39:01.402Z",
+  "lastProcessed": "2025-03-04T22:39:42.232Z",
+  "deliveredItems": [
+    {
+      "Nom": "Magnet 1 - Genève water jet relief (horloge)",
+      "quantity": 24,
+      "prix": "1.70"
+    },
+    {
+      "Nom": "Magnet 2 - Genève water jet relief",
+      "quantity": 24,
+      "prix": "1.70"
+    },
+    {
+      "Nom": "Magnet 3 - Genève boat relief",
+      "quantity": 24,
+      "prix": "1.70"
+    },
+    {
+      "Nom": "Magnet 157 - Genève cuckoo",
+      "quantity": 24,
+      "prix": "1.70"
+    },
+    {
+      "Nom": "Magnet 183 - Red cow",
+      "quantity": 48,
+      "prix": "1.70"
+    },
+    {
+      "Nom": "Magnet 184 - BW cow switzerland",
+      "quantity": 24,
+      "prix": "1.70"
+    }
+  ],
+  "remainingItems": [
+    {
+      "Nom": "Magnet 182 - Red cow head",
+      "prix": "1.70",
+      "imageUrl": "/images/magnet/Magnet182.jpg",
+      "categorie": "magnet",
+      "quantity": 12
+    },
+    {
+      "Nom": "Magnet 184 - BW cow switzerland",
+      "prix": "1.70",
+      "imageUrl": "/images/magnet/Magnet184.jpg",
+      "categorie": "magnet",
+      "quantity": 24
+    }
+  ]
+}
