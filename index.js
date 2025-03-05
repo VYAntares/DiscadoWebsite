@@ -34,7 +34,8 @@ const allowedUsers = [
   { username: 'admin2', password: 'admin124', role: 'admin' },
   { username: 'client', password: 'client123', role: 'client' },
   { username: 'client2', password: 'client123', role: 'client' },
-  { username: 'luca', password: 'lumattei', role: 'client' }
+  { username: 'luca', password: 'lumattei', role: 'client' },
+  { username: 'mengp', password: 'mengp', role: 'client' }
 ];
 
 // Middleware pour vérifier la connexion
