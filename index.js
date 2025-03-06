@@ -206,6 +206,11 @@ app.get('/admin/clients', requireLogin, requireAdmin, (req, res) => {
   res.sendFile(path.join(__dirname, 'admin', 'clients.html'));
 });
 
+// Ajoutez cette route après les autres routes /admin/*
+app.get('/admin/order-history', requireLogin, requireAdmin, (req, res) => {
+  res.sendFile(path.join(__dirname, 'admin', 'order-history.html'));
+});
+
 app.get('/catalog', requireLogin, requireCompleteProfile, (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'catalog.html'));
 });
@@ -1226,6 +1231,7 @@ app.get('/api/download-invoice/:orderId', requireLogin, (req, res) => {
     let invoiceData;
     let orderItems;
     let orderDate;
+    let remainingItems = []; // Initialize remainingItems as an empty array
     
     // Si nous avons une facture dans le dossier delivered
     if (fs.existsSync(invoicePath)) {
@@ -1233,6 +1239,16 @@ app.get('/api/download-invoice/:orderId', requireLogin, (req, res) => {
       invoiceData = JSON.parse(invoiceContent);
       orderItems = invoiceData.items;
       orderDate = new Date(invoiceData.invoiceDate || invoiceData.originalOrderDate);
+
+      // Check for remaining items in the treated order
+      const treatedOrderPath = path.join(dirs.treatedDir, `${orderId}.json`);
+      if (fs.existsSync(treatedOrderPath)) {
+        const orderContent = fs.readFileSync(treatedOrderPath, 'utf8');
+        const orderData = JSON.parse(orderContent);
+        if (orderData.remainingItems && orderData.remainingItems.length > 0) {
+          remainingItems = orderData.remainingItems;
+        }
+      }
     } 
     // Sinon, chercher dans le dossier treated pour les commandes déjà traitées
     else {
@@ -1246,14 +1262,15 @@ app.get('/api/download-invoice/:orderId', requireLogin, (req, res) => {
            (orderData.deliveredItems && orderData.deliveredItems.length > 0)) {
           orderItems = orderData.deliveredItems || orderData.items;
           orderDate = new Date(orderData.lastProcessed || orderData.date);
+          
+          // Get remaining items if any
+          if (orderData.remainingItems && orderData.remainingItems.length > 0) {
+            remainingItems = orderData.remainingItems;
+          }
         } else {
           return res.status(403).json({ 
             error: 'Cette commande n\'a pas encore été livrée. Aucune facture disponible.' 
           });
-        }
-        let remainingItems = [];
-        if (orderData.remainingItems && orderData.remainingItems.length > 0) {
-          remainingItems = orderData.remainingItems;
         }
       } else {
         // Vérifier si c'est une commande en attente
@@ -1279,6 +1296,11 @@ app.get('/api/download-invoice/:orderId', requireLogin, (req, res) => {
                (order.deliveredItems && order.deliveredItems.length > 0)) {
               orderItems = order.deliveredItems || order.items;
               orderDate = new Date(order.lastProcessed || order.date);
+              
+              // Get remaining items if any
+              if (order.remainingItems && order.remainingItems.length > 0) {
+                remainingItems = order.remainingItems;
+              }
             } else {
               return res.status(403).json({ 
                 error: 'Cette commande n\'a pas encore été livrée. Aucune facture disponible.' 
@@ -1297,7 +1319,6 @@ app.get('/api/download-invoice/:orderId', requireLogin, (req, res) => {
     if (!orderItems || orderItems.length === 0) {
       return res.status(404).json({ error: 'Aucun élément à facturer trouvé' });
     }
-    
 
     // Créer un nouveau document PDF
     const doc = new PDFDocument({ size: 'A4', margin: 50 });
@@ -1312,7 +1333,7 @@ app.get('/api/download-invoice/:orderId', requireLogin, (req, res) => {
     // Pipe du PDF directement dans la réponse
     doc.pipe(res);
 
-    // Utiliser la fonction de génération de facture
+    // Utiliser la fonction de génération de facture avec remainingItems
     generateInvoicePDF(doc, orderItems, userProfile, orderDate, orderId, remainingItems);
 
     // Finaliser le PDF
