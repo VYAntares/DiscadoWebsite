@@ -1,0 +1,93 @@
+[
+  {
+    "Nom": "Caps 52 C - Kids - Matterhorn Switzerland",
+    "prix": "3.50",
+    "imageUrl": "/images/caps/Caps52c.jpg",
+    "categorie": "caps",
+    "quantity": 6
+  },
+  {
+    "Nom": "Magnet 120 - Swiss badge MM",
+    "prix": "1.70",
+    "imageUrl": "/images/magnet/Magnet120.jpg",
+    "categorie": "magnet",
+    "quantity": 12
+  },
+  {
+    "Nom": "Magnet 138 - Genève badge",
+    "prix": "1.70",
+    "imageUrl": "/images/magnet/Magnet138.jpg",
+    "categorie": "magnet",
+    "quantity": 12
+  },
+  {
+    "Nom": "Magnet 294 - Swiss map Genève",
+    "prix": "1.00",
+    "imageUrl": "/images/magnet/Magnet294.jpg",
+    "categorie": "magnet",
+    "quantity": 48
+  },
+  {
+    "Nom": "Magnet 308 - flag. clock. water jet. chocolate MM",
+    "prix": "2.00",
+    "imageUrl": "/images/magnet/Magnet308.jpg",
+    "categorie": "magnet",
+    "quantity": 12
+  },
+  {
+    "Nom": "Magnet 307 - Water jet magnet MM",
+    "prix": "2.00",
+    "imageUrl": "/images/magnet/Magnet307.jpg",
+    "categorie": "magnet",
+    "quantity": 12
+  },
+  {
+    "Nom": "Gadget 230 - Geneve water jet Tumbler",
+    "prix": "4.00",
+    "imageUrl": "/images/gadget/Gadget230.jpg",
+    "categorie": "gadget",
+    "quantity": 6
+  },
+  {
+    "Nom": "Gadget 220 - transparent poncho",
+    "prix": "0.00",
+    "imageUrl": "/images/gadget/Gadget220.jpg",
+    "categorie": "gadget",
+    "quantity": 24
+  },
+  {
+    "Nom": "Keyring 24 - cow chocolate edelweiss label",
+    "prix": "1.90",
+    "imageUrl": "/images/keyring/Keyring24.jpg",
+    "categorie": "keyring",
+    "quantity": 12
+  },
+  {
+    "Nom": "Keyring 23 - Edelweiss pen red or black pen",
+    "prix": "1.90",
+    "imageUrl": "/images/keyring/Keyring23.jpg",
+    "categorie": "keyring",
+    "quantity": 12
+  },
+  {
+    "Nom": "Keyring 211 - Nail clippers Genève",
+    "prix": "2.00",
+    "imageUrl": "/images/keyring/Keyring211.jpg",
+    "categorie": "keyring",
+    "quantity": 12
+  },
+  {
+    "Nom": "Keyring 202 - Round double-sided Genève",
+    "prix": "1.90",
+    "imageUrl": "/images/keyring/Keyring202.jpg",
+    "categorie": "keyring",
+    "quantity": 12
+  },
+  {
+    "Nom": "Keyring 78 - Tool Swiss army knife",
+    "prix": "4.00",
+    "imageUrl": "/images/keyring/Keyring78.jpg",
+    "categorie": "keyring",
+    "quantity": 12
+  }
+]

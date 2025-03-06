@@ -1,0 +1,37 @@
+[
+  {
+    "Nom": "Caps 6 C - Swiss flag round beige",
+    "prix": "3.80",
+    "imageUrl": "/images/caps/Caps6c.jpg",
+    "categorie": "caps",
+    "quantity": 12
+  },
+  {
+    "Nom": "Caps 7 C - Swiss flag round red",
+    "prix": "3.80",
+    "imageUrl": "/images/caps/Caps7c.jpg",
+    "categorie": "caps",
+    "quantity": 12
+  },
+  {
+    "Nom": "Caps 8 C - Swiss flag round black",
+    "prix": "3.80",
+    "imageUrl": "/images/caps/Caps8c.jpg",
+    "categorie": "caps",
+    "quantity": 12
+  },
+  {
+    "Nom": "Caps 9 C - Swiss flag round marine",
+    "prix": "3.80",
+    "imageUrl": "/images/caps/Caps9c.jpg",
+    "categorie": "caps",
+    "quantity": 12
+  },
+  {
+    "Nom": "Caps 70 C - Script flag Genève",
+    "prix": "3.80",
+    "imageUrl": "/images/caps/Caps70c.jpg",
+    "categorie": "caps",
+    "quantity": 12
+  }
+]

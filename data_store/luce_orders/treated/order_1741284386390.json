@@ -1,0 +1,24 @@
+{
+  "orderId": "order_1741284386390",
+  "userId": "luce",
+  "items": [
+    {
+      "Nom": "T-Shirts 104 TS - Switzerland embroidered black or blue",
+      "prix": "9.50",
+      "imageUrl": "/images/tshirt/TShirt104ts.jpg",
+      "categorie": "tshirt",
+      "quantity": 18
+    }
+  ],
+  "status": "completed",
+  "date": "2025-03-06T18:06:26.390Z",
+  "lastProcessed": "2025-03-06T18:09:01.499Z",
+  "deliveredItems": [
+    {
+      "Nom": "T-Shirts 104 TS - Switzerland embroidered black or blue",
+      "quantity": 18,
+      "prix": "9.50"
+    }
+  ],
+  "remainingItems": []
+}

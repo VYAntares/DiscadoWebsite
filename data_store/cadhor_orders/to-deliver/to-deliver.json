@@ -1,0 +1,65 @@
+[
+  {
+    "Nom": "Magnet 454 - Cheese Fondue spinner",
+    "prix": "2.60",
+    "imageUrl": "/images/magnet/Magnet454.jpg",
+    "categorie": "magnet",
+    "quantity": 24
+  },
+  {
+    "Nom": "Magnet 56 - Swiss Fondue Caquelon",
+    "prix": "1.70",
+    "imageUrl": "/images/magnet/Magnet56.jpg",
+    "categorie": "magnet",
+    "quantity": 24
+  },
+  {
+    "Nom": "Keyring 20 - Heart shaped swiss",
+    "prix": "1.90",
+    "imageUrl": "/images/keyring/Keyring20.jpg",
+    "categorie": "keyring",
+    "quantity": 12
+  },
+  {
+    "Nom": "Keyring 24 - cow chocolate edelweiss label",
+    "prix": "1.90",
+    "imageUrl": "/images/keyring/Keyring24.jpg",
+    "categorie": "keyring",
+    "quantity": 36
+  },
+  {
+    "Nom": "Keyring 79 - Tool poya Swiss army knife",
+    "prix": "2.50",
+    "imageUrl": "/images/keyring/Keyring79.jpg",
+    "categorie": "keyring",
+    "quantity": 48
+  },
+  {
+    "Nom": "Keyring 91 - poya swiss army knife",
+    "prix": "2.50",
+    "imageUrl": "/images/keyring/Keyring91.jpg",
+    "categorie": "keyring",
+    "quantity": 48
+  },
+  {
+    "Nom": "Lighters 430 - Lighter Genève",
+    "prix": "0.60",
+    "imageUrl": "/images/lighter/Lighters430.jpg",
+    "categorie": "lighter",
+    "quantity": 50
+  },
+  {
+    "Nom": "Lighters 418 - Lighter Switzerland 01",
+    "prix": "0.60",
+    "imageUrl": "/images/lighter/Lighters418.jpg",
+    "categorie": "lighter",
+    "quantity": 50
+  },
+  {
+    "Nom": "Pens 293 - stylo Switzerland chocolat",
+    "prix": "0.50",
+    "imageUrl": "/images/pens/Pens293.jpg",
+    "categorie": "pens",
+    "quantity": 60
+  }
+]

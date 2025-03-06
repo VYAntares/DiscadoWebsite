@@ -37,7 +37,12 @@ const allowedUsers = [
   { username: 'luca', password: 'lumattei', role: 'client' },
   { username: 'mengp', password: 'mengp', role: 'client' },
   { username: 'samy', password: 'samy', role: 'client' },
-  { username: 'cadhor', password: 'cadhor', role: 'client' }
+  { username: 'cadhor', password: 'cadhor', role: 'client' },
+  { username: 'samy', password: 'samy', role: 'client' },
+  { username: 'luce', password: 'luce', role: 'client' },
+  { username: 'ibozurich', password: 'ibozurich', role: 'client' },
+  { username: 'nazir', password: 'nazir', role: 'client' },
+  { username: 'kallaya', password: 'kallaya', role: 'client' }
 ];
 
 // Middleware pour vérifier la connexion
@@ -904,9 +909,10 @@ function generateInvoicePDF(doc, orderItems, userProfile, orderDate, orderId, re
 
     // Informations de l'émetteur
     addHeaderElement('Discado Sàrl', 50, 150);
-    addHeaderElement('Rue de Lausanne 7', 50, 165);
-    addHeaderElement('1020 Morges, Switzerland', 50, 180);
-    addHeaderElement('VAT : CHE-123.456.789', 50, 195);
+    addHeaderElement('Sevelin 4A', 50, 165);
+    addHeaderElement('1007 Lausanne', 50, 180);
+    addHeaderElement('+41 79 457 33 85', 50, 195);
+    addHeaderElement('discadoswiss@gmail.com', 50, 210);
 
     // Informations du client
     const clientY = 150;
@@ -1617,5 +1623,5 @@ app.get('/api/admin/client-orders/:clientId', requireLogin, requireAdmin, (req, 
 // Lancement du serveur
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Serveur démarré sur http://localhost:${PORT}`);
-  console.log(`Accessible sur le réseau à l'adresse 192.168.1.232:${PORT}`);
+  console.log(`Accessible sur le réseau à l'adresse 172.20.10.5:${PORT}`);
 });
