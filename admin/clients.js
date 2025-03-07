@@ -79,6 +79,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const phone = client.phone || 'N/A';
             
             const row = document.createElement('tr');
+            // Modifier cette partie pour ajouter des styles inline
             row.innerHTML = `
                 <td>
                     <span class="client-id">${clientId}</span>
@@ -93,8 +94,8 @@ document.addEventListener('DOMContentLoaded', function() {
                         </div>
                     </div>
                 </td>
-                <td>
-                    <button class="action-btn view-client-btn" data-client-id="${clientId}">
+                <td style="vertical-align: middle; text-align: center;">
+                    <button class="action-btn view-client-btn" data-client-id="${clientId}" style="margin: 0 auto;">
                         <i class="fas fa-eye"></i> Voir détails
                     </button>
                 </td>
@@ -149,7 +150,21 @@ document.addEventListener('DOMContentLoaded', function() {
             });
     }
     
-    // Fonction pour afficher les détails du client dans la modale
+
+    
+    // Fonction pour récupérer l'historique des commandes d'un client
+    function getClientOrderHistory(clientId) {
+        return fetch(`/api/admin/client-orders/${clientId}`)
+            .then(response => response.json())
+            .catch(error => {
+                console.error('Error fetching client orders:', error);
+                return [];
+            });
+    }
+    
+    // Modification à apporter dans clients.js 
+    // Dans la fonction displayClientDetails, après avoir chargé les données client
+
     function displayClientDetails(client) {
         // Mettre en titre l'ID du client
         clientDetailsTitle.textContent = `Détails du client: ${client.clientId || 'N/A'}`;
@@ -208,44 +223,16 @@ document.addEventListener('DOMContentLoaded', function() {
             </div>
             
             <div class="client-details-section">
+                <h3>Articles en attente de livraison</h3>
+                <div id="pending-delivery-container" class="pending-delivery-container">
+                    <div class="loading">Chargement des articles en attente...</div>
+                </div>
+            </div>
+            
+            <div class="client-details-section">
                 <h3>Historique des commandes</h3>
                 <div id="client-orders-container" class="client-orders-container">
                     <div class="loading">Chargement de l'historique...</div>
-                </div>
-            </div>
-        `;
-        
-        // Propriétés à ignorer (déjà affichées plus haut)
-        const ignoredProps = [
-            'firstName', 'lastName', 'fullName', 'email', 'phone', 
-            'shopName', 'shopAddress', 'shopCity', 'shopZipCode',
-            'address', 'city', 'postalCode', 'username', 'id', 'clientId'
-        ];
-        
-        // Afficher la date de dernière mise à jour si elle existe
-        if (client.lastUpdated) {
-            html += `<p><strong>Dernière mise à jour:</strong> ${lastUpdated}</p>`;
-        }
-        
-        // Afficher les autres propriétés non ignorées
-        for (const [key, value] of Object.entries(client)) {
-            if (!ignoredProps.includes(key) && key !== 'lastUpdated') {
-                let displayValue = value;
-                
-                // Formater selon le type
-                if (typeof value === 'object' && value !== null) {
-                    displayValue = JSON.stringify(value);
-                } else if (typeof value === 'boolean') {
-                    displayValue = value ? 'Oui' : 'Non';
-                } else if (typeof value === 'string' && (value.includes('http://') || value.includes('https://'))) {
-                    displayValue = `<a href="${value}" target="_blank" rel="noopener noreferrer">${value}</a>`;
-                }
-                
-                html += `<p><strong>${key}:</strong> ${displayValue}</p>`;
-            }
-        }
-        
-        html += `
                 </div>
             </div>
         `;
@@ -256,120 +243,261 @@ document.addEventListener('DOMContentLoaded', function() {
         // Charger l'historique des commandes du client
         getClientOrderHistory(client.clientId)
             .then(orders => {
+                const pendingDeliveryContainer = document.getElementById('pending-delivery-container');
                 const ordersContainer = document.getElementById('client-orders-container');
-                displayOrderHistory(ordersContainer, orders, client.clientId);
+                
+                // Séparer les commandes normales et la pending-delivery
+                const pendingDelivery = orders.find(order => order.orderId === 'pending-delivery');
+                const regularOrders = orders.filter(order => order.orderId !== 'pending-delivery');
+                
+                // Afficher les articles en attente de livraison
+                displayPendingDelivery(pendingDeliveryContainer, pendingDelivery, client.clientId);
+                
+                // Afficher l'historique des commandes normales
+                displayOrderHistory(ordersContainer, regularOrders, client.clientId);
             });
     }
-    
-    // Fonction pour récupérer l'historique des commandes d'un client
-    function getClientOrderHistory(clientId) {
-        return fetch(`/api/admin/client-orders/${clientId}`)
-            .then(response => response.json())
-            .catch(error => {
-                console.error('Error fetching client orders:', error);
-                return [];
-            });
-    }
-    
-        // Fonction pour afficher l'historique des commandes
-    function displayOrderHistory(container, orders, clientId) {
-        if (!orders || orders.length === 0) {
+
+    // Nouvelle fonction pour afficher les articles en attente de livraison
+    function displayPendingDelivery(container, pendingDelivery, clientId) {
+        if (!pendingDelivery || !pendingDelivery.items || pendingDelivery.items.length === 0) {
             container.innerHTML = `
                 <div class="empty-state">
-                    <i class="fas fa-shopping-cart"></i>
-                    <p>Aucune commande pour ce client</p>
+                    <i class="fas fa-box-open"></i>
+                    <p>Aucun article en attente de livraison</p>
                 </div>
             `;
             return;
         }
         
-        // Trier les commandes par date (les plus récentes d'abord)
-        orders.sort((a, b) => new Date(b.lastProcessed || b.date) - new Date(a.lastProcessed || a.date));
+        // Grouper les articles par catégorie si ce n'est pas déjà fait
+        let groupedItems = pendingDelivery.groupedItems;
+        if (!groupedItems) {
+            groupedItems = {};
+            pendingDelivery.items.forEach(item => {
+                const category = item.categorie || 'autres';
+                if (!groupedItems[category]) {
+                    groupedItems[category] = [];
+                }
+                groupedItems[category].push(item);
+            });
+        }
         
+        // Construire le tableau d'articles en attente
         let html = `
-            <div class="client-orders-list">
-                <table class="orders-table">
-                    <thead>
-                        <tr>
-                            <th>Commande #</th>
-                            <th>Date</th>
-                            <th>Statut</th>
-                            <th>Articles</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
+            <div class="pending-delivery-info">
+                <div class="pending-label">
+                    <i class="fas fa-truck"></i> Articles à livrer
+                </div>
+            </div>
+            <div class="pending-items-list">
         `;
         
-        orders.forEach(order => {
-            const orderDate = formatDate(order.date);
-            const processDate = order.lastProcessed ? formatDate(order.lastProcessed) : 'N/A';
-            
-            // Get status display
-            let statusText = 'En attente';
-            let statusClass = 'status-pending';
-            
-            // Toutes les commandes traitées (completed ou partial) sont considérées comme complètes
-            if (order.status === 'completed' || order.status === 'partial') {
-                statusText = 'Complète';
-                statusClass = 'status-completed';
-            }
-            
-            // Calculate total items
-            const totalItems = (order.deliveredItems || order.items || []).reduce((sum, item) => sum + item.quantity, 0);
+        // Afficher les articles par catégorie
+        Object.keys(groupedItems).forEach(category => {
+            const items = groupedItems[category];
             
             html += `
-                <tr>
-                    <td>${order.orderId}</td>
-                    <td>
-                        Commandé: ${orderDate}<br>
-                        ${order.lastProcessed ? `Traité: ${processDate}` : ''}
-                    </td>
-                    <td><span class="status-badge ${statusClass}">${statusText}</span></td>
-                    <td>${totalItems} article${totalItems > 1 ? 's' : ''}</td>
-                    <td class="order-actions">
+                <div class="pending-category">
+                    <h4 class="category-title">${category}</h4>
+                    <table class="items-table">
+                        <thead>
+                            <tr>
+                                <th>Article</th>
+                                <th>Quantité</th>
+                                <th>Prix unitaire</th>
+                            </tr>
+                        </thead>
+                        <tbody>
             `;
             
-            // Le changement se trouve dans cette section - suppression du bouton "Facture"
-            if (order.status === 'pending') {
+            items.forEach(item => {
                 html += `
-                    <a href="/admin" class="order-action-btn">
-                        <i class="fas fa-tasks"></i> Traiter
-                    </a>
+                    <tr>
+                        <td>${item.Nom}</td>
+                        <td class="quantity-cell">${item.quantity}</td>
+                        <td class="price-cell">${parseFloat(item.prix).toFixed(2)} CHF</td>
+                    </tr>
                 `;
-            } else {
-                html += `
-                    <button class="order-action-btn view-details-btn" data-order-id="${order.orderId}" data-client-id="${clientId}">
-                        <i class="fas fa-eye"></i> Détails
-                    </button>
-                `;
-            }
+            });
             
             html += `
-                    </td>
-                </tr>
+                        </tbody>
+                    </table>
+                </div>
             `;
         });
         
+        html += `</div>`;
+        
+        container.innerHTML = html;
+    }
+
+    // Modification à apporter dans la fonction displayOrderHistory dans clients.js
+
+function displayOrderHistory(container, orders, clientId) {
+    if (!orders || orders.length === 0) {
+        container.innerHTML = `
+            <div class="empty-state">
+                <i class="fas fa-shopping-cart"></i>
+                <p>Aucune commande pour ce client</p>
+            </div>
+        `;
+        return;
+    }
+    
+    // Trier les commandes par date (les plus récentes d'abord)
+    orders.sort((a, b) => new Date(b.lastProcessed || b.date) - new Date(a.lastProcessed || a.date));
+    
+    let html = `
+        <div class="client-orders-list">
+            <table class="orders-table">
+                <thead>
+                    <tr>
+                        <th>Commande #</th>
+                        <th>Date</th>
+                        <th>Statut</th>
+                        <th>Articles</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+    `;
+    
+    orders.forEach(order => {
+        // Ne pas inclure pending-delivery
+        if (order.orderId === 'pending-delivery') return;
+        
+        const orderDate = formatDate(order.date);
+        const processDate = order.lastProcessed ? formatDate(order.lastProcessed) : 'N/A';
+        
+        // Get status display
+        let statusText = 'EN ATTENTE';
+        let statusClass = 'status-pending';
+        
+        // Toutes les commandes traitées (completed ou partial) sont considérées comme complètes
+        if (order.status === 'completed' || order.status === 'partial') {
+            statusText = 'COMPLÈTE';
+            statusClass = 'status-completed';
+        }
+        
+        // Calculate total items
+        const totalItems = (order.deliveredItems || order.items || []).reduce((sum, item) => sum + item.quantity, 0);
+        
         html += `
+            <tr>
+                <td>${order.orderId}</td>
+                <td>
+                    Commandé: ${orderDate}<br>
+                    ${order.lastProcessed ? `Traité: ${processDate}` : ''}
+                </td>
+                <td><span class="status-badge ${statusClass}">${statusText}</span></td>
+                <td>${totalItems} article${totalItems > 1 ? 's' : ''}</td>
+                <td class="action-cell">
+                    <div class="action-container">
+        `;
+        
+        if (order.status === 'pending') {
+            html += `
+                        <a href="/admin" class="action-btn process-btn">
+                            <i class="fas fa-tasks"></i> Traiter
+                        </a>
+            `;
+        } else {
+            html += `
+                        <button class="action-btn view-details-btn" data-order-id="${order.orderId}" data-client-id="${clientId}">
+                            <i class="fas fa-eye"></i> Détails
+                        </button>
+            `;
+        }
+        
+        html += `
+                    </div>
+                </td>
+            </tr>
+        `;
+    });
+    
+    html += `
                 </tbody>
             </table>
         </div>
-        `;
-        
-        container.innerHTML = html;
-        
-        // Ajouter les écouteurs d'événements pour les boutons de détails
-        container.querySelectorAll('.view-details-btn').forEach(button => {
-            button.addEventListener('click', function(e) {
-                e.preventDefault();
-                const orderId = this.getAttribute('data-order-id');
-                const clientId = this.getAttribute('data-client-id');
-                viewOrderDetails(orderId, clientId);
-            });
+    `;
+    
+    container.innerHTML = html;
+    
+    // Ajouter les écouteurs d'événements pour les boutons de détails
+    container.querySelectorAll('.view-details-btn').forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            const orderId = this.getAttribute('data-order-id');
+            const clientId = this.getAttribute('data-client-id');
+            viewOrderDetails(orderId, clientId);
         });
+    });
+}
+
+// Modification similaire pour la fonction qui affiche les clients dans le tableau principal
+function displayClients(clients) {
+    if (clients.length === 0) {
+        clientTableBody.innerHTML = `
+            <tr>
+                <td colspan="4" class="empty-state">
+                    <i class="fas fa-users-slash"></i>
+                    <p>Aucun client trouvé.</p>
+                </td>
+            </tr>
+        `;
+        return;
     }
     
+    clientTableBody.innerHTML = '';
+    
+    clients.forEach(client => {
+        // Récupérer l'ID du client depuis client.clientId
+        const clientId = client.clientId || 'N/A';
+        // Concaténer Prénom + Nom pour l'affichage (ou 'N/A' si vide)
+        const fullName = `${client.firstName || ''} ${client.lastName || ''}`.trim() || 'N/A';
+        const shopName = client.shopName || 'N/A';
+        const email = client.email || 'N/A';
+        const phone = client.phone || 'N/A';
+        
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>
+                <span class="client-id">${clientId}</span>
+            </td>
+            <td>
+                <div class="client-info">
+                    <span class="client-name">${fullName}</span>
+                    <span class="client-shop">${shopName}</span>
+                    <div class="client-contact-mobile">
+                        <a href="mailto:${email}" class="contact-link"><i class="fas fa-envelope"></i></a>
+                        <a href="tel:${phone}" class="contact-link"><i class="fas fa-phone"></i></a>
+                    </div>
+                </div>
+            </td>
+            <td class="action-cell">
+                <div class="action-container">
+                    <button class="action-btn view-client-btn" data-client-id="${clientId}">
+                        <i class="fas fa-eye"></i> Voir détails
+                    </button>
+                </div>
+            </td>
+        `;
+        
+        clientTableBody.appendChild(row);
+    });
+    
+    // Ajouter les écouteurs d'événements pour les boutons "Voir détails"
+    document.querySelectorAll('.view-client-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const clientId = this.getAttribute('data-client-id');
+            viewClientDetails(clientId);
+        });
+    });
+}
+
     // Fonction pour afficher les détails d'une commande
     function viewOrderDetails(orderId, clientId) {
         orderModalContent.innerHTML = `<div class="loading">Chargement des détails...</div>`;

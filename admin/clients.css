@@ -1040,3 +1040,35 @@ main {
     opacity: 1;
     transform: translateY(0);
 }
+
+/* Ajustement pour l'alignement du bouton détails */
+.client-table td {
+    vertical-align: middle;
+  }
+  
+  /* Centrer verticalement les actions */
+  .action-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto;
+  }
+  
+  /* Ajustement des cellules d'action */
+  .client-table td:last-child {
+    text-align: center;
+    width: 150px; /* Largeur fixe pour la colonne d'actions */
+  }
+  
+  /* Assurer que les informations du client sont bien alignées */
+  .client-info {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    height: 100%;
+  }
+  
+  /* Ajustement optionnel pour l'espacement */
+  .client-table tr {
+    height: 70px; /* Hauteur minimum pour chaque ligne */
+  }

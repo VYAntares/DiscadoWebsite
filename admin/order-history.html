@@ -26,13 +26,13 @@
         </div>
     </header>
 
-        <!-- Tabs Navigation -->
+    <!-- Tabs Navigation -->
     <div class="admin-tabs">
         <div class="tabs-container">
             <a href="/admin" class="tab">
                 <i class="fas fa-shopping-cart"></i> Gestion des commandes
             </a>
-            <a href="/admin/order-history" class="tab">
+            <a href="/admin/order-history" class="tab active">
                 <i class="fas fa-history"></i> Historique des commandes
             </a>
             <a href="/admin/clients" class="tab">
@@ -64,10 +64,9 @@
     </main>
 
     <!-- Modal pour les détails de commande -->
-    <div id="orderModal" class="modal">
+    <div id="orderModal" class="modal order-details-modal">
         <div class="modal-content">
             <span class="close-modal">&times;</span>
-            <h2 id="orderDetailsTitle" class="order-details-title">Détails de la commande</h2>
             
             <div id="orderDetailsContent">
                 <!-- Les détails de la commande seront chargés ici dynamiquement -->
