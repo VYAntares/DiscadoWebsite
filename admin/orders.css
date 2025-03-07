@@ -928,3 +928,79 @@ main {
 .unavailable-btn i {
     font-size: 16px;
 }
+
+/* Button for maximum quantity */
+.max-quantity-btn {
+    background-color: #28a745;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    width: 35px;
+    height: 35px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.max-quantity-btn:hover {
+    background-color: #218838;
+}
+
+.max-quantity-btn i {
+    font-size: 16px;
+}
+
+/* Action buttons container */
+.action-buttons {
+    display: flex;
+    gap: 5px;
+    align-items: center;
+}
+
+/* Button for maximum quantity */
+.max-quantity-btn {
+    background-color: #28a745;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    width: 35px;
+    height: 35px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.max-quantity-btn:hover {
+    background-color: #218838;
+}
+
+.max-quantity-btn i {
+    font-size: 16px;
+}
+
+/* Unavailable item button */
+.unavailable-btn {
+    background-color: #dc3545;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    width: 35px;
+    height: 35px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.unavailable-btn:hover {
+    background-color: #c82333;
+}
+
+.unavailable-btn i {
+    font-size: 16px;
+}

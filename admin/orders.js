@@ -225,6 +225,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                             class="delivered-quantity" 
                                             data-item-name="${item.Nom}"
                                             data-item-price="${item.prix}"
+                                            data-max-quantity="${item.quantity}"
                                             pattern="[0-9]*"
                                             inputmode="numeric"
                                             onfocus="if(this.value === '0') this.value = ''"
@@ -232,9 +233,14 @@ document.addEventListener('DOMContentLoaded', function() {
                                         >
                                     </td>
                                     <td>
-                                        <button class="unavailable-btn" data-item-name="${item.Nom}">
-                                            <i class="fas fa-times"></i>
-                                        </button>
+                                        <div class="action-buttons">
+                                            <button class="max-quantity-btn" data-max-quantity="${item.quantity}">
+                                                <i class="fas fa-check"></i>
+                                            </button>
+                                            <button class="unavailable-btn" data-item-name="${item.Nom}">
+                                                <i class="fas fa-times"></i>
+                                            </button>
+                                        </div>
                                     </td>
                                 </tr>
                             `).join('')}
@@ -263,6 +269,26 @@ document.addEventListener('DOMContentLoaded', function() {
         `;
         
         orderModal.style.display = 'block';
+        
+        // Ajouter des écouteurs pour les boutons de quantité maximale
+        document.querySelectorAll('.max-quantity-btn').forEach(button => {
+            button.addEventListener('click', function() {
+                const row = this.closest('tr');
+                const quantityInput = row.querySelector('.delivered-quantity');
+                const maxQuantity = parseInt(this.getAttribute('data-max-quantity'), 10);
+                
+                // Mettre à jour la quantité livrée avec la quantité maximale
+                quantityInput.value = maxQuantity;
+                
+                // Retirer la classe d'indisponibilité si présente
+                row.classList.remove('item-unavailable');
+                const quantityInputDisabled = row.querySelector('.delivered-quantity');
+                quantityInputDisabled.disabled = false;
+                
+                // Recalculer le total
+                calculateOrderTotal();
+            });
+        });
         
         // Ajouter des écouteurs pour les boutons d'articles indisponibles
         document.querySelectorAll('.unavailable-btn').forEach(button => {
@@ -296,7 +322,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const orderTotal = document.querySelector('.order-total strong');
             let newTotal = 0;
             
-            document.querySelectorAll('.delivered-quantity:not(:disabled)').forEach(input => {
+            document.querySelectorAll('.delivered-quantity').forEach(input => {
                 const quantity = parseInt(input.value, 10) || 0;
                 const price = parseFloat(input.getAttribute('data-item-price'));
                 newTotal += quantity * price;
