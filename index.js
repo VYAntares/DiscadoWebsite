@@ -788,5 +788,5 @@ app.get('/api/admin/download-invoice/:orderId/:userId', requireLogin, requireAdm
 // Start server
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server started on http://localhost:${PORT}`);
-  console.log(`Available on network at 192.168.1.252:${PORT}`);
+  console.log(`Available on network at 192.168.1.232:${PORT}`);
 });

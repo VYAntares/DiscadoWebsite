@@ -1726,3 +1726,244 @@ tr.pending-item td {
     50% { opacity: 1; }
     100% { opacity: 0.3; }
 }
+/* Styles pour le bouton et le conteneur des articles en attente de livraison */
+.pending-deliveries-button-container {
+    display: flex;
+    justify-content: center;
+    margin: 20px 0;
+}
+
+.pending-deliveries-btn {
+    display: flex;
+    align-items: center;
+    padding: 10px 15px;
+    background-color: #f8f9fa;
+    border: 2px solid #ffc107;
+    border-radius: 8px;
+    color: #495057;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.pending-deliveries-btn:hover {
+    background-color: #ffc107;
+    color: #212529;
+}
+
+.pending-deliveries-btn i {
+    margin-right: 10px;
+    font-size: 1.2em;
+}
+
+.pending-items-count {
+    background-color: #ff6b6b;
+    color: white;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    margin-left: 10px;
+}
+
+.pending-items-count.hidden {
+    display: none;
+}
+
+.pending-deliveries-container {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.5s ease, opacity 0.3s ease;
+    opacity: 0;
+}
+
+.pending-deliveries-container.visible {
+    max-height: 2000px; /* Une valeur suffisamment grande */
+    opacity: 1;
+}
+
+/* Style spécifique pour la carte des articles en attente */
+.pending-delivery-card {
+    background-color: #fff8e1;
+    border-left: 4px solid #ffc107;
+    margin-bottom: 30px;
+}
+
+/* Animation pour attirer l'attention sur le bouton */
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+.pending-deliveries-btn.has-items {
+    animation: pulse 2s infinite;
+}
+/* Styles de la page Orders */
+.order-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px;
+    border-bottom: 1px solid #eee;
+}
+
+.order-status {
+    display: inline-block;
+    padding: 5px 10px;
+    border-radius: 4px;
+    font-size: 0.8em;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+.status-shipped {
+    background-color: #d4edda;
+    color: #155724;
+}
+
+.status-processing {
+    background-color: #fff3cd;
+    color: #856404;
+}
+
+.status-partial {
+    background-color: #cce5ff;
+    color: #004085;
+}
+
+.order-details {
+    flex-grow: 1;
+    margin-right: 15px;
+}
+
+.order-total {
+    font-weight: bold;
+}
+
+/* Style pour le message de facture non disponible */
+.invoice-not-available {
+    color: #6c757d;
+    font-style: italic;
+    font-size: 0.9em;
+    display: flex;
+    align-items: center;
+    margin-left: 15px;
+}
+
+.invoice-not-available i {
+    margin-right: 5px;
+    color: #ffc107;
+}
+
+/* Styles pour les sections de commande partiellement traitée */
+.order-section-header td {
+    padding: 10px;
+    font-weight: bold;
+    text-align: center;
+    color: white;
+}
+
+.delivered-section {
+    background-color: #28a745;
+}
+
+.pending-section {
+    background-color: #ffc107;
+    color: #212529 !important;
+}
+
+.delivered-item {
+    background-color: rgba(40, 167, 69, 0.1);
+}
+
+.pending-item {
+    background-color: rgba(255, 193, 7, 0.1);
+}
+
+/* Masquer les prix pour les articles en attente */
+.pending-item .unit-price-column,
+.pending-item .total-price-column {
+    visibility: hidden;
+}
+
+/* Styles pour le bouton et le conteneur des articles en attente de livraison */
+.pending-deliveries-button-container {
+    display: flex;
+    justify-content: center;
+    margin: 20px 0;
+}
+
+.pending-deliveries-btn {
+    display: flex;
+    align-items: center;
+    padding: 10px 15px;
+    background-color: #f8f9fa;
+    border: 2px solid #ffc107;
+    border-radius: 8px;
+    color: #495057;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.pending-deliveries-btn:hover {
+    background-color: #ffc107;
+    color: #212529;
+}
+
+.pending-deliveries-btn i {
+    margin-right: 10px;
+    font-size: 1.2em;
+}
+
+.pending-items-count {
+    background-color: #ff6b6b;
+    color: white;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    margin-left: 10px;
+}
+
+.pending-items-count.hidden {
+    display: none;
+}
+
+.pending-deliveries-container {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.5s ease, opacity 0.3s ease;
+    opacity: 0;
+}
+
+.pending-deliveries-container.visible {
+    max-height: 2000px; /* Une valeur suffisamment grande */
+    opacity: 1;
+    margin-bottom: 20px;
+}
+
+/* Style spécifique pour la carte des articles en attente */
+.pending-delivery-card {
+    background-color: #fff8e1;
+    border-left: 4px solid #ffc107;
+    margin-bottom: 30px;
+}
+
+/* Animation pour attirer l'attention sur le bouton */
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+.pending-deliveries-btn.has-items {
+    animation: pulse 2s infinite;
+}
