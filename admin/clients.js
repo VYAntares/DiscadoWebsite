@@ -215,14 +215,6 @@ document.addEventListener('DOMContentLoaded', function() {
             </div>
         `;
         
-        // Ajouter toutes les autres informations disponibles dans une section "Métadonnées"
-        html += `
-            <div class="client-details-section">
-                <h3>Métadonnées</h3>
-                <div class="metadata">
-                    <h4>Informations système</h4>
-        `;
-        
         // Propriétés à ignorer (déjà affichées plus haut)
         const ignoredProps = [
             'firstName', 'lastName', 'fullName', 'email', 'phone', 
@@ -682,3 +674,115 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 });
+
+// Ajoutez ce code à la fin de votre fonction document.addEventListener('DOMContentLoaded', function() {...}) dans clients.js
+
+// Variables pour la création de client
+const createClientBtn = document.getElementById('createClientBtn');
+const createClientModal = document.getElementById('createClientModal');
+const createClientForm = document.getElementById('createClientForm');
+const closeCreateModal = document.querySelector('.close-create-modal');
+const cancelCreateBtn = createClientModal.querySelector('.cancel-btn');
+
+// Ouvrir le modal de création de client
+if (createClientBtn) {
+    createClientBtn.addEventListener('click', function() {
+        createClientModal.style.display = 'block';
+        // Focus sur le premier champ
+        document.getElementById('newUsername').focus();
+    });
+}
+
+// Fermer le modal de création
+if (closeCreateModal) {
+    closeCreateModal.addEventListener('click', function() {
+        createClientModal.style.display = 'none';
+        createClientForm.reset();
+    });
+}
+
+// Fermer le modal avec le bouton Annuler
+if (cancelCreateBtn) {
+    cancelCreateBtn.addEventListener('click', function() {
+        createClientModal.style.display = 'none';
+        createClientForm.reset();
+    });
+}
+
+// Fermer le modal quand on clique en dehors du contenu (mise à jour de l'écouteur existant)
+window.addEventListener('click', function(event) {
+    if (event.target === clientModal) {
+        clientModal.style.display = 'none';
+    }
+    if (event.target === orderDetailsModal) {
+        orderDetailsModal.style.display = 'none';
+    }
+    if (event.target === createClientModal) {
+        createClientModal.style.display = 'none';
+        createClientForm.reset();
+    }
+});
+
+// Gestion du formulaire de création
+if (createClientForm) {
+    createClientForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        // Récupérer les identifiants (obligatoires)
+        const username = document.getElementById('newUsername').value.trim();
+        const password = document.getElementById('newPassword').value.trim();
+        
+        // Vérifier que les champs requis sont remplis
+        if (!username || !password) {
+            showNotification('Nom d\'utilisateur et mot de passe requis', 'error');
+            return;
+        }
+        
+        // Récupérer les données de profil (facultatives)
+        const profileData = {
+            firstName: document.getElementById('firstName').value.trim(),
+            lastName: document.getElementById('lastName').value.trim(),
+            email: document.getElementById('email').value.trim(),
+            phone: document.getElementById('phone').value.trim(),
+            shopName: document.getElementById('shopName').value.trim(),
+            shopAddress: document.getElementById('shopAddress').value.trim(),
+            shopCity: document.getElementById('shopCity').value.trim(),
+            shopZipCode: document.getElementById('shopZipCode').value.trim(),
+            lastUpdated: new Date().toISOString()
+        };
+        
+        // Envoyer les données au serveur
+        fetch('/api/admin/create-client', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                username,
+                password,
+                profileData
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Afficher un message de succès
+                showNotification('Client créé avec succès : ' + username, 'success');
+                
+                // Fermer le modal et réinitialiser le formulaire
+                createClientModal.style.display = 'none';
+                createClientForm.reset();
+                
+                // Recharger la liste des clients
+                loadClients();
+            } else {
+                // Afficher l'erreur
+                showNotification('Erreur : ' + data.message, 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Erreur:', error);
+            showNotification('Erreur lors de la création du client', 'error');
+        });
+    });
+}

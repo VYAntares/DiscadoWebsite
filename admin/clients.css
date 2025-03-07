@@ -969,3 +969,74 @@ main {
         padding: 10px;
     }
 }
+
+/* Ajouter ce CSS à la fin de clients.css */
+
+/* Style pour le bouton de création de client */
+.create-btn {
+    background-color: #28a745;
+    margin-left: 10px;
+}
+
+.create-btn:hover {
+    background-color: #218838;
+}
+
+/* Style pour les formulaires */
+.input-field {
+    width: 100%;
+    padding: 10px 15px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 16px;
+    color: #333;
+    transition: border-color 0.2s;
+}
+
+.input-field:focus {
+    outline: none;
+    border-color: #2575fc;
+    box-shadow: 0 0 0 3px rgba(37, 117, 252, 0.1);
+}
+
+.form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 15px;
+    margin-top: 20px;
+}
+
+.primary-btn {
+    background-color: #2575fc;
+    color: white;
+}
+
+.secondary-btn {
+    background-color: #6c757d;
+    color: white;
+}
+
+/* Message d'erreur du formulaire */
+.form-error {
+    color: #dc3545;
+    margin-top: 5px;
+    font-size: 14px;
+}
+
+/* Animation pour le succès du formulaire */
+.form-success {
+    opacity: 0;
+    transform: translateY(-20px);
+    transition: opacity 0.5s, transform 0.5s;
+    text-align: center;
+    padding: 15px;
+    background-color: #d4edda;
+    color: #155724;
+    border-radius: 6px;
+    margin-bottom: 20px;
+}
+
+.form-success.show {
+    opacity: 1;
+    transform: translateY(0);
+}

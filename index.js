@@ -785,6 +785,52 @@ app.get('/api/admin/download-invoice/:orderId/:userId', requireLogin, requireAdm
   }
 });
 
+// Ajouter après les autres routes d'API admin dans index.js
+
+// Route pour créer un nouveau compte client (admin only)
+app.post('/api/admin/create-client', requireLogin, requireAdmin, (req, res) => {
+  const { username, password, profileData } = req.body;
+  
+  if (!username || !password) {
+    return res.status(400).json({ 
+      success: false, 
+      message: 'Nom d\'utilisateur et mot de passe requis' 
+    });
+  }
+  
+  try {
+    // Vérifier si l'utilisateur existe déjà
+    const existingUser = userService.getUser(username);
+    
+    if (existingUser) {
+      return res.status(409).json({ 
+        success: false, 
+        message: 'Ce nom d\'utilisateur existe déjà' 
+      });
+    }
+    
+    // Créer l'utilisateur
+    userService.createUser(username, password, 'client');
+    
+    // Créer le profil si des données sont fournies
+    if (profileData) {
+      userService.saveUserProfile(profileData, username);
+    }
+    
+    res.json({ 
+      success: true, 
+      message: 'Client créé avec succès',
+      username
+    });
+  } catch (error) {
+    console.error('Erreur lors de la création du client:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Erreur lors de la création du client'
+    });
+  }
+});
+
 // Start server
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server started on http://localhost:${PORT}`);
