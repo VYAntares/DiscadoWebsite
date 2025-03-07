@@ -4,5 +4,23 @@
     "prix": "5",
     "quantity": 12,
     "categorie": "bags"
+  },
+  {
+    "Nom": "Bags 312 - Small backpack Switzerland",
+    "prix": "4",
+    "quantity": 123,
+    "categorie": "bags"
+  },
+  {
+    "Nom": "Bags 313 - Big bag with cities in beige",
+    "prix": "5",
+    "quantity": 123,
+    "categorie": "bags"
+  },
+  {
+    "Nom": "Bags 315 - Banana bag Switzerland",
+    "prix": "3",
+    "quantity": 123,
+    "categorie": "bags"
   }
 ]

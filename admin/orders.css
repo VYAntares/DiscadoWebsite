@@ -896,3 +896,35 @@ main {
     padding-top: 15px;
     margin-top: 15px;
 }
+
+/* Styles for unavailable items */
+.process-order-table .item-unavailable {
+    background-color: rgba(220, 53, 69, 0.1);
+}
+
+.process-order-table .item-unavailable td {
+    color: #721c24;
+    text-decoration: line-through;
+}
+
+.unavailable-btn {
+    background-color: #dc3545;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    width: 35px;
+    height: 35px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.unavailable-btn:hover {
+    background-color: #c82333;
+}
+
+.unavailable-btn i {
+    font-size: 16px;
+}

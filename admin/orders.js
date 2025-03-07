@@ -203,6 +203,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                 <th>Article</th>
                                 <th>Qty Demandé</th>
                                 <th>Qty Livré</th>
+                                <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -212,7 +213,8 @@ document.addEventListener('DOMContentLoaded', function() {
                                         <div class="item-details">
                                             <span class="item-name">${item.Nom}</span>
                                             <span class="item-price">${parseFloat(item.prix).toFixed(2)} CHF</span>
-                                        </td>
+                                        </div>
+                                    </td>
                                     <td class="quantity-cell">${item.quantity}</td>
                                     <td>
                                         <input 
@@ -223,7 +225,16 @@ document.addEventListener('DOMContentLoaded', function() {
                                             class="delivered-quantity" 
                                             data-item-name="${item.Nom}"
                                             data-item-price="${item.prix}"
+                                            pattern="[0-9]*"
+                                            inputmode="numeric"
+                                            onfocus="if(this.value === '0') this.value = ''"
+                                            onblur="if(this.value === '') this.value = '0'"
                                         >
+                                    </td>
+                                    <td>
+                                        <button class="unavailable-btn" data-item-name="${item.Nom}">
+                                            <i class="fas fa-times"></i>
+                                        </button>
                                     </td>
                                 </tr>
                             `).join('')}
@@ -253,21 +264,46 @@ document.addEventListener('DOMContentLoaded', function() {
         
         orderModal.style.display = 'block';
         
-        // Gestion dynamique du total livré
-        const deliveryInputs = document.querySelectorAll('.delivered-quantity');
-        const orderTotal = document.querySelector('.order-total strong');
-        
-        deliveryInputs.forEach(input => {
-            input.addEventListener('input', function() {
-                let newTotal = 0;
-                deliveryInputs.forEach(inp => {
-                    const quantity = parseInt(inp.value, 10) || 0;
-                    const price = parseFloat(inp.getAttribute('data-item-price'));
-                    newTotal += quantity * price;
-                });
-                orderTotal.textContent = `${newTotal.toFixed(2)} CHF`;
+        // Ajouter des écouteurs pour les boutons d'articles indisponibles
+        document.querySelectorAll('.unavailable-btn').forEach(button => {
+            button.addEventListener('click', function() {
+                const row = this.closest('tr');
+                row.classList.toggle('item-unavailable');
+                
+                const quantityInput = row.querySelector('.delivered-quantity');
+                
+                if (row.classList.contains('item-unavailable')) {
+                    quantityInput.value = '0';
+                    quantityInput.disabled = true;
+                } else {
+                    quantityInput.disabled = false;
+                }
+                
+                // Recalculer le total
+                calculateOrderTotal();
             });
         });
+        
+        // Gestion dynamique du total livré
+        const deliveryInputs = document.querySelectorAll('.delivered-quantity');
+        
+        deliveryInputs.forEach(input => {
+            input.addEventListener('input', calculateOrderTotal);
+        });
+        
+        // Fonction pour calculer le total de la commande
+        function calculateOrderTotal() {
+            const orderTotal = document.querySelector('.order-total strong');
+            let newTotal = 0;
+            
+            document.querySelectorAll('.delivered-quantity:not(:disabled)').forEach(input => {
+                const quantity = parseInt(input.value, 10) || 0;
+                const price = parseFloat(input.getAttribute('data-item-price'));
+                newTotal += quantity * price;
+            });
+            
+            orderTotal.textContent = `${newTotal.toFixed(2)} CHF`;
+        }
         
         // Bouton annuler
         document.querySelector('.cancel-btn').addEventListener('click', () => {
@@ -281,7 +317,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // Récupérer les quantités livrées
             const deliveredItems = [];
-            document.querySelectorAll('.delivered-quantity').forEach(input => {
+            document.querySelectorAll('.delivered-quantity:not(:disabled)').forEach(input => {
                 const quantity = parseInt(input.value, 10);
                 if (quantity > 0) {
                     deliveredItems.push({
