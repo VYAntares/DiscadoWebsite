@@ -274,20 +274,15 @@ function setupActionButtons() {
  */
 function handleUnavailableItem(button) {
     const row = button.closest('tr');
-    row.classList.toggle('item-unavailable');
-    
     const quantityInput = row.querySelector('.delivered-quantity');
     
-    if (row.classList.contains('item-unavailable')) {
-        // Marquer comme indisponible
-        quantityInput.value = '0';
-        quantityInput.disabled = true;
-        row.dataset.unavailable = 'true';
-    } else {
-        // Marquer comme disponible
-        quantityInput.disabled = false;
-        delete row.dataset.unavailable;
-    }
+    // Toujours marquer comme indisponible au clic (sans toggle)
+    row.classList.add('item-unavailable');
+    
+    // Mettre la quantité à 0 et désactiver le champ
+    quantityInput.value = '0';
+    quantityInput.disabled = true;
+    row.dataset.unavailable = 'true';
     
     // Recalculer le total
     calculateOrderTotal();
@@ -315,6 +310,16 @@ function calculateOrderTotal() {
 }
 
 /**
+ * Vérifie si tous les articles sont marqués comme indisponibles
+ */
+function areAllItemsUnavailable() {
+    const allItems = document.querySelectorAll('.process-order-table tbody tr');
+    const unavailableItems = document.querySelectorAll('.process-order-table tbody tr.item-unavailable');
+    
+    return allItems.length > 0 && allItems.length === unavailableItems.length;
+}
+
+/**
  * Valide la livraison et envoie les données au serveur
  */
 async function validateDelivery() {
@@ -322,7 +327,7 @@ async function validateDelivery() {
         const orderId = currentOrder.orderId;
         const userId = currentOrder.userId;
         
-        // Vérifier qu'au moins un article est livré
+        // Vérifier qu'au moins un article est livré ou que tous sont indisponibles
         let hasDeliveredItems = false;
         const deliveredItems = [];
         
@@ -339,8 +344,11 @@ async function validateDelivery() {
             }
         });
         
-        // Vérifier qu'au moins un article est livré
-        if (!hasDeliveredItems) {
+        // Vérifier si tous les articles sont marqués comme indisponibles
+        const allUnavailable = areAllItemsUnavailable();
+        
+        // Vérifier qu'au moins un article est livré OU que tous sont indisponibles
+        if (!hasDeliveredItems && !allUnavailable) {
             Notification.showNotification('Veuillez livrer au moins un article ou marquer tous les articles comme indisponibles', 'error');
             return;
         }

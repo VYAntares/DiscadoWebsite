@@ -293,3 +293,69 @@ li.product-item {
         font-size: 24px;
     }
 }
+
+/* Corrections pour le menu déroulant des catégories */
+
+/* S'assurer que le menu déroulant a un fond blanc */
+.dropdown-menu {
+    position: fixed;
+    top: 80px;
+    left: 0;
+    right: 0;
+    background-color: white;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease;
+    z-index: 999;
+}
+
+.dropdown-menu.open {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+/* Assurer un fond clair pour les sections du menu */
+.menu-section {
+    padding: 15px;
+    border-bottom: 1px solid #eee;
+    background-color: white;
+}
+
+/* Rendre l'overlay moins opaque */
+.menu-overlay {
+    position: fixed;
+    top: 80px;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0,0,0,0.3); /* Réduit de 0.5 à 0.3 pour être moins foncé */
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+    z-index: 998;
+}
+
+.menu-overlay.active {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+/* Assurer une bonne visibilité des éléments de catégorie */
+.category-item {
+    padding: 8px 10px;
+    background-color: #f5f5f5;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    color: #333;
+}
+
+.category-item:hover {
+    background-color: #e0e0e0;
+}
+
+.category-item.active {
+    background-color: #2575fc;
+    color: white;
+}

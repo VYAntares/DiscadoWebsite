@@ -13,7 +13,7 @@ body {
     font-size: 14px;
     max-width: 100%;
     overflow-x: hidden;
-    padding-top: 80px; /* Space for fixed header */
+    padding-top: 100px; /* CORRECTION: Augmenté de 80px à 100px pour éviter le chevauchement du header */
     color: #333;
 }
 
@@ -71,6 +71,7 @@ main {
     padding: 20px 15px;
     max-width: 1200px;
     margin: 0 auto;
+    margin-top: 20px; /* CORRECTION: Ajout de marge en haut pour l'espacement */
 }
 
 .page-header {
@@ -80,7 +81,7 @@ main {
 @media (min-width: 769px) {
     body {
         padding: 0 15px;
-        padding-top: 80px;
+        padding-top: 100px; /* CORRECTION: Augmenté la valeur ici aussi */
     }
     
     main {
@@ -100,7 +101,7 @@ header {
     box-shadow: 0 2px 5px rgba(0,0,0,0.1);
     z-index: 1000;
     padding: 0;
-    height: 60px;
+    height: 80px; /* CORRECTION: Ajusté à 80px pour être cohérent */
     display: flex;
     align-items: center;
     transition: transform 0.3s ease, height 0.3s ease;
@@ -157,7 +158,7 @@ header {
 /* Dropdown menu */
 .dropdown-menu {
     position: fixed;
-    top: 60px;
+    top: 80px; /* CORRECTION: Ajusté à 80px pour suivre la hauteur du header */
     left: 0;
     right: 0;
     background-color: white;
@@ -284,10 +285,10 @@ header {
     font-size: 10px;
 }
 
-/* User menu */
+/* User menu - CORRECTION: Modifié pour résoudre le problème d'affichage */
 .user-menu {
     position: fixed;
-    top: 60px;
+    top: 80px; /* CORRECTION: Ajusté pour aligner avec le header */
     right: 0;
     background-color: white;
     box-shadow: -2px 2px 10px rgba(0,0,0,0.1);
@@ -295,11 +296,12 @@ header {
     max-height: 0;
     overflow: hidden;
     transition: max-height 0.3s ease;
-    z-index: 999;
+    z-index: 1001; /* CORRECTION: Augmenté pour être au-dessus du contenu */
 }
 
 .user-menu.open {
     max-height: 200px;
+    border: 1px solid #eee; /* CORRECTION: Ajout d'une bordure pour améliorer l'apparence */
 }
 
 .user-menu a {
@@ -326,10 +328,10 @@ header {
     height: 50px;
 }
 
-/* Overlay */
+/* Overlay - CORRECTION: Modifié pour fonctionner avec la structure */
 .menu-overlay {
     position: fixed;
-    top: 60px;
+    top: 80px; /* CORRECTION: Ajusté à 80px pour aligner avec le header */
     left: 0;
     right: 0;
     bottom: 0;
@@ -337,7 +339,7 @@ header {
     opacity: 0;
     pointer-events: none;
     transition: opacity 0.3s ease;
-    z-index: 998;
+    z-index: 999; /* CORRECTION: Ajusté pour être entre le menu et le contenu */
 }
 
 .menu-overlay.active {
@@ -538,7 +540,7 @@ header {
    ========================================= */
 #notification-container {
     position: fixed;
-    top: 70px;
+    top: 90px; /* CORRECTION: Ajusté pour être en dessous du header */
     right: 20px;
     z-index: 999;
     width: 300px;
@@ -716,6 +718,7 @@ header {
     body {
         font-size: 14px;
         padding: 0 10px;
+        padding-top: 80px; /* CORRECTION: Ajusté pour les mobiles */
     }
     
     .page-title, .page-header h2 {
@@ -740,34 +743,5 @@ header {
     .footer-links {
         flex-direction: column;
         gap: 20px;
-    }
-}
-
-/* Fix for header overlapping content in main.css */
-body {
-    padding-top: 100px; /* Increase from 80px to 100px to accommodate header height */
-}
-
-/* Alternatively, you can apply margin to the main content instead */
-main {
-    margin-top: 10px; /* Additional spacing between header and content */
-}
-
-/* Make sure header has the right height and z-index */
-header {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 80px; /* Ensure consistent height */
-    z-index: 1000;
-    background-color: #fff;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-}
-
-/* For mobile responsiveness, adjust padding on smaller screens */
-@media (max-width: 768px) {
-    body {
-        padding-top: 70px; /* Slightly smaller padding on mobile */
     }
 }
