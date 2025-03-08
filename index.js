@@ -16,20 +16,21 @@ const PORT = process.env.PORT || 3000;
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
+// Ajouter cette configuration pour les modules ES6
+app.use('/admin/js', (req, res, next) => {
+  // Servir les fichiers JS avec l'en-tête Content-Type approprié pour ES modules
+  if (req.path.endsWith('.js')) {
+    res.set('Content-Type', 'application/javascript; charset=UTF-8');
+  }
+  next();
+});
+
 // Serve static files
 app.use(express.static('public'));
 app.use('/admin', express.static('admin'));
-
-// Session configuration
-app.use(session({
-  secret: process.env.SESSION_SECRET || 'votre_secret_unique_ici', 
-  resave: false,
-  saveUninitialized: true,
-  cookie: { 
-    secure: process.env.NODE_ENV === 'production', 
-    maxAge: 24 * 60 * 60 * 1000 // 24 hours
-  }
-}));
+app.use('/admin/js', express.static('admin/js'));
+app.use('/admin/css', express.static('admin/css'));
+app.use('/admin/pages', express.static('admin/pages'));
 
 // This is temporary until user management is fully migrated to database
 const allowedUsers = [
@@ -500,15 +501,19 @@ app.get('/logout', (req, res) => {
 
 // Protected routes
 app.get('/admin', requireLogin, requireAdmin, (req, res) => {
-  res.sendFile(path.join(__dirname, 'admin', 'orders.html'));
+  res.sendFile(path.join(__dirname, 'admin', 'index.html'));
+});
+
+app.get('/admin/orders', requireLogin, requireAdmin, (req, res) => {
+  res.sendFile(path.join(__dirname, 'admin', 'pages', 'orders.html'));
 });
 
 app.get('/admin/clients', requireLogin, requireAdmin, (req, res) => {
-  res.sendFile(path.join(__dirname, 'admin', 'clients.html'));
+  res.sendFile(path.join(__dirname, 'admin', 'pages', 'clients.html'));
 });
 
 app.get('/admin/order-history', requireLogin, requireAdmin, (req, res) => {
-  res.sendFile(path.join(__dirname, 'admin', 'order-history.html'));
+  res.sendFile(path.join(__dirname, 'admin', 'pages', 'order-history.html'));
 });
 
 app.get('/catalog', requireLogin, requireCompleteProfile, (req, res) => {
@@ -772,7 +777,6 @@ app.get('/api/admin/download-invoice/:orderId/:userId', requireLogin, requireAdm
     res.status(500).json({ error: 'Error generating invoice' });
   }
 });
-
 
 // Route pour créer un nouveau compte client (admin only)
 app.post('/api/admin/create-client', requireLogin, requireAdmin, (req, res) => {
