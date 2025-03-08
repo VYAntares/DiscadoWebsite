@@ -5,7 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Historique des Commandes - Discado</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="orders.css">
+    <link rel="stylesheet" href="/admin/css/main.css">
+    <link rel="stylesheet" href="/admin/css/orders.css">
+    <link rel="stylesheet" href="/admin/css/history.css">
     <!-- Ajouter une police Google pour améliorer la typographie -->
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
 </head>
@@ -77,8 +79,7 @@
     <!-- Conteneur de notifications -->
     <div id="notification-container"></div>
 
-    <!-- Inclure les scripts JS -->
-    <script src="/admin/admin.js"></script>
-    <script src="/admin/order-history.js"></script>
+    <!-- Inclure les scripts JS en type module pour supporter ES6 imports -->
+    <script type="module" src="/admin/js/core/app.js"></script>
 </body>
 </html>
