@@ -2,14 +2,14 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Connexion</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Discado - Welcome</title>
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: 'Arial', sans-serif;
+            font-family: 'Inter', Arial, sans-serif;
         }
 
         body {
@@ -17,83 +17,151 @@
             justify-content: center;
             align-items: center;
             height: 100vh;
-            background: linear-gradient(to right, #dd6060, #ff3333);
-        }
-
-        .login-container {
-            background: #fff;
-            padding: 30px;
-            border-radius: 10px;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            background: linear-gradient(135deg, #dd6060, #ff3333);
             text-align: center;
-            width: 350px;
         }
 
-        h2 {
+        .welcome-container {
+            background-color: white;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            max-width: 90%;
+            width: 500px;
+        }
+
+        .logo-container {
+            margin-bottom: 30px;
+        }
+
+        .logo-container img {
+            max-width: 200px;
+            height: auto;
+        }
+
+        h1 {
             margin-bottom: 20px;
             color: #333;
+            font-size: 24px;
         }
 
-        .input-group {
-            margin-bottom: 15px;
-            text-align: left;
+        p {
+            color: #666;
+            margin-bottom: 30px;
+            line-height: 1.6;
         }
 
-        .input-group label {
-            display: block;
-            font-weight: bold;
-            margin-bottom: 5px;
-            color: #555;
+        .button-container {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
         }
 
-        .input-group input {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid #ccc;
+        .button {
+            padding: 12px 25px;
             border-radius: 5px;
             font-size: 16px;
-        }
-
-        button {
-            width: 100%;
-            padding: 10px;
-            border: none;
-            border-radius: 5px;
-            background: #2575fc;
-            color: white;
-            font-size: 18px;
+            font-weight: 600;
+            transition: transform 0.2s, box-shadow 0.2s;
+            text-decoration: none;
             cursor: pointer;
-            transition: 0.3s;
         }
 
-        button:hover {
-            background: #6a11cb;
+        .primary-btn {
+            background-color: #2575fc;
+            color: white;
+            border: none;
         }
 
-        .error-message {
-            color: red;
-            margin-top: 10px;
+        .primary-btn:hover {
+            background-color: #1a5cb8;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(37, 117, 252, 0.3);
+        }
+
+        .secondary-btn {
+            background-color: #f1f3f5;
+            color: #333;
+            border: 1px solid #ddd;
+        }
+
+        .secondary-btn:hover {
+            background-color: #e1e5ea;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .auth-status {
+            display: none;
+            margin-top: 30px;
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+
+        .auth-status.logged-in {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        .auth-status.logged-out {
+            background-color: #f8d7da;
+            color: #721c24;
         }
     </style>
 </head>
 <body>
-
-    <div class="login-container">
-        <h2>Log In</h2>
-        <form action="/login" method="POST">
-            <div class="input-group">
-                <label>Username :</label>
-                <input type="text" name="username" required>
-            </div>
-
-            <div class="input-group">
-                <label>Password :</label>
-                <input type="password" name="password" required>
-            </div>
-
-            <button type="submit">Connect</button>
-        </form>
+    <div class="welcome-container">
+        <div class="logo-container">
+            <img src="/images/logo/logo_discado_noir.png" alt="Discado Logo">
+        </div>
+        
+        <h1>Welcome to Discado</h1>
+        
+        <p>Browse our catalog of promotional products for your business.</p>
+        
+        <div class="button-container">
+            <a href="/pages/catalog.html" class="button primary-btn">View Catalog</a>
+            <a href="/pages/login.html" id="login-btn" class="button secondary-btn">Log In</a>
+        </div>
+        
+        <div id="auth-status" class="auth-status">
+            <!-- Authentication status will be shown here -->
+        </div>
     </div>
 
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check authentication status
+            fetch('/api/check-auth')
+                .then(response => {
+                    if (response.ok) {
+                        return response.json();
+                    }
+                    throw new Error('Not authenticated');
+                })
+                .then(data => {
+                    // User is logged in
+                    const authStatus = document.getElementById('auth-status');
+                    const loginBtn = document.getElementById('login-btn');
+                    
+                    authStatus.textContent = `Welcome back, ${data.username || 'User'}!`;
+                    authStatus.classList.add('logged-in');
+                    authStatus.style.display = 'block';
+                    
+                    // Change login button to "My Account"
+                    loginBtn.textContent = 'My Account';
+                    loginBtn.href = '/pages/profile.html';
+                    
+                    // Redirect to catalog after 1.5 seconds
+                    setTimeout(() => {
+                        window.location.href = '/pages/catalog.html';
+                    }, 1500);
+                })
+                .catch(error => {
+                    // User is not logged in - no need to show anything
+                });
+        });
+    </script>
 </body>
 </html>

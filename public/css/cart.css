@@ -1,0 +1,186 @@
+/* =========================================
+   Cart Modal Styles
+   ========================================= */
+   #cart-modal .modal-content {
+    padding: 25px;
+}
+
+.cart-title {
+    margin-bottom: 20px;
+    color: #333;
+    font-size: 22px;
+    font-weight: 600;
+    text-align: center;
+}
+
+#cart-items {
+    margin: 20px 0;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.empty-cart {
+    text-align: center;
+    color: #777;
+    padding: 30px;
+    font-size: 15px;
+    background-color: #f9f9f9;
+    border-radius: 8px;
+}
+
+.cart-item {
+    display: grid;
+    grid-template-columns: 80px 1fr 100px 30px;
+    gap: 16px;
+    align-items: center;
+    padding: 15px 0;
+    border-bottom: 1px solid #eee;
+}
+
+.cart-item:last-child {
+    border-bottom: none;
+}
+
+.cart-item-quantity {
+    text-align: left;
+    font-weight: bold;
+    color: #2575fc;
+}
+
+.cart-item-name {
+    padding-left: 10px;
+    text-align: left;
+    line-height: 1.4;
+}
+
+.cart-item-price {
+    text-align: right;
+    font-weight: bold;
+    color: #28a745;
+}
+
+.remove-item-btn {
+    background: none;
+    border: none;
+    color: #ff6b6b;
+    font-size: 18px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    transition: background-color 0.2s;
+}
+
+.remove-item-btn:hover {
+    background-color: #f8f9fa;
+}
+
+.cart-total {
+    padding: 15px;
+    text-align: right;
+    font-size: 18px;
+    border-top: 2px solid #eee;
+    margin-top: 10px;
+}
+
+.cart-total strong {
+    color: #2575fc;
+}
+
+.cart-actions {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 20px;
+    gap: 15px;
+}
+
+#clear-cart-btn {
+    background-color: #6c757d;
+}
+
+#checkout-btn {
+    background-color: #28a745;
+    flex-grow: 1;
+}
+
+#checkout-btn:hover {
+    background-color: #218838;
+}
+
+/* =========================================
+   Cart Confirmation Message
+   ========================================= */
+.cart-confirmation {
+    display: none;
+    text-align: center;
+    padding: 30px 15px;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    margin-top: 20px;
+}
+
+.cart-confirmation.visible {
+    display: block;
+    animation: fadeIn 0.5s ease;
+}
+
+.cart-confirmation i {
+    font-size: 48px;
+    color: #28a745;
+    margin-bottom: 15px;
+}
+
+.cart-confirmation p {
+    font-size: 18px;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 10px;
+}
+
+.cart-confirmation-note {
+    font-size: 14px !important;
+    color: #666 !important;
+    font-weight: normal !important;
+    margin-bottom: 20px !important;
+}
+
+#view-orders-btn {
+    display: inline-block;
+    background-color: #6c757d;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* =========================================
+   Responsive Adjustments
+   ========================================= */
+@media (max-width: 768px) {
+    .cart-item {
+        grid-template-columns: 60px 1fr 80px 30px;
+        gap: 10px;
+        padding: 12px 0;
+    }
+    
+    .cart-item-name {
+        padding-left: 0;
+        font-size: 14px;
+    }
+    
+    .cart-total {
+        font-size: 16px;
+    }
+    
+    .cart-actions {
+        flex-direction: column;
+    }
+    
+    #clear-cart-btn, #checkout-btn {
+        width: 100%;
+    }
+}

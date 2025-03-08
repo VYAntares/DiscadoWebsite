@@ -525,7 +525,7 @@ app.get('/admin/order-history', requireLogin, requireAdmin, (req, res) => {
 });
 
 app.get('/catalog', requireLogin, requireCompleteProfile, (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'catalog.html'));
+  res.sendFile(path.join(__dirname, 'public/pages', 'catalog.html'));
 });
 
 app.get('/profile', requireLogin, (req, res) => {

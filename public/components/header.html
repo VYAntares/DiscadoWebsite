@@ -1,0 +1,70 @@
+<!-- Header -->
+<header>
+    <div class="header-container">
+        <button id="menuToggle" class="menu-toggle" aria-label="Toggle menu">
+            <span></span>
+            <span></span>
+            <span></span>
+        </button>
+            
+        <!-- Logo -->
+        <div class="logo-container">
+            <a href="/pages/catalog.html">
+                <img src="/images/logo/logo_discado_noir.png" alt="Discado Logo" id="logo">
+            </a>
+        </div>
+
+        <div class="header-right">
+            <button id="pdfCatalogToggle" class="icon-btn" aria-label="PDF Catalog">
+                <i class="fas fa-file-pdf"></i>
+            </button>
+
+            <button id="cartToggle" class="icon-btn" aria-label="Shopping cart">
+                <i class="fas fa-shopping-cart"></i>
+                <span id="cartCountBadge" class="cart-count-badge">0</span>
+            </button>
+            
+            <button id="userMenuToggle" class="icon-btn" aria-label="User menu">
+                <i class="fas fa-user"></i>
+            </button>
+        </div>
+    </div>
+</header>
+
+<!-- Dropdown Menu -->
+<div id="dropdownMenu" class="dropdown-menu">
+    <div class="menu-section">
+        <div class="search-wrapper">
+            <input type="text" id="searchInput" placeholder="Search for a product..." aria-label="Search">
+            <button id="searchButton" aria-label="Search"><i class="fas fa-search"></i></button>
+        </div>
+    </div>
+    
+    <div class="menu-section">
+        <h3>Category</h3>
+        <ul class="category-list">
+            <li class="category-item active" data-category="all">All Products</li>
+            <li class="category-item" data-category="magnet">Magnets</li>
+            <li class="category-item" data-category="keyring">Keyrings</li>
+            <li class="category-item" data-category="pens">Pens</li>
+            <li class="category-item" data-category="bags">Bags</li>
+            <li class="category-item" data-category="hats">Hats</li>
+            <li class="category-item" data-category="caps">Caps</li>
+            <li class="category-item" data-category="bells">Bells</li>
+            <li class="category-item" data-category="softtoy">Soft-Toys</li>
+            <li class="category-item" data-category="tshirt">T-Shirts</li>
+            <li class="category-item" data-category="lighter">Lighters</li>
+            <li class="category-item" data-category="gadget">Gadgets</li>
+        </ul>
+    </div>
+</div>
+
+<!-- User Menu -->
+<div id="userMenu" class="user-menu">
+    <a href="/pages/profile.html">My Profile</a>
+    <a href="/pages/orders.html">My Orders</a>
+    <a href="/logout">Log Out</a>
+</div>
+
+<!-- Menu Overlay -->
+<div id="menuOverlay" class="menu-overlay"></div>

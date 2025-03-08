@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Discado - Product Catalog</title>
+    <!-- CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/css/main.css">
+    <link rel="stylesheet" href="/css/catalog.css">
+    <link rel="stylesheet" href="/css/cart.css">
+</head>
+<body>
+    <!-- Header will be loaded dynamically -->
+    <div id="header-container"></div>
+
+    <!-- Main Content -->
+    <main>
+        <!-- Category filter (hidden for compatibility with JS) -->
+        <select id="categoryFilter" style="display: none;">
+            <option value="all">All</option>
+            <option value="magnet">Magnets</option>
+            <option value="keyring">Key-Rings</option>
+            <option value="pens">Pens</option>
+            <option value="bags">Bags</option>
+            <option value="hats">Hats</option>
+            <option value="caps">Caps</option>
+            <option value="bells">Bells</option>
+            <option value="softtoy">Soft-Toy</option>  
+            <option value="tshirt">T-Shirts</option>
+            <option value="lighter">Lighter</option>
+            <option value="gadget">Gadget</option>
+        </select>
+
+        <!-- Product list will be populated by JS -->
+        <ul id="productList"></ul>
+
+        <!-- Floating add to cart button will be added by JS -->
+    </main>
+
+    <!-- Cart modal will be loaded dynamically -->
+    <div id="cart-modal-container"></div>
+
+    <!-- Notification container -->
+    <div id="notification-container"></div>
+
+    <!-- Scripts -->
+    <script type="module" src="/js/core/app.js"></script>
+    <script type="module">
+        import { initCatalog } from '/js/modules/catalog/productList.js';
+        document.addEventListener('DOMContentLoaded', function() {
+            // Load header component
+            fetch('/components/header.html')
+                .then(response => response.text())
+                .then(data => {
+                    document.getElementById('header-container').innerHTML = data;
+                    // Initialize header functionality after loading
+                    import('/js/modules/ui/header.js').then(module => module.initHeader());
+                });
+            
+            // Load cart modal component
+            fetch('/components/cart-modal.html')
+                .then(response => response.text())
+                .then(data => {
+                    document.getElementById('cart-modal-container').innerHTML = data;
+                });
+            
+            // Initialize catalog functionality
+            initCatalog();
+        });
+    </script>
+</body>
+</html>

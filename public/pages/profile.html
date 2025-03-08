@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Discado - My Profile</title>
+    <!-- CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/css/main.css">
+    <link rel="stylesheet" href="/css/profile.css">
+</head>
+<body>
+    <!-- Header will be loaded dynamically -->
+    <div id="header-container"></div>
+
+    <!-- Main Content -->
+    <main>
+        <div class="page-header">
+            <h2>My Profile</h2>
+        </div>
+        
+        <div class="profile-form">
+            <form id="profileForm">
+                <div class="profile-section">
+                    <h3>Personal Information</h3>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="firstName">First Name*</label>
+                            <input type="text" id="firstName" name="firstName" placeholder="Your first name" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="lastName">Last Name*</label>
+                            <input type="text" id="lastName" name="lastName" placeholder="Your last name" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="email">Email*</label>
+                        <input type="email" id="email" name="email" placeholder="Your email address" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="phone">Phone Number*</label>
+                        <input type="tel" id="phone" name="phone" placeholder="0781234567" required>
+                        <p class="format-hint">Format: 0781234567</p>
+                    </div>
+                </div>
+                
+                <div class="profile-section">
+                    <h3>Shop Information</h3>
+                    <div class="form-group">
+                        <label for="shopName">Shop's Name*</label>
+                        <input type="text" id="shopName" name="shopName" placeholder="Your shop name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="shopAddress">Shop Address*</label>
+                        <input type="text" id="shopAddress" name="shopAddress" placeholder="Shop street address" required>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="shopCity">Shop City*</label>
+                            <input type="text" id="shopCity" name="shopCity" placeholder="Shop city" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="shopZipCode">Shop Zip Code*</label>
+                            <input type="text" id="shopZipCode" name="shopZipCode" placeholder="Shop postal code" required>
+                        </div>
+                    </div>
+                </div>
+                
+                <p class="required-fields-note">* All fields are required</p>
+                <button type="submit" class="save-btn">Save Profile</button>
+            </form>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <div id="footer-container"></div>
+
+    <!-- Notification container -->
+    <div id="notification-container"></div>
+
+    <!-- Scripts -->
+    <script type="module" src="/js/core/app.js"></script>
+    <script type="module">
+        import { initProfileManager } from '/js/modules/profile/profileManager.js';
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            // Load header component
+            fetch('/components/header.html')
+                .then(response => response.text())
+                .then(data => {
+                    document.getElementById('header-container').innerHTML = data;
+                    // Initialize header functionality after loading
+                    import('/js/modules/ui/header.js').then(module => module.initHeader());
+                });
+            
+            // Load footer component
+            fetch('/components/footer.html')
+                .then(response => response.text())
+                .then(data => {
+                    document.getElementById('footer-container').innerHTML = data;
+                });
+            
+            // Initialize profile manager
+            initProfileManager();
+        });
+    </script>
+</body>
+</html>
