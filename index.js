@@ -16,6 +16,17 @@ const PORT = process.env.PORT || 3000;
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
+// Configure express-session middleware - THIS WAS MISSING
+app.use(session({
+  secret: 'discado-session-secret',
+  resave: false,
+  saveUninitialized: true,
+  cookie: { 
+    secure: process.env.NODE_ENV === 'production',
+    maxAge: 24 * 60 * 60 * 1000 // 24 hours
+  }
+}));
+
 // Ajouter cette configuration pour les modules ES6
 app.use('/admin/js', (req, res, next) => {
   // Servir les fichiers JS avec l'en-tête Content-Type approprié pour ES modules
@@ -97,9 +108,6 @@ function requireCompleteProfile(req, res, next) {
 
 // Function to generate PDF invoices with multi-page support
 function generateInvoicePDF(doc, orderItems, userProfile, orderDate, orderId, remainingItems = []) {
-  // This function remains unchanged from your original code
-  // Simply import your existing PDF generation code here
-  
   // Function to add a header element
   function addHeaderElement(text, x, y, options = {}) {
     doc.font('Helvetica').fontSize(10).text(text, x, y, options);
@@ -526,6 +534,15 @@ app.get('/profile', requireLogin, (req, res) => {
 
 app.get('/orders', requireLogin, (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'orders.html'));
+});
+
+// API routes for checking authentication
+app.get('/api/check-auth', requireLogin, (req, res) => {
+  res.json({ 
+    authenticated: true, 
+    username: req.session.user.username,
+    role: req.session.user.role
+  });
 });
 
 // API routes for user profile
