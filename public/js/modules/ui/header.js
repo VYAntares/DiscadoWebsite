@@ -19,7 +19,7 @@ export function initHeader() {
     setupUserMenu();
     
     // Initialize cart functionality
-    initCartManager();
+    initCartManaxager();
     
     // Handle scroll behavior
     setupScrollBehavior();

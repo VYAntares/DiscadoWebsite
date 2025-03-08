@@ -8,6 +8,11 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="/css/main.css">
     <link rel="stylesheet" href="/css/orders.css">
+    <link rel="stylesheet" href="/css/cart.css">
+    <!-- Enhanced Header Script -->
+    <script src="/js/components/DiscadoHeader.js"></script>
+    <!-- Cart Integration Script -->
+    <script src="/js/components/CartIntegration.js"></script>
 </head>
 <body>
     <!-- Header will be loaded dynamically -->
@@ -43,6 +48,9 @@
 
     <!-- Footer -->
     <div id="footer-container"></div>
+    
+    <!-- Cart modal container -->
+    <div id="cart-modal-container"></div>
 
     <!-- Notification container -->
     <div id="notification-container"></div>
@@ -54,14 +62,15 @@
         import { initPendingItems } from '/js/modules/orders/pendingItems.js';
         
         document.addEventListener('DOMContentLoaded', function() {
-            // Load header component
-            fetch('/components/header.html')
-                .then(response => response.text())
-                .then(data => {
-                    document.getElementById('header-container').innerHTML = data;
-                    // Initialize header functionality after loading
-                    import('/js/modules/ui/header.js').then(module => module.initHeader());
-                });
+            // Initialize header (if not already initialized)
+            if (window.DiscadoHeader) {
+                window.DiscadoHeader.init();
+            }
+            
+            // Initialize cart integration
+            if (window.CartIntegration) {
+                window.CartIntegration.init();
+            }
             
             // Load footer component
             fetch('/components/footer.html')
