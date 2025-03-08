@@ -742,3 +742,32 @@ header {
         gap: 20px;
     }
 }
+
+/* Fix for header overlapping content in main.css */
+body {
+    padding-top: 100px; /* Increase from 80px to 100px to accommodate header height */
+}
+
+/* Alternatively, you can apply margin to the main content instead */
+main {
+    margin-top: 10px; /* Additional spacing between header and content */
+}
+
+/* Make sure header has the right height and z-index */
+header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 80px; /* Ensure consistent height */
+    z-index: 1000;
+    background-color: #fff;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+/* For mobile responsiveness, adjust padding on smaller screens */
+@media (max-width: 768px) {
+    body {
+        padding-top: 70px; /* Slightly smaller padding on mobile */
+    }
+}

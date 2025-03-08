@@ -592,16 +592,12 @@ app.post('/api/save-profile', requireLogin, (req, res) => {
   const userId = req.session.user.username;
   const profileData = req.body;
   
-  console.log(`API: Sauvegarde du profil pour l'utilisateur ${userId}`);
-  console.log('Données du profil reçues:', JSON.stringify(profileData));
-  
   try {
     // Sauvegarder les données du profil
     const result = userService.saveUserProfile(profileData, userId);
     
     // Vérifier si le profil est complet
     const isComplete = userService.isProfileComplete(userId);
-    console.log(`Vérification de la complétude du profil pour ${userId}: ${isComplete ? 'COMPLET' : 'INCOMPLET'}`);
     
     // Récupérer le profil mis à jour pour vérification
     const updatedProfile = userService.getUserProfile(userId);

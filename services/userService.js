@@ -56,8 +56,6 @@ const userService = {
     // Save user profile
     saveUserProfile(profileData, username) {
         try {
-            console.log(`Sauvegarde du profil pour l'utilisateur ${username}`, profileData);
-            
             // Normaliser les données
             const normalizedData = {
                 firstName: profileData.firstName || '',
@@ -75,8 +73,6 @@ const userService = {
             const existingProfile = dbModule.getUserProfile.get(username);
             
             if (existingProfile) {
-                console.log(`Mise à jour du profil existant pour ${username}`);
-                
                 // Mise à jour du profil existant
                 dbModule.updateUserProfile.run(
                     normalizedData.firstName,
@@ -91,8 +87,6 @@ const userService = {
                     username
                 );
             } else {
-                console.log(`Création d'un nouveau profil pour ${username}`);
-                
                 // Création d'un nouveau profil
                 dbModule.createUserProfile.run(
                     username,
@@ -110,7 +104,6 @@ const userService = {
             
             // Vérifier si le profil est complet après la sauvegarde
             const isComplete = this.isProfileComplete(username);
-            console.log(`Vérification du profil après sauvegarde: ${isComplete ? 'COMPLET' : 'INCOMPLET'}`);
             
             return { 
                 success: true,
@@ -118,7 +111,7 @@ const userService = {
                 shouldRedirect: isComplete
             };
         } catch (error) {
-            console.error('Erreur lors de la sauvegarde du profil:', error);
+            console.error('Error saving user profile:', error);
             throw error;
         }
     },
@@ -143,18 +136,15 @@ const userService = {
             }));
         } catch (error) {
             console.error('Error getting all client profiles:', error);
-            return []; // Return empty array instead of legacy fallback
+            return []; 
         }
     },
     
     // Check if profile is complete
     isProfileComplete(username) {
-        console.log(`Checking profile completeness for user: ${username}`);
-        
         const profile = this.getUserProfile(username);
         
         if (!profile) {
-            console.log(`No profile found for user ${username}`);
             return false;
         }
         
@@ -163,21 +153,10 @@ const userService = {
             'shopName', 'shopAddress', 'shopCity', 'shopZipCode'
         ];
         
-        // Log all field values for debugging
-        console.log('Profile field values:');
-        requiredFields.forEach(field => {
-            const value = profile[field];
-            const isValid = value && value.trim() !== '';
-            console.log(`  - ${field}: "${value || ''}" (${isValid ? 'VALID' : 'MISSING'})`);
-        });
-        
         // Check if all required fields have valid values
-        const isComplete = requiredFields.every(field => 
+        return requiredFields.every(field => 
             profile[field] && profile[field].trim() !== ''
         );
-        
-        console.log(`Profile completeness result: ${isComplete ? 'COMPLETE' : 'INCOMPLETE'}`);
-        return isComplete;
     }
 };
 
