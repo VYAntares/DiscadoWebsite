@@ -93,7 +93,7 @@ const productService = {
     // Helper: Get products from legacy CSV files
     async _getLegacyProducts() {
         return new Promise((resolve, reject) => {
-            const dataFolder = path.join(__dirname, 'data');
+            const dataFolder = path.join(__dirname, '../data');
             fs.readdir(dataFolder, (err, files) => {
                 if (err) {
                     console.error("Error reading data folder:", err);

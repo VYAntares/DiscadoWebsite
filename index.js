@@ -5,9 +5,9 @@ const path = require('path');
 const fs = require('fs');
 
 // Import services
-const userService = require('./userService');
-const orderService = require('./orderService');
-const productService = require('./productService');
+const userService = require('./services/userService');
+const orderService = require('./services/orderService');
+const productService = require('./services/productService');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -31,28 +31,17 @@ app.use(session({
   }
 }));
 
-// List of allowed users (to be migrated to database)
 // This is temporary until user management is fully migrated to database
 const allowedUsers = [
-  { username: 'admin', password: 'admin123', role: 'admin' },
-  { username: 'admin2', password: 'admin124', role: 'admin' },
-  { username: 'client', password: 'client123', role: 'client' },
-  { username: 'client2', password: 'client123', role: 'client' },
-  { username: 'luca', password: 'lumattei', role: 'client' },
-  { username: 'mengp', password: 'mengp', role: 'client' },
-  { username: 'samy', password: 'samy', role: 'client' },
-  { username: 'cadhor', password: 'cadhor', role: 'client' },
-  { username: 'luce', password: 'luce', role: 'client' },
-  { username: 'ibozurich', password: 'ibozurich', role: 'client' },
-  { username: 'nazir', password: 'nazir', role: 'client' },
-  { username: 'kallaya', password: 'kallaya', role: 'client' }
+  { username: 'endrit', password: 'ChaletDMT123', role: 'admin' },
+  { username: 'luca', password: 'ChaletDMT123', role: 'admin' }
 ];
 
 // Migration: Add default users to database
 (async function migrateUsers() {
   try {
     // Check if users exist in database
-    const db = require('./db').db;
+    const db = require('./services/db').db;
     const { count } = db.prepare('SELECT COUNT(*) as count FROM users').get();
     
     if (count === 0) {
@@ -687,7 +676,6 @@ app.get('/api/admin/client-orders/:clientId', requireLogin, requireAdmin, (req, 
   }
 });
 
-// Invoice download routes
 app.get('/api/download-invoice/:orderId', requireLogin, (req, res) => {
   const userId = req.session.user.username;
   const orderId = req.params.orderId;
@@ -785,7 +773,6 @@ app.get('/api/admin/download-invoice/:orderId/:userId', requireLogin, requireAdm
   }
 });
 
-// Ajouter après les autres routes d'API admin dans index.js
 
 // Route pour créer un nouveau compte client (admin only)
 app.post('/api/admin/create-client', requireLogin, requireAdmin, (req, res) => {
@@ -834,5 +821,5 @@ app.post('/api/admin/create-client', requireLogin, requireAdmin, (req, res) => {
 // Start server
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server started on http://localhost:${PORT}`);
-  console.log(`Available on network at 192.168.1.232:${PORT}`);
+  console.log(`Available on network at 192.168.0.187:${PORT}`);
 });

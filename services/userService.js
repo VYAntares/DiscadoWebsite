@@ -1,7 +1,5 @@
 // userService.js - Handle user and profile operations
 const dbModule = require('./db');
-const fs = require('fs');
-const path = require('path');
 
 // Service for managing users and profiles
 const userService = {
@@ -28,7 +26,7 @@ const userService = {
     // Get user profile
     getUserProfile(username) {
         try {
-            // First try to get from database
+            // Get profile from database
             const profile = dbModule.getUserProfile.get(username);
             
             if (profile) {
@@ -46,18 +44,6 @@ const userService = {
                     shopZipCode: profile.shop_zip_code,
                     lastUpdated: profile.last_updated
                 };
-            }
-            
-            // If not in database, try legacy file system
-            const legacyProfilePath = path.join(__dirname, 'data_client', `${username}_profile.json`);
-            
-            if (fs.existsSync(legacyProfilePath)) {
-                const profileData = JSON.parse(fs.readFileSync(legacyProfilePath, 'utf8'));
-                
-                // Migrate profile to database for future use
-                this.saveUserProfile(profileData, username);
-                
-                return profileData;
             }
             
             return null;
@@ -116,9 +102,6 @@ const userService = {
                 );
             }
             
-            // Also save to legacy file system during transition period
-            this._saveLegacyProfile(profileData, username);
-            
             return { success: true };
         } catch (error) {
             console.error('Error saving user profile:', error);
@@ -146,56 +129,7 @@ const userService = {
             }));
         } catch (error) {
             console.error('Error getting all client profiles:', error);
-            
-            // Fallback to legacy system
-            return this._getLegacyClientProfiles();
-        }
-    },
-    
-    // Helper: Save profile to legacy file system for backward compatibility
-    _saveLegacyProfile(profileData, username) {
-        try {
-            const dataClientDir = path.join(__dirname, 'data_client');
-            if (!fs.existsSync(dataClientDir)) {
-                fs.mkdirSync(dataClientDir, { recursive: true });
-            }
-            
-            const userProfilePath = path.join(dataClientDir, `${username}_profile.json`);
-            fs.writeFileSync(userProfilePath, JSON.stringify(profileData, null, 2));
-        } catch (error) {
-            console.error('Error saving legacy profile:', error);
-        }
-    },
-    
-    // Helper: Get profiles from legacy system
-    _getLegacyClientProfiles() {
-        try {
-            const dataClientDir = path.join(__dirname, 'data_client');
-            if (!fs.existsSync(dataClientDir)) {
-                return [];
-            }
-            
-            const profileFiles = fs.readdirSync(dataClientDir)
-                .filter(file => file.endsWith('_profile.json'));
-            
-            return profileFiles.map(file => {
-                try {
-                    const filePath = path.join(dataClientDir, file);
-                    const clientId = file.split('_')[0];
-                    const profileData = JSON.parse(fs.readFileSync(filePath, 'utf8'));
-                    
-                    // Add client ID
-                    profileData.clientId = clientId;
-                    
-                    return profileData;
-                } catch (error) {
-                    console.error(`Error reading profile file ${file}:`, error);
-                    return null;
-                }
-            }).filter(profile => profile !== null);
-        } catch (error) {
-            console.error('Error reading legacy client profiles:', error);
-            return [];
+            return []; // Return empty array instead of legacy fallback
         }
     },
     
