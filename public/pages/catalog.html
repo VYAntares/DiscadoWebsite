@@ -38,6 +38,9 @@
         <!-- Floating add to cart button will be added by JS -->
     </main>
 
+    <!-- Footer -->
+    <div id="footer-container"></div>
+
     <!-- Cart modal will be loaded dynamically -->
     <div id="cart-modal-container"></div>
 
@@ -56,6 +59,19 @@
                     document.getElementById('header-container').innerHTML = data;
                     // Initialize header functionality after loading
                     import('/js/modules/ui/header.js').then(module => module.initHeader());
+                })
+                .catch(error => {
+                    console.error('Error loading header:', error);
+                });
+            
+            // Load footer component
+            fetch('/components/footer.html')
+                .then(response => response.text())
+                .then(data => {
+                    document.getElementById('footer-container').innerHTML = data;
+                })
+                .catch(error => {
+                    console.error('Error loading footer:', error);
                 });
             
             // Load cart modal component
@@ -63,6 +79,9 @@
                 .then(response => response.text())
                 .then(data => {
                     document.getElementById('cart-modal-container').innerHTML = data;
+                })
+                .catch(error => {
+                    console.error('Error loading cart modal:', error);
                 });
             
             // Initialize catalog functionality

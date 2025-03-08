@@ -16,7 +16,7 @@ const PORT = process.env.PORT || 3000;
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
-// Configure express-session middleware - THIS WAS MISSING
+// Configure express-session middleware
 app.use(session({
   secret: 'discado-session-secret',
   resave: false,
@@ -27,21 +27,34 @@ app.use(session({
   }
 }));
 
-// Ajouter cette configuration pour les modules ES6
+// IMPORTANT: L'ordre est critique pour servir les fichiers statiques correctement
+// Servir les fichiers statiques (global)
+app.use(express.static('public'));
+
+// Configure ES6 modules for admin JS files
 app.use('/admin/js', (req, res, next) => {
-  // Servir les fichiers JS avec l'en-tête Content-Type approprié pour ES modules
+  // Serve JS files with appropriate Content-Type header for ES modules
   if (req.path.endsWith('.js')) {
     res.set('Content-Type', 'application/javascript; charset=UTF-8');
   }
   next();
 });
 
-// Serve static files
-app.use(express.static('public'));
+// Servir les fichiers statiques pour l'admin
 app.use('/admin', express.static('admin'));
 app.use('/admin/js', express.static('admin/js'));
 app.use('/admin/css', express.static('admin/css'));
 app.use('/admin/pages', express.static('admin/pages'));
+
+// Assurer l'accès explicite à tous les dossiers dans public
+// Ces routes sont redondantes si le dossier public est correctement servi,
+// mais cela garantit que tous les chemins fonctionnent
+app.use('/images', express.static(path.join(__dirname, 'public/images')));
+app.use('/fonts', express.static(path.join(__dirname, 'public/fonts')));
+app.use('/css', express.static(path.join(__dirname, 'public/css')));
+app.use('/js', express.static(path.join(__dirname, 'public/js')));
+app.use('/components', express.static(path.join(__dirname, 'public/components')));
+app.use('/pages', express.static(path.join(__dirname, 'public/pages')));
 
 // This is temporary until user management is fully migrated to database
 const allowedUsers = [
@@ -442,7 +455,7 @@ app.get('/', (req, res) => {
       return res.redirect('/admin');
     } else {
       if (userService.isProfileComplete(req.session.user.username)) {
-        return res.redirect('/catalog');
+        return res.redirect('/pages/catalog.html');
       } else {
         return res.redirect('/profile');
       }
@@ -465,7 +478,7 @@ app.post('/login', (req, res) => {
       return res.redirect('/admin');
     } else {
       if (userService.isProfileComplete(username)) {
-        return res.redirect('/catalog');
+        return res.redirect('/pages/catalog.html');
       } else {
         return res.redirect('/profile');
       }
@@ -488,7 +501,7 @@ app.post('/login', (req, res) => {
         return res.redirect('/admin');
       } else {
         if (userService.isProfileComplete(username)) {
-          return res.redirect('/catalog');
+          return res.redirect('/pages/catalog.html');
         } else {
           return res.redirect('/profile');
         }
@@ -507,7 +520,7 @@ app.get('/logout', (req, res) => {
   });
 });
 
-// Protected routes
+// Protected routes - Correction des chemins pour correspondre à la nouvelle structure
 app.get('/admin', requireLogin, requireAdmin, (req, res) => {
   res.sendFile(path.join(__dirname, 'admin', 'index.html'));
 });
@@ -524,25 +537,47 @@ app.get('/admin/order-history', requireLogin, requireAdmin, (req, res) => {
   res.sendFile(path.join(__dirname, 'admin', 'pages', 'order-history.html'));
 });
 
+// Client protected routes - Correction des chemins
 app.get('/catalog', requireLogin, requireCompleteProfile, (req, res) => {
-  res.sendFile(path.join(__dirname, 'public/pages', 'catalog.html'));
+  res.sendFile(path.join(__dirname, 'public', 'pages', 'catalog.html'));
 });
 
 app.get('/profile', requireLogin, (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'profile.html'));
+  res.sendFile(path.join(__dirname, 'public', 'pages', 'profile.html'));
 });
 
 app.get('/orders', requireLogin, (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'orders.html'));
+  res.sendFile(path.join(__dirname, 'public', 'pages', 'orders.html'));
+});
+
+// Ajout de routes directes vers les pages HTML pour corriger l'accès direct
+app.get('/pages/catalog.html', requireLogin, requireCompleteProfile, (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'pages', 'catalog.html'));
+});
+
+app.get('/pages/profile.html', requireLogin, (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'pages', 'profile.html'));
+});
+
+app.get('/pages/orders.html', requireLogin, (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'pages', 'orders.html'));
+});
+
+app.get('/pages/login.html', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'pages', 'login.html'));
 });
 
 // API routes for checking authentication
-app.get('/api/check-auth', requireLogin, (req, res) => {
-  res.json({ 
-    authenticated: true, 
-    username: req.session.user.username,
-    role: req.session.user.role
-  });
+app.get('/api/check-auth', (req, res) => {
+  if (req.session.user) {
+    res.json({ 
+      authenticated: true, 
+      username: req.session.user.username,
+      role: req.session.user.role
+    });
+  } else {
+    res.status(401).json({ authenticated: false });
+  }
 });
 
 // API routes for user profile
@@ -795,7 +830,7 @@ app.get('/api/admin/download-invoice/:orderId/:userId', requireLogin, requireAdm
   }
 });
 
-// Route pour créer un nouveau compte client (admin only)
+// Route for creating a new client account (admin only)
 app.post('/api/admin/create-client', requireLogin, requireAdmin, (req, res) => {
   const { username, password, profileData } = req.body;
   
@@ -807,7 +842,7 @@ app.post('/api/admin/create-client', requireLogin, requireAdmin, (req, res) => {
   }
   
   try {
-    // Vérifier si l'utilisateur existe déjà
+    // Check if user already exists
     const existingUser = userService.getUser(username);
     
     if (existingUser) {
@@ -817,10 +852,10 @@ app.post('/api/admin/create-client', requireLogin, requireAdmin, (req, res) => {
       });
     }
     
-    // Créer l'utilisateur
+    // Create user
     userService.createUser(username, password, 'client');
     
-    // Créer le profil si des données sont fournies
+    // Create profile if data is provided
     if (profileData) {
       userService.saveUserProfile(profileData, username);
     }
@@ -839,8 +874,18 @@ app.post('/api/admin/create-client', requireLogin, requireAdmin, (req, res) => {
   }
 });
 
+// Error handling middleware
+app.use((req, res, next) => {
+  res.status(404).send('Page not found. <a href="/">Return to homepage</a>');
+});
+
+app.use((err, req, res, next) => {
+  console.error('Server error:', err);
+  res.status(500).send('Server error occurred. Please try again later.');
+});
+
 // Start server
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server started on http://localhost:${PORT}`);
-  console.log(`Available on network at 192.168.0.187:${PORT}`);
+  console.log(`Available on network at http://192.168.0.187:${PORT}`);
 });

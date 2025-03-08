@@ -3,8 +3,6 @@
  * Gère les filtres de catégorie dans le catalogue
  */
 
-import { AppConfig } from '../../core/config.js';
-
 /**
  * Initialise les filtres de catégorie
  * @param {Function} filterCallback - Fonction à appeler pour filtrer les produits
@@ -111,7 +109,7 @@ function updateCategoryUI(category, categoryItems = null) {
  * @returns {Array} Liste des catégories
  */
 export function getAvailableCategories() {
-    return AppConfig.PRODUCT_CATEGORIES || [
+    return [
         { id: 'all', name: 'All Products' },
         { id: 'magnet', name: 'Magnets' },
         { id: 'keyring', name: 'Keyrings' },
