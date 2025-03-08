@@ -113,5 +113,89 @@
             initProfileManager();
         });
     </script>
+    <!-- Ajoutez ce script juste avant la fermeture de la balise </body> dans profile.html -->
+<script>
+    // Script de soumission directe du formulaire
+    document.getElementById('profileForm').addEventListener('submit', function(event) {
+      event.preventDefault();
+      
+      // Récupérer les valeurs du formulaire
+      const firstName = document.getElementById('firstName').value.trim();
+      const lastName = document.getElementById('lastName').value.trim();
+      const email = document.getElementById('email').value.trim();
+      const phone = document.getElementById('phone').value.trim();
+      const shopName = document.getElementById('shopName').value.trim();
+      const shopAddress = document.getElementById('shopAddress').value.trim();
+      const shopCity = document.getElementById('shopCity').value.trim();
+      const shopZipCode = document.getElementById('shopZipCode').value.trim();
+      
+      // Construire les données du profil
+      const profileData = {
+        firstName: firstName,
+        lastName: lastName,
+        fullName: firstName + ' ' + lastName,
+        email: email,
+        phone: phone,
+        shopName: shopName,
+        shopAddress: shopAddress,
+        shopCity: shopCity,
+        shopZipCode: shopZipCode,
+        // Compatibilité avec les anciens noms de champs
+        address: shopAddress,
+        city: shopCity,
+        postalCode: shopZipCode,
+        lastUpdated: new Date().toISOString()
+      };
+      
+      console.log('Envoi des données du profil:', profileData);
+      
+      // Désactiver le bouton de sauvegarde
+      const saveBtn = document.querySelector('.save-btn');
+      if (saveBtn) {
+        saveBtn.disabled = true;
+        saveBtn.textContent = 'Enregistrement...';
+      }
+      
+      // Envoyer les données au serveur
+      fetch('/api/save-profile', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(profileData)
+      })
+      .then(response => response.json())
+      .then(data => {
+        console.log('Réponse du serveur:', data);
+        
+        // Réactiver le bouton de sauvegarde
+        if (saveBtn) {
+          saveBtn.disabled = false;
+          saveBtn.textContent = 'Enregistrer le profil';
+        }
+        
+        if (data.success) {
+          alert('Profil enregistré avec succès! Redirection vers le catalogue...');
+          
+          // Redirection vers le catalogue après un délai
+          setTimeout(() => {
+            window.location.href = '/pages/catalog.html';
+          }, 1000);
+        } else {
+          alert('Erreur lors de l\'enregistrement du profil: ' + (data.message || 'Erreur inconnue'));
+        }
+      })
+      .catch(error => {
+        console.error('Erreur:', error);
+        alert('Erreur lors de l\'enregistrement du profil. Consultez la console pour plus de détails.');
+        
+        // Réactiver le bouton de sauvegarde
+        if (saveBtn) {
+          saveBtn.disabled = false;
+          saveBtn.textContent = 'Enregistrer le profil';
+        }
+      });
+    });
+  </script>
 </body>
 </html>

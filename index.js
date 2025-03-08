@@ -587,23 +587,41 @@ app.get('/api/user-profile', requireLogin, (req, res) => {
   res.json(profile || {});
 });
 
+
 app.post('/api/save-profile', requireLogin, (req, res) => {
   const userId = req.session.user.username;
   const profileData = req.body;
   
+  console.log(`API: Sauvegarde du profil pour l'utilisateur ${userId}`);
+  console.log('Données du profil reçues:', JSON.stringify(profileData));
+  
   try {
-    userService.saveUserProfile(profileData, userId);
+    // Sauvegarder les données du profil
+    const result = userService.saveUserProfile(profileData, userId);
     
+    // Vérifier si le profil est complet
     const isComplete = userService.isProfileComplete(userId);
+    console.log(`Vérification de la complétude du profil pour ${userId}: ${isComplete ? 'COMPLET' : 'INCOMPLET'}`);
     
+    // Récupérer le profil mis à jour pour vérification
+    const updatedProfile = userService.getUserProfile(userId);
+    
+    // Réponse améliorée avec plus de détails
     res.json({ 
       success: true, 
-      message: 'Profile saved successfully',
-      isProfileComplete: isComplete 
+      message: 'Profil sauvegardé avec succès',
+      isProfileComplete: isComplete,
+      profile: updatedProfile,
+      shouldRedirect: isComplete,
+      redirectUrl: isComplete ? '/pages/catalog.html' : null
     });
   } catch (error) {
-    console.error('Error saving profile:', error);
-    res.status(500).json({ success: false, message: 'Error saving profile' });
+    console.error('Erreur lors de la sauvegarde du profil:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: `Erreur lors de la sauvegarde du profil: ${error.message}`,
+      error: error.message
+    });
   }
 });
 

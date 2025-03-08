@@ -12,7 +12,7 @@ let pendingDeliveryOrder = null;
 /**
  * Initialise la gestion des articles en attente
  */
-export function initPendingItems() {
+function initPendingItems() {
     console.log('Pending items module initialized');
     loadPendingItems();
     setupPendingItemsToggle();

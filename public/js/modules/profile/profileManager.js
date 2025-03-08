@@ -38,6 +38,7 @@ async function loadUserProfile() {
         
         // Récupérer les données du profil
         const profileData = await fetchUserProfile();
+        console.log('Profile data loaded:', profileData);
         
         // Remplir les champs du formulaire
         fillProfileForm(profileData);
@@ -224,19 +225,29 @@ async function saveProfile() {
         // Keep these fields for backward compatibility
         address: document.getElementById('shopAddress').value.trim(),
         city: document.getElementById('shopCity').value.trim(),
-        postalCode: document.getElementById('shopZipCode').value.trim()
+        postalCode: document.getElementById('shopZipCode').value.trim(),
+        lastUpdated: new Date().toISOString()
     };
+    
+    // Check if profile is complete
+    const isProfileComplete = checkProfileComplete(profileData);
+    console.log('Profile data to save:', profileData);
+    console.log('Is profile complete (client check):', isProfileComplete);
     
     try {
         // Envoyer les données au serveur
         const result = await saveUserProfile(profileData);
+        console.log('Save profile response:', result);
         
         if (result.success) {
             showNotification('Profile saved successfully!', 'success');
             
-            // Si le profil est complet et que l'API indique de rediriger
-            if (result.isProfileComplete) {
-                showNotification('Redirecting to catalog...', 'info');
+            // Si le profil est complet, rediriger vers le catalogue
+            // Vérifie à la fois la réponse du serveur et une vérification côté client
+            if (result.isProfileComplete || isProfileComplete) {
+                showNotification('Profile complete! Redirecting to catalog...', 'info');
+                
+                // Use a timeout to allow notifications to be seen
                 setTimeout(() => {
                     window.location.href = '/pages/catalog.html';
                 }, 1500);
@@ -254,6 +265,22 @@ async function saveProfile() {
             saveBtn.textContent = 'Save Profile';
         }
     }
+}
+
+/**
+ * Vérifie si tous les champs requis sont remplis (côté client)
+ * @param {Object} profileData - Données du profil
+ * @returns {boolean} True si le profil est complet
+ */
+function checkProfileComplete(profileData) {
+    const requiredFields = [
+        'firstName', 'lastName', 'email', 'phone', 
+        'shopName', 'shopAddress', 'shopCity', 'shopZipCode'
+    ];
+    
+    return requiredFields.every(field => 
+        profileData[field] && profileData[field].trim() !== ''
+    );
 }
 
 /**
