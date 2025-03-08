@@ -21,7 +21,7 @@ let selectedProducts = [];
 /**
  * Initialise la page catalogue
  */
-export function initCatalog() {
+function initCatalog() {
     console.log('Initializing catalog module');
     
     // Créer le bouton flottant d'ajout au panier
