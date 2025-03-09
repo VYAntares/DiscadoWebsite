@@ -194,3 +194,120 @@
         padding: 15px;
     }
 }
+
+/* Assurer une bonne visibilité des éléments de catégorie */
+.category-item {
+    padding: 8px 10px;
+    background-color: #f5f5f5;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    color: #333;
+}
+
+.category-item:hover {
+    background-color: #e0e0e0;
+}
+
+.category-item.active {
+    background-color: #2575fc;
+    color: white;
+}
+
+  
+  /* Assurer une bonne visibilité des éléments de catégorie */
+  .category-item {
+    padding: 10px 12px;
+    background-color: #f5f5f5;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-bottom: 5px;
+    transition: background-color 0.2s;
+    color: #333;
+    font-weight: 500;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  }
+  
+  .category-item:hover {
+    background-color: #e0e0e0;
+  }
+  
+  .category-item.active {
+    background-color: #2575fc;
+    color: white;
+    box-shadow: 0 2px 5px rgba(37, 117, 252, 0.2);
+  }
+  
+  /* Améliorer l'overlay pour qu'il couvre correctement tout l'écran */
+  .menu-overlay {
+    position: fixed;
+    top: 80px;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5); /* Plus opaque pour être visible */
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+    z-index: 1005; /* Juste en dessous du menu mais au-dessus de tout le reste */
+  }
+  
+  .menu-overlay.active {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  /* Correction pour le menu utilisateur - ajoutez ce code à votre fichier main.css */
+
+/* Styles spécifiques pour le menu utilisateur */
+.user-menu {
+    position: fixed;
+    top: 80px; 
+    right: 0;
+    background-color: white;
+    box-shadow: -2px 2px 10px rgba(0,0,0,0.2);
+    width: 200px;
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease;
+    z-index: 1020; /* Plus élevé que le menu de catégories */
+    border-radius: 0 0 0 8px;
+    border-left: 1px solid #eee;
+    border-bottom: 1px solid #eee;
+  }
+  
+  .user-menu.open {
+    max-height: 200px;
+    overflow-y: auto;
+  }
+  
+  .user-menu a {
+    display: block;
+    padding: 12px 15px;
+    text-decoration: none;
+    color: #333;
+    border-bottom: 1px solid #eee;
+    transition: background-color 0.2s;
+    font-weight: 500;
+  }
+  
+  .user-menu a:hover {
+    background-color: #f5f5f5;
+    color: #2575fc;
+  }
+  
+  .user-menu a:last-child {
+    border-bottom: none;
+  }
+  
+  /* Ajouter un effet subtil pour indiquer le menu actif */
+  #userMenuToggle.active {
+    color: #2575fc;
+    background-color: rgba(37, 117, 252, 0.1);
+    border-radius: 50%;
+  }
+  
+  /* Pour s'assurer que l'overlay fonctionne correctement avec tous les menus */
+  .menu-overlay {
+    z-index: 1015; /* Entre les deux menus pour qu'il fonctionne avec les deux */
+  }

@@ -184,3 +184,168 @@
         width: 100%;
     }
 }
+
+/* Assurer une bonne visibilité des éléments de catégorie */
+.category-item {
+    padding: 8px 10px;
+    background-color: #f5f5f5;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    color: #333;
+}
+
+.category-item:hover {
+    background-color: #e0e0e0;
+}
+
+.category-item.active {
+    background-color: #2575fc;
+    color: white;
+}
+
+/* Styles pour la modal de confirmation */
+.modal.confirm-modal {
+    background-color: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(3px);
+  }
+  
+  .confirm-modal .modal-content {
+    max-width: 450px;
+    border-radius: 12px;
+    overflow: hidden;
+    padding: 0;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    border: none;
+    animation: confirmScale 0.3s ease;
+  }
+  
+  @keyframes confirmScale {
+    from { transform: scale(0.9); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+  }
+  
+  .confirm-modal .modal-content h3 {
+    margin: 0;
+    padding: 20px 25px;
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #eee;
+    font-size: 20px;
+    font-weight: 600;
+    color: #333;
+  }
+  
+  .confirm-modal .modal-content p {
+    padding: 25px;
+    text-align: center;
+    margin: 0;
+    font-size: 16px;
+  }
+  
+  .confirm-modal .modal-content p:before {
+    content: "\f07a"; /* Icône panier FontAwesome */
+    font-family: "Font Awesome 5 Free";
+    font-weight: 900;
+    display: block;
+    font-size: 32px;
+    color: #f44336;
+    margin-bottom: 15px;
+  }
+  
+  .confirm-modal .modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 15px;
+    padding: 15px 25px;
+    background-color: #f8f9fa;
+    border-top: 1px solid #eee;
+  }
+  
+  /* Boutons */
+  .confirm-modal .secondary-btn,
+  .confirm-modal .cancel-btn {
+    background-color: #f1f1f1;
+    color: #333;
+    border: 1px solid #ddd;
+    padding: 10px 20px;
+    border-radius: 6px;
+    font-weight: 600;
+    transition: all 0.2s ease;
+  }
+  
+  .confirm-modal .secondary-btn:hover,
+  .confirm-modal .cancel-btn:hover {
+    background-color: #e5e5e5;
+  }
+  
+  .confirm-modal .primary-btn,
+  .confirm-modal .confirm-btn {
+    background-color: #2575fc;
+    color: white;
+    padding: 10px 20px;
+    border-radius: 6px;
+    font-weight: 600;
+    transition: all 0.2s ease;
+  }
+  
+  .confirm-modal .primary-btn:hover,
+  .confirm-modal .confirm-btn:hover {
+    background-color: #1a5cb8;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(37, 117, 252, 0.2);
+  }
+  
+  /* Style pour le bouton danger */
+  .confirm-modal .danger-btn {
+    background-color: #f44336;
+    color: white;
+    padding: 10px 20px;
+    border-radius: 6px;
+    font-weight: 600;
+    transition: all 0.2s ease;
+  }
+  
+  .confirm-modal .danger-btn:hover {
+    background-color: #e53935;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(244, 67, 54, 0.2);
+  }
+  
+  /* Bouton de fermeture */
+  .confirm-modal .close-modal {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    font-size: 24px;
+    color: #666;
+    background: none;
+    border: none;
+    cursor: pointer;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: all 0.2s ease;
+  }
+  
+  .confirm-modal .close-modal:hover {
+    background-color: #f1f1f1;
+    color: #333;
+  }
+  
+  /* Version responsive */
+  @media (max-width: 576px) {
+    .confirm-modal .modal-actions {
+      flex-direction: column;
+    }
+    
+    .confirm-modal .secondary-btn,
+    .confirm-modal .cancel-btn,
+    .confirm-modal .primary-btn,
+    .confirm-modal .confirm-btn,
+    .confirm-modal .danger-btn {
+      width: 100%;
+    }
+  }

@@ -9,10 +9,60 @@
     <link rel="stylesheet" href="/css/main.css">
     <link rel="stylesheet" href="/css/profile.css">
     <link rel="stylesheet" href="/css/cart.css">
+    <link rel="stylesheet" href="/css/menu-fix.css">
     <!-- Enhanced Header Script -->
     <script src="/js/components/DiscadoHeader.js"></script>
     <!-- Cart Integration Script -->
     <script src="/js/components/CartIntegration.js"></script>
+    <style>
+        /* Styles supplémentaires pour améliorer le formulaire */
+        .loading-container {
+            background-color: rgba(255, 255, 255, 0.9);
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        .form-group input.input-error {
+            border-color: #f44336;
+            background-color: #fff8f8;
+        }
+        
+        .error-message {
+            color: #f44336;
+            font-size: 12px;
+            margin-top: 5px;
+            display: none;
+        }
+        
+        .error-message.visible {
+            display: block;
+        }
+        
+        .save-btn:disabled {
+            opacity: 0.7;
+            cursor: wait;
+        }
+        
+        /* Animation de chargement */
+        .save-btn.loading::after {
+            content: '';
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            margin-left: 10px;
+            animation: rotate 1s infinite linear;
+        }
+        
+        @keyframes rotate {
+            to { transform: rotate(360deg); }
+        }
+    </style>
 </head>
 <body>
     <!-- Header will be loaded dynamically -->
@@ -40,12 +90,27 @@
                     </div>
                     <div class="form-group">
                         <label for="email">Email*</label>
-                        <input type="email" id="email" name="email" placeholder="Your email address" required>
+                        <input 
+                            type="email" 
+                            id="email" 
+                            name="email" 
+                            placeholder="Your email address" 
+                            required
+                        >
                     </div>
                     <div class="form-group">
                         <label for="phone">Phone Number*</label>
-                        <input type="tel" id="phone" name="phone" placeholder="0781234567" required>
-                        <p class="format-hint">Format: 0781234567</p>
+                        <input 
+                            type="tel" 
+                            id="phone" 
+                            name="phone" 
+                            placeholder="0780123456" 
+                            pattern="[0-9]{10}" 
+                            maxlength="10"
+                            inputmode="numeric"
+                            required
+                        >
+                        <p class="format-hint">Format: 10 digits only (e.g. 0780123456)</p>
                     </div>
                 </div>
                 
@@ -66,7 +131,16 @@
                         </div>
                         <div class="form-group">
                             <label for="shopZipCode">Shop Zip Code*</label>
-                            <input type="text" id="shopZipCode" name="shopZipCode" placeholder="Shop postal code" required>
+                            <input 
+                                type="text" 
+                                id="shopZipCode" 
+                                name="shopZipCode" 
+                                placeholder="1234" 
+                                pattern="[0-9]*" 
+                                inputmode="numeric"
+                                required
+                            >
+                            <p class="format-hint">Numbers only</p>
                         </div>
                     </div>
                 </div>
@@ -92,7 +166,7 @@
         import { initProfileManager } from '/js/modules/profile/profileManager.js';
         
         document.addEventListener('DOMContentLoaded', function() {
-            // Initialize header (if not already initialized)
+            // Initialize header
             if (window.DiscadoHeader) {
                 window.DiscadoHeader.init();
             }
@@ -107,95 +181,28 @@
                 .then(response => response.text())
                 .then(data => {
                     document.getElementById('footer-container').innerHTML = data;
+                })
+                .catch(error => {
+                    console.error('Error loading footer:', error);
                 });
             
             // Initialize profile manager
-            initProfileManager();
+            try {
+                initProfileManager();
+                console.log('Profile manager initialized successfully');
+            } catch (error) {
+                console.error('Error initializing profile manager:', error);
+                alert('An error occurred while loading your profile. Please try refreshing the page.');
+            }
+            
+            // Force numeric input for phone and zip code fields
+            const numericFields = document.querySelectorAll('#phone, #shopZipCode');
+            numericFields.forEach(field => {
+                field.addEventListener('input', function() {
+                    this.value = this.value.replace(/[^0-9]/g, '');
+                });
+            });
         });
     </script>
-    <!-- Ajoutez ce script juste avant la fermeture de la balise </body> dans profile.html -->
-<script>
-    // Script de soumission directe du formulaire
-    document.getElementById('profileForm').addEventListener('submit', function(event) {
-      event.preventDefault();
-      
-      // Récupérer les valeurs du formulaire
-      const firstName = document.getElementById('firstName').value.trim();
-      const lastName = document.getElementById('lastName').value.trim();
-      const email = document.getElementById('email').value.trim();
-      const phone = document.getElementById('phone').value.trim();
-      const shopName = document.getElementById('shopName').value.trim();
-      const shopAddress = document.getElementById('shopAddress').value.trim();
-      const shopCity = document.getElementById('shopCity').value.trim();
-      const shopZipCode = document.getElementById('shopZipCode').value.trim();
-      
-      // Construire les données du profil
-      const profileData = {
-        firstName: firstName,
-        lastName: lastName,
-        fullName: firstName + ' ' + lastName,
-        email: email,
-        phone: phone,
-        shopName: shopName,
-        shopAddress: shopAddress,
-        shopCity: shopCity,
-        shopZipCode: shopZipCode,
-        // Compatibilité avec les anciens noms de champs
-        address: shopAddress,
-        city: shopCity,
-        postalCode: shopZipCode,
-        lastUpdated: new Date().toISOString()
-      };
-      
-      console.log('Envoi des données du profil:', profileData);
-      
-      // Désactiver le bouton de sauvegarde
-      const saveBtn = document.querySelector('.save-btn');
-      if (saveBtn) {
-        saveBtn.disabled = true;
-        saveBtn.textContent = 'Enregistrement...';
-      }
-      
-      // Envoyer les données au serveur
-      fetch('/api/save-profile', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(profileData)
-      })
-      .then(response => response.json())
-      .then(data => {
-        console.log('Réponse du serveur:', data);
-        
-        // Réactiver le bouton de sauvegarde
-        if (saveBtn) {
-          saveBtn.disabled = false;
-          saveBtn.textContent = 'Enregistrer le profil';
-        }
-        
-        if (data.success) {
-          alert('Profil enregistré avec succès! Redirection vers le catalogue...');
-          
-          // Redirection vers le catalogue après un délai
-          setTimeout(() => {
-            window.location.href = '/pages/catalog.html';
-          }, 1000);
-        } else {
-          alert('Erreur lors de l\'enregistrement du profil: ' + (data.message || 'Erreur inconnue'));
-        }
-      })
-      .catch(error => {
-        console.error('Erreur:', error);
-        alert('Erreur lors de l\'enregistrement du profil. Consultez la console pour plus de détails.');
-        
-        // Réactiver le bouton de sauvegarde
-        if (saveBtn) {
-          saveBtn.disabled = false;
-          saveBtn.textContent = 'Enregistrer le profil';
-        }
-      });
-    });
-  </script>
 </body>
 </html>

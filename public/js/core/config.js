@@ -9,10 +9,10 @@ export const AppConfig = {
     API_TIMEOUT: 30000,
     
     // Cart configuration
-    MAX_CART_QUANTITY: 99,
+    MAX_CART_QUANTITY: 9999999,
     
     // UI configuration
-    NOTIFICATION_DURATION: 4000,
+    NOTIFICATION_DURATION: 3000,
     IMAGE_PREVIEW_ENABLED: true,
     
     // Storage keys

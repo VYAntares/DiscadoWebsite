@@ -10,30 +10,34 @@ const modalCloseCallbacks = new Map();
  * Initialise toutes les modales
  */
 export function initModals() {
-    const modals = document.querySelectorAll('.modal');
-    const closeButtons = document.querySelectorAll('.close-modal, .close-btn');
-    
-    // Installer les gestionnaires pour tous les boutons de fermeture
-    setupModalCloseHandlers(closeButtons);
-    
-    // Installer le gestionnaire de clic en dehors des modales
-    window.addEventListener('click', function(event) {
-        modals.forEach(modal => {
-            if (event.target === modal) {
-                hideModal(modal);
+    try {
+        const modals = document.querySelectorAll('.modal');
+        const closeButtons = document.querySelectorAll('.close-modal, .close-btn');
+        
+        // Installer les gestionnaires pour tous les boutons de fermeture
+        setupModalCloseHandlers(closeButtons);
+        
+        // Installer le gestionnaire de clic en dehors des modales
+        window.addEventListener('click', function(event) {
+            modals.forEach(modal => {
+                if (event.target === modal) {
+                    hideModal(modal);
+                }
+            });
+        });
+        
+        // Gestionnaire d'échappement pour fermer la modale active
+        window.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                const visibleModal = document.querySelector('.modal[style*="display: block"], .modal[style*="display: flex"]');
+                if (visibleModal) {
+                    hideModal(visibleModal);
+                }
             }
         });
-    });
-    
-    // Gestionnaire d'échappement pour fermer la modale active
-    window.addEventListener('keydown', function(event) {
-        if (event.key === 'Escape') {
-            const visibleModal = document.querySelector('.modal[style*="display: block"]');
-            if (visibleModal) {
-                hideModal(visibleModal);
-            }
-        }
-    });
+    } catch (error) {
+        console.error('Error initializing modals:', error);
+    }
 }
 
 /**
@@ -41,24 +45,28 @@ export function initModals() {
  * @param {NodeList} closeButtons - Collection de boutons de fermeture
  */
 export function setupModalCloseHandlers(closeButtons) {
-    closeButtons.forEach(button => {
-        button.addEventListener('click', function() {
-            // Trouver la modale parente
-            const modal = this.closest('.modal');
-            if (modal) {
-                hideModal(modal);
-            } else {
-                // Si le bouton n'est pas dans une modale, chercher par attribut data
-                const targetId = this.getAttribute('data-modal-target');
-                if (targetId) {
-                    const targetModal = document.getElementById(targetId);
-                    if (targetModal) {
-                        hideModal(targetModal);
+    try {
+        closeButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                // Trouver la modale parente
+                const modal = this.closest('.modal');
+                if (modal) {
+                    hideModal(modal);
+                } else {
+                    // Si le bouton n'est pas dans une modale, chercher par attribut data
+                    const targetId = this.getAttribute('data-modal-target');
+                    if (targetId) {
+                        const targetModal = document.getElementById(targetId);
+                        if (targetModal) {
+                            hideModal(targetModal);
+                        }
                     }
                 }
-            }
+            });
         });
-    });
+    } catch (error) {
+        console.error('Error setting up modal close handlers:', error);
+    }
 }
 
 /**
@@ -69,53 +77,57 @@ export function setupModalCloseHandlers(closeButtons) {
  * @param {boolean} options.animate - Animer l'ouverture
  */
 export function showModal(modal, options = {}) {
-    // Si un ID est passé, récupérer l'élément
-    if (typeof modal === 'string') {
-        modal = document.getElementById(modal);
-    }
-    
-    if (!modal) {
-        console.error('Modal not found');
-        return;
-    }
-    
-    // Stocker le callback de fermeture si fourni
-    if (options.onClose) {
-        modalCloseCallbacks.set(modal, options.onClose);
-    }
-    
-    // Afficher la modale
-    if (options.animate !== false) {
-        modal.style.display = 'flex';
-        modal.style.opacity = '0';
-        
-        // Animer le contenu
-        const content = modal.querySelector('.modal-content');
-        if (content) {
-            content.style.transform = 'translateY(20px)';
+    try {
+        // Si un ID est passé, récupérer l'élément
+        if (typeof modal === 'string') {
+            modal = document.getElementById(modal);
         }
         
-        // Animation de fade in
-        setTimeout(() => {
-            modal.style.opacity = '1';
+        if (!modal) {
+            console.error('Modal not found');
+            return;
+        }
+        
+        // Stocker le callback de fermeture si fourni
+        if (options.onClose) {
+            modalCloseCallbacks.set(modal, options.onClose);
+        }
+        
+        // Afficher la modale
+        if (options.animate !== false) {
+            modal.style.display = 'flex';
+            modal.style.opacity = '0';
+            
+            // Animer le contenu
+            const content = modal.querySelector('.modal-content');
             if (content) {
-                content.style.transform = 'translateY(0)';
+                content.style.transform = 'translateY(20px)';
             }
-        }, 10);
-    } else {
-        modal.style.display = 'flex';
-    }
-    
-    // Déclencher un événement
-    modal.dispatchEvent(new CustomEvent('modalOpened'));
-    
-    // Focus sur le premier champ de formulaire si présent
-    setTimeout(() => {
-        const firstInput = modal.querySelector('input, select, textarea, button:not(.close-modal)');
-        if (firstInput) {
-            firstInput.focus();
+            
+            // Animation de fade in
+            setTimeout(() => {
+                modal.style.opacity = '1';
+                if (content) {
+                    content.style.transform = 'translateY(0)';
+                }
+            }, 10);
+        } else {
+            modal.style.display = 'flex';
         }
-    }, 100);
+        
+        // Déclencher un événement
+        modal.dispatchEvent(new CustomEvent('modalOpened'));
+        
+        // Focus sur le premier champ de formulaire si présent
+        setTimeout(() => {
+            const firstInput = modal.querySelector('input, select, textarea, button:not(.close-modal)');
+            if (firstInput) {
+                firstInput.focus();
+            }
+        }, 100);
+    } catch (error) {
+        console.error('Error showing modal:', error);
+    }
 }
 
 /**
@@ -126,49 +138,58 @@ export function showModal(modal, options = {}) {
  * @param {Object} options.result - Résultat à passer au callback onClose
  */
 export function hideModal(modal, options = {}) {
-    // Si un ID est passé, récupérer l'élément
-    if (typeof modal === 'string') {
-        modal = document.getElementById(modal);
-    }
-    
-    if (!modal) {
-        console.error('Modal not found');
-        return;
-    }
-    
-    // Animer la fermeture si requis
-    if (options.animate !== false) {
-        modal.style.opacity = '0';
-        
-        // Animer le contenu
-        const content = modal.querySelector('.modal-content');
-        if (content) {
-            content.style.transform = 'translateY(20px)';
+    try {
+        // Si un ID est passé, récupérer l'élément
+        if (typeof modal === 'string') {
+            modal = document.getElementById(modal);
         }
         
-        // Cacher après l'animation
-        setTimeout(() => {
-            modal.style.display = 'none';
+        if (!modal) {
+            console.error('Modal not found');
+            return;
+        }
+        
+        // Animer la fermeture si requis
+        if (options.animate !== false) {
+            modal.style.opacity = '0';
             
-            // Réinitialiser les propriétés d'animation
-            modal.style.opacity = '';
+            // Animer le contenu
+            const content = modal.querySelector('.modal-content');
             if (content) {
-                content.style.transform = '';
+                content.style.transform = 'translateY(20px)';
             }
+            
+            // Cacher après l'animation
+            setTimeout(() => {
+                modal.style.display = 'none';
+                
+                // Réinitialiser les propriétés d'animation
+                modal.style.opacity = '';
+                if (content) {
+                    content.style.transform = '';
+                }
+                
+                // Exécuter le callback de fermeture si présent
+                executeCloseCallback(modal, options.result);
+            }, 300);
+        } else {
+            // Cacher immédiatement
+            modal.style.display = 'none';
             
             // Exécuter le callback de fermeture si présent
             executeCloseCallback(modal, options.result);
-        }, 300);
-    } else {
-        // Cacher immédiatement
-        modal.style.display = 'none';
+        }
         
-        // Exécuter le callback de fermeture si présent
-        executeCloseCallback(modal, options.result);
+        // Déclencher un événement
+        modal.dispatchEvent(new CustomEvent('modalClosed'));
+    } catch (error) {
+        console.error('Error hiding modal:', error);
+        // Essai de fermeture d'urgence
+        if (modal) {
+            modal.style.display = 'none';
+            executeCloseCallback(modal, options.result);
+        }
     }
-    
-    // Déclencher un événement
-    modal.dispatchEvent(new CustomEvent('modalClosed'));
 }
 
 /**
@@ -177,10 +198,14 @@ export function hideModal(modal, options = {}) {
  * @param {Object} result - Résultat à passer au callback
  */
 function executeCloseCallback(modal, result) {
-    if (modalCloseCallbacks.has(modal)) {
-        const callback = modalCloseCallbacks.get(modal);
-        callback(result);
-        modalCloseCallbacks.delete(modal);
+    try {
+        if (modalCloseCallbacks.has(modal)) {
+            const callback = modalCloseCallbacks.get(modal);
+            callback(result);
+            modalCloseCallbacks.delete(modal);
+        }
+    } catch (error) {
+        console.error('Error executing modal close callback:', error);
     }
 }
 
@@ -196,92 +221,104 @@ function executeCloseCallback(modal, result) {
  */
 export function showConfirmModal(message, options = {}) {
     return new Promise(resolve => {
-        // Créer la modale de confirmation si elle n'existe pas
-        let confirmModal = document.getElementById('confirmModal');
-        
-        if (!confirmModal) {
-            confirmModal = document.createElement('div');
-            confirmModal.id = 'confirmModal';
-            confirmModal.className = 'modal';
+        try {
+            // Retirer l'ancienne modale si elle existe
+            const existingModal = document.getElementById('confirmModal');
+            if (existingModal) {
+                document.body.removeChild(existingModal);
+            }
             
+            // Créer une nouvelle modale à chaque fois
+            const confirmModal = document.createElement('div');
+            confirmModal.id = 'confirmModal';
+            confirmModal.className = 'modal confirm-modal';
+            
+            // Structure pour la modale
             confirmModal.innerHTML = `
                 <div class="modal-content">
                     <span class="close-modal">&times;</span>
-                    <h3 class="confirm-title">Confirmation</h3>
-                    <p class="confirm-message"></p>
+                    <h3 class="confirm-title">${options.title || 'Confirmation'}</h3>
+                    <p class="confirm-message">${message}</p>
                     <div class="modal-actions">
-                        <button class="secondary-btn cancel-btn">Cancel</button>
-                        <button class="primary-btn confirm-btn">Confirm</button>
+                        <button class="secondary-btn cancel-btn">${options.cancelText || 'Cancel'}</button>
+                        <button class="${options.confirmClass || 'primary-btn confirm-btn'}">${options.confirmText || 'Confirm'}</button>
                     </div>
                 </div>
             `;
             
             document.body.appendChild(confirmModal);
+            
+            // Récupérer les éléments
+            const closeBtn = confirmModal.querySelector('.close-modal');
+            const confirmBtn = confirmModal.querySelector('.confirm-btn') || 
+                               confirmModal.querySelector(`.${options.confirmClass}`) ||
+                               confirmModal.querySelector('.modal-actions button:last-child');
+            const cancelBtn = confirmModal.querySelector('.cancel-btn') || 
+                              confirmModal.querySelector('.secondary-btn') ||
+                              confirmModal.querySelector('.modal-actions button:first-child');
+            
+            // Fonction de nettoyage commune
+            function cleanup() {
+                // Supprimer les écouteurs d'événements
+                if (confirmBtn) confirmBtn.removeEventListener('click', handleConfirm);
+                if (cancelBtn) cancelBtn.removeEventListener('click', handleCancel);
+                if (closeBtn) closeBtn.removeEventListener('click', handleClose);
+                
+                // Supprimer la modale du DOM après l'animation
+                setTimeout(() => {
+                    if (confirmModal && confirmModal.parentNode) {
+                        document.body.removeChild(confirmModal);
+                    }
+                }, 300);
+            }
+            
+            // Gestionnaires d'événements
+            function handleConfirm() {
+                hideModal(confirmModal);
+                cleanup();
+                resolve(true);
+            }
+            
+            function handleCancel() {
+                hideModal(confirmModal);
+                cleanup();
+                resolve(false);
+            }
+            
+            function handleClose() {
+                hideModal(confirmModal);
+                cleanup();
+                resolve(false);
+            }
+            
+            // Ajouter les écouteurs d'événements
+            if (confirmBtn) confirmBtn.addEventListener('click', handleConfirm);
+            if (cancelBtn) cancelBtn.addEventListener('click', handleCancel);
+            if (closeBtn) closeBtn.addEventListener('click', handleClose);
+            
+            // Gérer le clic en dehors de la modale
+            confirmModal.addEventListener('click', function(event) {
+                if (event.target === confirmModal) {
+                    handleCancel();
+                }
+            });
+            
+            // Gestion de la touche Echap
+            const handleKeyDown = function(event) {
+                if (event.key === 'Escape') {
+                    document.removeEventListener('keydown', handleKeyDown);
+                    handleCancel();
+                }
+            };
+            
+            document.addEventListener('keydown', handleKeyDown);
+            
+            // Afficher la modale
+            showModal(confirmModal);
+            
+        } catch (error) {
+            console.error('Error in showConfirmModal:', error);
+            resolve(false); // En cas d'erreur, résoudre par défaut à false
         }
-        
-        // Mettre à jour le contenu
-        const title = confirmModal.querySelector('.confirm-title');
-        const messageEl = confirmModal.querySelector('.confirm-message');
-        const confirmBtn = confirmModal.querySelector('.confirm-btn');
-        const cancelBtn = confirmModal.querySelector('.cancel-btn');
-        
-        if (options.title) {
-            title.textContent = options.title;
-        } else {
-            title.textContent = 'Confirmation';
-        }
-        
-        messageEl.textContent = message;
-        
-        if (options.confirmText) {
-            confirmBtn.textContent = options.confirmText;
-        } else {
-            confirmBtn.textContent = 'Confirm';
-        }
-        
-        if (options.cancelText) {
-            cancelBtn.textContent = options.cancelText;
-        } else {
-            cancelBtn.textContent = 'Cancel';
-        }
-        
-        if (options.confirmClass) {
-            confirmBtn.className = `primary-btn ${options.confirmClass}`;
-        } else {
-            confirmBtn.className = 'primary-btn confirm-btn';
-        }
-        
-        // Configurer les écouteurs
-        function handleConfirm() {
-            cleanupListeners();
-            hideModal(confirmModal);
-            resolve(true);
-        }
-        
-        function handleCancel() {
-            cleanupListeners();
-            hideModal(confirmModal);
-            resolve(false);
-        }
-        
-        function handleCloseModal() {
-            cleanupListeners();
-            resolve(false);
-        }
-        
-        function cleanupListeners() {
-            confirmBtn.removeEventListener('click', handleConfirm);
-            cancelBtn.removeEventListener('click', handleCancel);
-            modalCloseCallbacks.delete(confirmModal);
-        }
-        
-        // Ajouter les écouteurs
-        confirmBtn.addEventListener('click', handleConfirm);
-        cancelBtn.addEventListener('click', handleCancel);
-        
-        // Afficher la modale
-        showModal(confirmModal, {
-            onClose: handleCloseModal
-        });
     });
 }

@@ -745,3 +745,118 @@ header {
         gap: 20px;
     }
 }
+  /* =========================================
+   Correction pour les menus (à placer en dernier dans main.css)
+   ========================================= */
+
+/* 1. Menu déroulant (catégories) */
+.dropdown-menu {
+    position: fixed !important;
+    top: 80px !important;
+    left: 0 !important;
+    right: 0 !important;
+    background-color: white !important;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2) !important;
+    max-height: 0 !important;
+    overflow: hidden !important;
+    transition: max-height 0.3s ease !important;
+    z-index: 1050 !important; /* Valeur élevée pour assurer qu'il est au-dessus de tout */
+    border-bottom: 1px solid #ddd !important;
+  }
+  
+  .dropdown-menu.open {
+    max-height: 400px !important;
+    overflow-y: auto !important;
+  }
+  
+  /* 2. Sections du menu */
+  .menu-section {
+    padding: 15px !important;
+    border-bottom: 1px solid #eee !important;
+    background-color: white !important;
+    position: relative !important;
+    z-index: 1 !important;
+  }
+  
+  /* 3. Éléments de catégorie */
+  .category-item {
+    padding: 10px 12px !important;
+    background-color: #f5f5f5 !important;
+    border-radius: 4px !important;
+    cursor: pointer !important;
+    margin-bottom: 5px !important;
+    transition: background-color 0.2s !important;
+    color: #333 !important;
+    font-weight: 500 !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05) !important;
+  }
+  
+  .category-item:hover {
+    background-color: #e0e0e0 !important;
+  }
+  
+  .category-item.active {
+    background-color: #2575fc !important;
+    color: white !important;
+    box-shadow: 0 2px 5px rgba(37, 117, 252, 0.2) !important;
+  }
+  
+  /* 4. Menu utilisateur */
+  .user-menu {
+    position: fixed !important;
+    top: 80px !important;
+    right: 0 !important;
+    background-color: white !important;
+    box-shadow: -2px 2px 10px rgba(0,0,0,0.2) !important;
+    width: 200px !important;
+    max-height: 0 !important;
+    overflow: hidden !important;
+    transition: max-height 0.3s ease !important;
+    z-index: 1060 !important; /* Encore plus élevé que le menu des catégories */
+    border-radius: 0 0 0 8px !important;
+    border-left: 1px solid #eee !important;
+    border-bottom: 1px solid #eee !important;
+  }
+  
+  .user-menu.open {
+    max-height: 200px !important;
+    overflow-y: auto !important;
+  }
+  
+  .user-menu a {
+    display: block !important;
+    padding: 12px 15px !important;
+    text-decoration: none !important;
+    color: #333 !important;
+    border-bottom: 1px solid #eee !important;
+    transition: background-color 0.2s !important;
+    font-weight: 500 !important;
+  }
+  
+  .user-menu a:hover {
+    background-color: #f5f5f5 !important;
+    color: #2575fc !important;
+  }
+  
+  .user-menu a:last-child {
+    border-bottom: none !important;
+  }
+  
+  /* 5. Overlay commun pour les deux menus */
+  .menu-overlay {
+    position: fixed !important;
+    top: 80px !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    background-color: rgba(0, 0, 0, 0.5) !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    transition: opacity 0.3s ease !important;
+    z-index: 1040 !important; /* Entre les valeurs des deux menus pour fonctionner avec les deux */
+  }
+  
+  .menu-overlay.active {
+    opacity: 1 !important;
+    pointer-events: auto !important;
+  }
