@@ -107,7 +107,7 @@ app.use('/pages/', (req, res, next) => {
 // This is temporary until user management is fully migrated to database
 const allowedUsers = [
   { username: 'admin', password: 'admin', role: 'admin' },
-  { username: 'luca', password: 'ChaletDMT123', role: 'admin' }
+  { username: 'client', password: 'client', role: 'client' }
 ];
 
 // Migration: Add default users to database

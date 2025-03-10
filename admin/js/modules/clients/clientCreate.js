@@ -13,6 +13,8 @@ let createClientModal;
 let createClientForm;
 let usernameField;
 let passwordField;
+let submitBtn;
+let cancelBtn;
 
 /**
  * Affiche la modale de création de client
@@ -23,6 +25,8 @@ function showCreateClientModal() {
     createClientForm = document.getElementById('createClientForm');
     usernameField = document.getElementById('newUsername');
     passwordField = document.getElementById('newPassword');
+    submitBtn = document.getElementById('submitClientForm');
+    cancelBtn = document.getElementById('cancelClientForm');
     
     if (!createClientModal || !createClientForm) {
         console.error("Modal de création de client non trouvée");
@@ -48,11 +52,12 @@ function showCreateClientModal() {
  * Configure les événements du formulaire
  */
 function setupFormEvents() {
-    // Évènement de soumission
-    createClientForm.addEventListener('submit', handleFormSubmit);
+    // Bouton de soumission
+    if (submitBtn) {
+        submitBtn.addEventListener('click', handleFormSubmit);
+    }
     
     // Bouton Annuler
-    const cancelBtn = createClientModal.querySelector('.cancel-btn');
     if (cancelBtn) {
         cancelBtn.addEventListener('click', function() {
             Modal.hideModal(createClientModal);
@@ -126,13 +131,17 @@ function showFieldError(field, message) {
     // Ajouter la classe d'erreur au champ
     field.classList.add('error-field');
     
-    // Créer le message d'erreur
-    const errorElement = document.createElement('div');
-    errorElement.className = 'form-error';
-    errorElement.textContent = message;
+    // Chercher l'élément d'erreur existant ou en créer un nouveau
+    let errorElement = field.parentNode.querySelector('.field-error');
+    if (!errorElement) {
+        errorElement = document.createElement('div');
+        errorElement.className = 'field-error';
+        field.parentNode.appendChild(errorElement);
+    }
     
-    // Insérer le message après le champ
-    field.parentNode.appendChild(errorElement);
+    // Définir le message d'erreur
+    errorElement.textContent = message;
+    errorElement.style.display = 'block';
 }
 
 /**
@@ -144,21 +153,19 @@ function clearFieldError(field) {
     field.classList.remove('error-field');
     
     // Supprimer les messages d'erreur existants
-    const errorElement = field.parentNode.querySelector('.form-error');
+    const errorElement = field.parentNode.querySelector('.field-error');
     if (errorElement) {
-        errorElement.remove();
+        errorElement.style.display = 'none';
     }
 }
 
 /**
  * Gère la soumission du formulaire
- * @param {Event} e - Événement de soumission
  */
-async function handleFormSubmit(e) {
-    e.preventDefault();
-    
+async function handleFormSubmit() {
     // Valider les champs obligatoires
     if (!validateUsername() || !validatePassword()) {
+        Notification.showNotification("Veuillez corriger les erreurs du formulaire", "error");
         return;
     }
     
@@ -168,19 +175,18 @@ async function handleFormSubmit(e) {
     
     // Récupérer les données du profil (facultatives)
     const profileData = {
-        firstName: document.getElementById('firstName').value.trim(),
-        lastName: document.getElementById('lastName').value.trim(),
-        email: document.getElementById('email').value.trim(),
-        phone: document.getElementById('phone').value.trim(),
-        shopName: document.getElementById('shopName').value.trim(),
-        shopAddress: document.getElementById('shopAddress').value.trim(),
-        shopCity: document.getElementById('shopCity').value.trim(),
-        shopZipCode: document.getElementById('shopZipCode').value.trim(),
+        firstName: document.getElementById('firstName')?.value.trim() || '',
+        lastName: document.getElementById('lastName')?.value.trim() || '',
+        email: document.getElementById('email')?.value.trim() || '',
+        phone: document.getElementById('phone')?.value.trim() || '',
+        shopName: document.getElementById('shopName')?.value.trim() || '',
+        shopAddress: document.getElementById('shopAddress')?.value.trim() || '',
+        shopCity: document.getElementById('shopCity')?.value.trim() || '',
+        shopZipCode: document.getElementById('shopZipCode')?.value.trim() || '',
         lastUpdated: new Date().toISOString()
     };
     
     // Désactiver le bouton de soumission
-    const submitBtn = document.querySelector('.submit-btn');
     if (submitBtn) {
         submitBtn.disabled = true;
         submitBtn.textContent = 'Création en cours...';
@@ -207,18 +213,12 @@ async function handleFormSubmit(e) {
         } else {
             // Afficher l'erreur
             Notification.showNotification('Erreur : ' + (result.message || 'Veuillez réessayer'), 'error');
-            
-            // Réactiver le bouton
-            if (submitBtn) {
-                submitBtn.disabled = false;
-                submitBtn.textContent = 'Créer le client';
-            }
         }
     } catch (error) {
         console.error('Erreur:', error);
         Notification.showNotification('Erreur lors de la création du client', 'error');
-        
-        // Réactiver le bouton
+    } finally {
+        // Réactiver le bouton de soumission
         if (submitBtn) {
             submitBtn.disabled = false;
             submitBtn.textContent = 'Créer le client';
@@ -226,33 +226,10 @@ async function handleFormSubmit(e) {
     }
 }
 
-/**
- * Crée un nouveau client
- * @param {Object} formData - Données du formulaire
- * @returns {Promise<Object>} Résultat de la création
- */
-async function createClient(formData) {
-    try {
-        const result = await API.createNewClient(formData);
-        return result;
-    } catch (error) {
-        console.error('Erreur lors de la création du client:', error);
-        throw error;
-    }
-}
-
-/**
- * Valide le formulaire client complet
- * @returns {boolean} Validité du formulaire
- */
-function validateClientForm() {
-    // Valider tous les champs requis
-    return validateUsername() && validatePassword();
-}
-
-// Puis exporter normalement:
+// Exporter les fonctions publiques
 export {
     showCreateClientModal,
-    validateClientForm,
-    createClient
+    validateUsername,
+    validatePassword,
+    handleFormSubmit
 };
