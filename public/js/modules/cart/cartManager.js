@@ -277,10 +277,6 @@ function processCheckout() {
     submitOrder(cart);
 }
 
-/**
- * Envoie la commande au serveur
- * @param {Array} cart - Contenu du panier
- */
 async function submitOrder(cart) {
     try {
         const response = await fetch('/api/save-order', {
@@ -294,14 +290,25 @@ async function submitOrder(cart) {
         const data = await response.json();
         
         if (data.success) {
+            // Message personnalisé selon si la commande a été fusionnée ou non
+            let successMessage = 'Order placed successfully!';
+            if (data.merged) {
+                successMessage = 'Items added to your existing pending order!';
+            }
+            
             // Vider le panier
             clearCart();
             
             // Déclencher l'événement de mise à jour
             document.dispatchEvent(new CustomEvent('cartUpdated'));
             
-            // Notification de succès (pas nécessaire car on a déjà la confirmation visuelle)
-            // showNotification('Order placed successfully!', 'success');
+            // Afficher le message approprié
+            if (document.querySelector('#cart-confirmation p:first-child')) {
+                document.querySelector('#cart-confirmation p:first-child').textContent = successMessage;
+            }
+            
+            // Notification de succès (optionnelle si la confirmation visuelle est déjà présente)
+            showNotification(successMessage, 'success');
         } else {
             // En cas d'erreur, revenir à l'affichage normal du panier
             document.getElementById('cart-items').style.display = 'block';

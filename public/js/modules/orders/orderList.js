@@ -88,27 +88,19 @@ function displayOrders(orders, container) {
     });
 }
 
-/**
- * Crée une carte pour une commande
- * @param {Object} order - Données de la commande
- * @param {number} index - Index pour identifier l'ordre d'affichage
- * @param {HTMLElement} container - Conteneur parent
- */
 function createOrderCard(order, index, container) {
     // Formater la date de commande
     const orderDate = formatDate(order.date);
     const processDate = order.lastProcessed ? formatDate(order.lastProcessed) : '';
     
     // Déterminer le statut de la commande
+    // MODIFICATION: Afficher toutes les commandes traitées comme "Completed"
     let statusText = 'Processing';
     let statusClass = 'status-processing';
     
-    if (order.status === 'completed' || order.status === 'shipped') {
+    if (order.status === 'completed' || order.status === 'shipped' || order.status === 'partial') {
         statusText = 'Completed';
         statusClass = 'status-shipped';
-    } else if (order.status === 'partial') {
-        statusText = 'Partially Shipped';
-        statusClass = 'status-partial';
     }
     
     // Créer la carte de commande
@@ -139,28 +131,34 @@ function createOrderCard(order, index, container) {
     container.appendChild(orderCard);
 }
 
-/**
- * Crée le tableau des articles d'une commande
- * @param {Object} order - Données de la commande
- * @returns {HTMLElement} Tableau des articles
- */
 function createOrderItemsTable(order) {
     const tableContainer = document.createElement('div');
     
-    // Déterminer quels articles afficher selon le statut
+    // Determine which items to display according to the status
     let itemsToDisplay, pendingItems;
     
     if (order.status === 'partial' && order.deliveredItems) {
-        // Pour les commandes partielles, afficher les articles livrés et en attente
+        // For partial orders, display delivered and pending items
         itemsToDisplay = order.deliveredItems || [];
         pendingItems = order.remainingItems || [];
     } else {
-        // Pour les autres commandes, afficher tous les articles
+        // For other orders, display all items
         itemsToDisplay = order.items || [];
         pendingItems = [];
     }
     
-    // Créer le tableau
+    // Group items by category
+    const groupedItems = {};
+    
+    itemsToDisplay.forEach(item => {
+        const category = item.categorie || 'autres';
+        if (!groupedItems[category]) {
+            groupedItems[category] = [];
+        }
+        groupedItems[category].push(item);
+    });
+    
+    // Create the table structure
     let tableHTML = `
         <table class="order-details-table">
             <thead>
@@ -174,21 +172,34 @@ function createOrderItemsTable(order) {
             <tbody>
     `;
     
-    // Ajouter les articles livrés
-    itemsToDisplay.forEach(item => {
-        const itemTotal = parseFloat(item.prix) * item.quantity;
-        
+    // Sort categories alphabetically
+    const sortedCategories = Object.keys(groupedItems).sort();
+    
+    // Add delivered items by category
+    for (const category of sortedCategories) {
+        // Add category header
         tableHTML += `
-            <tr class="delivered-item">
-                <td class="qty-column">${item.quantity}</td>
-                <td class="product-name-column">${item.Nom}</td>
-                <td class="unit-price-column">${formatPrice(item.prix)} CHF</td>
-                <td class="total-price-column">${formatPrice(itemTotal)} CHF</td>
+            <tr class="category-header">
+                <td colspan="4" class="category-section">${category.charAt(0).toUpperCase() + category.slice(1)}</td>
             </tr>
         `;
-    });
+        
+        // Add items in this category
+        groupedItems[category].forEach(item => {
+            const itemTotal = parseFloat(item.prix) * item.quantity;
+            
+            tableHTML += `
+                <tr class="delivered-item">
+                    <td class="qty-column">${item.quantity}</td>
+                    <td class="product-name-column">${item.Nom}</td>
+                    <td class="unit-price-column">${formatPrice(item.prix)} CHF</td>
+                    <td class="total-price-column">${formatPrice(itemTotal)} CHF</td>
+                </tr>
+            `;
+        });
+    }
     
-    // Ajouter les articles en attente si présents
+    // Add pending items if any
     if (pendingItems.length > 0) {
         tableHTML += `
             <tr class="order-section-header">
@@ -196,16 +207,41 @@ function createOrderItemsTable(order) {
             </tr>
         `;
         
+        // Group pending items by category
+        const groupedPendingItems = {};
+        
         pendingItems.forEach(item => {
+            const category = item.categorie || 'autres';
+            if (!groupedPendingItems[category]) {
+                groupedPendingItems[category] = [];
+            }
+            groupedPendingItems[category].push(item);
+        });
+        
+        // Sort pending categories alphabetically
+        const sortedPendingCategories = Object.keys(groupedPendingItems).sort();
+        
+        // Add pending items by category
+        for (const category of sortedPendingCategories) {
+            // Add category header
             tableHTML += `
-                <tr class="pending-item">
-                    <td class="qty-column">${item.quantity}</td>
-                    <td class="product-name-column">${item.Nom}</td>
-                    <td class="unit-price-column">-</td>
-                    <td class="total-price-column">-</td>
+                <tr class="category-header">
+                    <td colspan="4" class="category-section pending-category">${category.charAt(0).toUpperCase() + category.slice(1)}</td>
                 </tr>
             `;
-        });
+            
+            // Add items in this category
+            groupedPendingItems[category].forEach(item => {
+                tableHTML += `
+                    <tr class="pending-item">
+                        <td class="qty-column">${item.quantity}</td>
+                        <td class="product-name-column">${item.Nom}</td>
+                        <td class="unit-price-column">-</td>
+                        <td class="total-price-column">-</td>
+                    </tr>
+                `;
+            });
+        }
     }
     
     tableHTML += `
@@ -217,11 +253,6 @@ function createOrderItemsTable(order) {
     return tableContainer;
 }
 
-/**
- * Crée le résumé d'une commande
- * @param {Object} order - Données de la commande
- * @returns {HTMLElement} Résumé de la commande
- */
 function createOrderSummary(order) {
     const summaryContainer = document.createElement('div');
     summaryContainer.className = 'order-summary';
@@ -242,6 +273,7 @@ function createOrderSummary(order) {
     }
     
     // Créer le contenu du résumé
+    // MODIFICATION: Permettre le téléchargement des factures pour les commandes partielles aussi
     summaryContainer.innerHTML = `
         <div class="order-summary-total">
             Total: ${formatPrice(totalAmount)} CHF

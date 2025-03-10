@@ -104,7 +104,7 @@ function displayClients(clients) {
         const email = client.email || 'N/A';
         const phone = client.phone || 'N/A';
         
-        // Créer la ligne
+        // Créer la ligne avec un design amélioré
         const row = document.createElement('tr');
         row.innerHTML = `
             <td>
@@ -114,14 +114,18 @@ function displayClients(clients) {
                 <div class="client-info">
                     <span class="client-name">${fullName}</span>
                     <span class="client-shop">${shopName}</span>
-                    <div class="client-contact-mobile">
-                        <a href="mailto:${email}" class="contact-link"><i class="fas fa-envelope"></i></a>
-                        <a href="tel:${phone}" class="contact-link"><i class="fas fa-phone"></i></a>
+                    <div class="client-contact">
+                        <a href="mailto:${email}" class="contact-link" title="Envoyer un email">
+                            <i class="fas fa-envelope"></i> ${email}
+                        </a>
+                        <a href="tel:${phone}" class="contact-link" title="Appeler">
+                            <i class="fas fa-phone"></i> ${phone}
+                        </a>
                     </div>
                 </div>
             </td>
-            <td style="vertical-align: middle; text-align: center;">
-                <button class="action-btn view-client-btn" data-client-id="${clientId}" style="margin: 0 auto;">
+            <td style="text-align: center;">
+                <button class="action-btn details-btn view-client-btn" data-client-id="${clientId}">
                     <i class="fas fa-eye"></i> Voir détails
                 </button>
             </td>

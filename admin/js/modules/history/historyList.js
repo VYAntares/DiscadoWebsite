@@ -1,6 +1,6 @@
 /**
- * Gestion de l'affichage de l'historique des commandes
- * Ce module gère le chargement et l'affichage hiérarchique des commandes traitées
+ * Vue Calendrier pour l'Historique des Commandes
+ * Ce module remplace la vue hiérarchique existante par un calendrier mensuel
  */
 
 import * as API from '../../core/api.js';
@@ -12,9 +12,14 @@ import * as HistoryView from './historyView.js';
 let historyOrderList;
 let searchInput;
 let searchBtn;
+let monthSelector;
+let yearSelector;
 
-// Variable de stockage pour filtrage
+// Variables de stockage pour filtrage
 let allTreatedOrders = [];
+let currentYear = new Date().getFullYear();
+let currentMonth = new Date().getMonth();
+let calendarData = {};
 
 /**
  * Charge les commandes traitées depuis l'API
@@ -42,8 +47,14 @@ async function loadTreatedOrders() {
         // Stocker toutes les commandes pour la recherche
         allTreatedOrders = orders;
         
-        // Afficher les commandes groupées
-        displayHierarchicalOrders(orders);
+        // Structurer les données pour le calendrier
+        organizeOrdersByDate(orders);
+        
+        // Créer les sélecteurs de mois et d'année
+        createDateSelectors();
+        
+        // Afficher le calendrier
+        displayCalendar(currentYear, currentMonth);
         
         // Initialiser les événements de recherche
         initSearchEvents();
@@ -68,198 +79,267 @@ async function loadTreatedOrders() {
 }
 
 /**
- * Groupe les commandes par mois
+ * Organise les commandes par année, mois et jour pour le calendrier
  * @param {Array} orders - Liste des commandes
- * @returns {Object} Commandes groupées par mois
  */
-function groupOrdersByMonth(orders) {
-    const monthGroups = {};
+function organizeOrdersByDate(orders) {
+    calendarData = {};
     
     orders.forEach(order => {
+        // Utiliser la date de traitement pour le classement
         const orderDate = new Date(order.lastProcessed || order.date);
-        const monthKey = Formatter.formatDate(orderDate, { year: 'numeric', month: 'long' });
+        const year = orderDate.getFullYear();
+        const month = orderDate.getMonth();
+        const day = orderDate.getDate();
         
-        if (!monthGroups[monthKey]) {
-            monthGroups[monthKey] = [];
+        // Créer les structures si elles n'existent pas
+        if (!calendarData[year]) {
+            calendarData[year] = {};
         }
         
-        monthGroups[monthKey].push(order);
+        if (!calendarData[year][month]) {
+            calendarData[year][month] = {};
+        }
+        
+        if (!calendarData[year][month][day]) {
+            calendarData[year][month][day] = [];
+        }
+        
+        // Ajouter la commande au jour correspondant
+        calendarData[year][month][day].push(order);
     });
-    
-    return monthGroups;
 }
 
 /**
- * Groupe les commandes par jour
- * @param {Array} monthOrders - Liste des commandes d'un mois
- * @returns {Object} Commandes groupées par jour
+ * Crée les sélecteurs de date (mois et année)
  */
-function groupOrdersByDay(monthOrders) {
-    const dayGroups = {};
+function createDateSelectors() {
+    // Créer le conteneur des sélecteurs
+    const selectors = document.createElement('div');
+    selectors.className = 'calendar-selectors';
     
-    monthOrders.forEach(order => {
-        const orderDate = new Date(order.lastProcessed || order.date);
-        const dayKey = Formatter.formatDate(orderDate, { 
-            year: 'numeric', 
-            month: 'long', 
-            day: 'numeric' 
+    // Générer les années jusqu'à 2030
+    const currentDate = new Date();
+    const realCurrentYear = currentDate.getFullYear();
+    const years = [];
+    
+    // Ajouter les années de 2020 à 2030
+    for (let year = 2020; year <= 2030; year++) {
+        years.push(year);
+    }
+    
+    // Trier les années par ordre décroissant
+    years.sort((a, b) => b - a);
+    
+    // Créer le sélecteur d'année
+    const yearSelectorHtml = `
+        <div class="year-selector">
+            <label for="year-select">Année:</label>
+            <select id="year-select" class="calendar-select">
+                ${years.map(year => `<option value="${year}" ${year == currentYear ? 'selected' : ''}>${year}</option>`).join('')}
+            </select>
+        </div>
+    `;
+    
+    // Créer le sélecteur de mois
+    const monthNames = [
+        'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
+        'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'
+    ];
+    
+    const monthSelectorHtml = `
+        <div class="month-selector">
+            <label for="month-select">Mois:</label>
+            <select id="month-select" class="calendar-select">
+                ${monthNames.map((name, idx) => `<option value="${idx}" ${idx === currentMonth ? 'selected' : ''}>${name}</option>`).join('')}
+            </select>
+        </div>
+    `;
+    
+    // Ajouter les sélecteurs au conteneur
+    selectors.innerHTML = yearSelectorHtml + monthSelectorHtml;
+    
+    // Ajouter au conteneur principal
+    historyOrderList.innerHTML = '';
+    historyOrderList.appendChild(selectors);
+    
+    // Ajouter le conteneur pour le calendrier
+    const calendarContainer = document.createElement('div');
+    calendarContainer.id = 'calendar-container';
+    calendarContainer.className = 'calendar-container';
+    historyOrderList.appendChild(calendarContainer);
+    
+    // Stocker les références des sélecteurs
+    yearSelector = document.getElementById('year-select');
+    monthSelector = document.getElementById('month-select');
+    
+    // Ajouter les écouteurs d'événements pour les sélecteurs
+    yearSelector.addEventListener('change', function() {
+        currentYear = parseInt(this.value);
+        displayCalendar(currentYear, currentMonth);
+    });
+    
+    monthSelector.addEventListener('change', function() {
+        currentMonth = parseInt(this.value);
+        displayCalendar(currentYear, currentMonth);
+    });
+}
+
+/**
+ * Affiche le calendrier pour le mois et l'année sélectionnés
+ * @param {number} year - Année à afficher
+ * @param {number} month - Mois à afficher (0-11)
+ */
+function displayCalendar(year, month) {
+    const calendarContainer = document.getElementById('calendar-container');
+    if (!calendarContainer) return;
+    
+    // Obtenir des informations sur le mois
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    const daysInMonth = lastDay.getDate();
+    const startDayOfWeek = firstDay.getDay(); // 0 = Dimanche, 1 = Lundi, etc.
+    
+    // Ajuster pour commencer la semaine le lundi (0 = Lundi, ..., 6 = Dimanche)
+    const adjustedStartDay = (startDayOfWeek === 0) ? 6 : startDayOfWeek - 1;
+    
+    // Noms des jours de la semaine (format court)
+    const dayNames = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
+    
+    // Construire le HTML du calendrier
+    let calendarHtml = `
+        <div class="calendar">
+            <div class="calendar-header">
+                ${dayNames.map(day => `<div class="calendar-header-day">${day}</div>`).join('')}
+            </div>
+            <div class="calendar-body">
+    `;
+    
+    // Récupérer les jours du mois précédent pour remplir le début du calendrier
+    const prevMonthLastDay = new Date(year, month, 0).getDate();
+    
+    // Ajouter les jours du mois précédent
+    for (let i = adjustedStartDay - 1; i >= 0; i--) {
+        const prevMonthDay = prevMonthLastDay - i;
+        calendarHtml += `<div class="calendar-day empty other-month">${prevMonthDay}</div>`;
+    }
+    
+    // Ajouter les jours du mois actuel
+    for (let day = 1; day <= daysInMonth; day++) {
+        const hasOrders = calendarData[year]?.[month]?.[day]?.length > 0;
+        const orderCount = hasOrders ? calendarData[year][month][day].length : 0;
+        const isToday = (new Date().getDate() === day && 
+                         new Date().getMonth() === month && 
+                         new Date().getFullYear() === year);
+        
+        calendarHtml += `
+            <div class="calendar-day ${hasOrders ? 'has-orders' : ''} ${isToday ? 'selected' : ''}" 
+                 data-day="${day}" data-month="${month}" data-year="${year}">
+                ${day}
+                ${hasOrders ? `<div class="order-count">${orderCount}</div>` : ''}
+            </div>
+        `;
+    }
+    
+    // Calculer combien de jours du mois suivant nous devons ajouter
+    const totalDaysDisplayed = adjustedStartDay + daysInMonth;
+    const remainingCells = 42 - totalDaysDisplayed; // 6 lignes de 7 jours = 42 cellules
+    
+    // Ajouter les jours du mois suivant
+    for (let day = 1; day <= remainingCells; day++) {
+        calendarHtml += `<div class="calendar-day empty other-month">${day}</div>`;
+    }
+    
+    calendarHtml += `
+            </div>
+        </div>
+    `;
+    
+    // Conteneur pour les commandes du jour sélectionné
+    calendarHtml += `
+        <div id="day-orders-container" class="day-orders-container">
+            <h3 id="selected-date" class="selected-date">Sélectionnez un jour pour voir les commandes</h3>
+            <div id="day-orders-list" class="day-orders-list"></div>
+        </div>
+    `;
+    
+    // Mettre à jour le conteneur
+    calendarContainer.innerHTML = calendarHtml;
+    
+    // Ajouter les écouteurs pour les jours
+    setupDayClickHandlers();
+}
+
+/**
+ * Configure les écouteurs pour les clics sur les jours du calendrier
+ */
+function setupDayClickHandlers() {
+    const calendarDays = document.querySelectorAll('.calendar-day:not(.empty)');
+    
+    calendarDays.forEach(dayElement => {
+        dayElement.addEventListener('click', function() {
+            // Retirer la sélection précédente
+            document.querySelectorAll('.calendar-day.selected').forEach(el => {
+                el.classList.remove('selected');
+            });
+            
+            // Ajouter la sélection au jour cliqué
+            this.classList.add('selected');
+            
+            // Récupérer la date
+            const day = parseInt(this.getAttribute('data-day'));
+            const month = parseInt(this.getAttribute('data-month'));
+            const year = parseInt(this.getAttribute('data-year'));
+            
+            // Afficher les commandes du jour
+            displayDayOrders(year, month, day);
         });
-        
-        if (!dayGroups[dayKey]) {
-            dayGroups[dayKey] = [];
-        }
-        
-        dayGroups[dayKey].push(order);
     });
-    
-    return dayGroups;
 }
 
 /**
- * Affiche les commandes de manière hiérarchique (par mois puis par jour)
- * @param {Array} orders - Liste des commandes à afficher
+ * Affiche les commandes d'un jour spécifique
+ * @param {number} year - Année
+ * @param {number} month - Mois (0-11)
+ * @param {number} day - Jour
  */
-function displayHierarchicalOrders(orders) {
-    // Vérifier s'il y a des commandes
-    if (!orders || orders.length === 0) {
-        historyOrderList.innerHTML = `
+function displayDayOrders(year, month, day) {
+    const dayOrdersList = document.getElementById('day-orders-list');
+    const selectedDateElement = document.getElementById('selected-date');
+    
+    if (!dayOrdersList || !selectedDateElement) return;
+    
+    // Formater la date
+    const dateStr = new Date(year, month, day).toLocaleDateString('fr-FR', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+    });
+    
+    // Mettre à jour le titre
+    selectedDateElement.textContent = dateStr;
+    
+    // Vérifier s'il y a des commandes pour ce jour
+    const dayOrders = calendarData[year]?.[month]?.[day] || [];
+    
+    if (dayOrders.length === 0) {
+        dayOrdersList.innerHTML = `
             <div class="empty-state">
-                <i class="fas fa-history"></i>
-                <p>Aucune commande traitée trouvée.</p>
+                <i class="fas fa-calendar-day"></i>
+                <p>Aucune commande pour ce jour</p>
             </div>
         `;
         return;
     }
     
-    // Vider le conteneur
-    historyOrderList.innerHTML = '';
+    // Afficher les commandes
+    dayOrdersList.innerHTML = '';
     
-    // Grouper par mois
-    const monthGroups = groupOrdersByMonth(orders);
-    
-    // Créer une section pour chaque mois
-    Object.keys(monthGroups).forEach(monthKey => {
-        const monthContainer = document.createElement('div');
-        monthContainer.className = 'month-group';
-        
-        // Créer l'en-tête du mois
-        const monthHeader = document.createElement('div');
-        monthHeader.className = 'month-header';
-        monthHeader.setAttribute('data-month', monthKey);
-        monthHeader.textContent = monthKey;
-        
-        // Badge avec nombre de commandes
-        const monthOrderCount = monthGroups[monthKey].length;
-        const monthOrderBadge = document.createElement('span');
-        monthOrderBadge.className = 'month-order-count';
-        monthOrderBadge.textContent = monthOrderCount;
-        monthHeader.appendChild(monthOrderBadge);
-        
-        monthContainer.appendChild(monthHeader);
-        
-        // Conteneur pour les détails du mois (masqué initialement)
-        const monthDetailsContainer = document.createElement('div');
-        monthDetailsContainer.className = 'month-details hidden';
-        monthContainer.appendChild(monthDetailsContainer);
-        
-        // Ajouter des écouteurs pour développer/réduire le mois
-        monthHeader.addEventListener('click', function() {
-            toggleMonthDetails(this, monthDetailsContainer, monthGroups[monthKey]);
-        });
-        
-        // Ajouter le conteneur du mois au conteneur principal
-        historyOrderList.appendChild(monthContainer);
+    dayOrders.forEach(order => {
+        const orderElement = createOrderElement(order);
+        dayOrdersList.appendChild(orderElement);
     });
-}
-
-/**
- * Affiche/masque les détails d'un mois
- * @param {HTMLElement} header - En-tête du mois
- * @param {HTMLElement} container - Conteneur des détails
- * @param {Array} monthOrders - Commandes du mois
- */
-function toggleMonthDetails(header, container, monthOrders) {
-    const isHidden = container.classList.contains('hidden');
-    
-    if (isHidden) {
-        // Afficher les détails (groupés par jour)
-        const dayGroups = groupOrdersByDay(monthOrders);
-        
-        container.innerHTML = '';
-        
-        // Créer une section pour chaque jour
-        Object.keys(dayGroups).forEach(dayKey => {
-            const dayContainer = document.createElement('div');
-            dayContainer.className = 'day-group';
-            
-            // Créer l'en-tête du jour
-            const dayHeader = document.createElement('div');
-            dayHeader.className = 'day-header';
-            dayHeader.textContent = dayKey;
-            
-            // Badge avec nombre de commandes pour ce jour
-            const dayOrderCount = dayGroups[dayKey].length;
-            const dayOrderBadge = document.createElement('span');
-            dayOrderBadge.className = 'day-order-count';
-            dayOrderBadge.textContent = dayOrderCount;
-            dayHeader.appendChild(dayOrderBadge);
-            
-            dayContainer.appendChild(dayHeader);
-            
-            // Conteneur pour les détails du jour (masqué initialement)
-            const dayDetailsContainer = document.createElement('div');
-            dayDetailsContainer.className = 'day-details hidden';
-            dayContainer.appendChild(dayDetailsContainer);
-            
-            // Ajouter des écouteurs pour développer/réduire le jour
-            dayHeader.addEventListener('click', function(event) {
-                event.stopPropagation(); // Empêcher de déclencher le clic du mois
-                toggleDayDetails(this, dayDetailsContainer, dayGroups[dayKey]);
-            });
-            
-            // Ajouter le conteneur du jour au conteneur du mois
-            container.appendChild(dayContainer);
-        });
-        
-        // Afficher le conteneur et mettre en évidence l'en-tête
-        container.classList.remove('hidden');
-        header.classList.add('expanded');
-    } else {
-        // Masquer les détails
-        container.innerHTML = '';
-        container.classList.add('hidden');
-        header.classList.remove('expanded');
-    }
-}
-
-/**
- * Affiche/masque les détails d'un jour
- * @param {HTMLElement} header - En-tête du jour
- * @param {HTMLElement} container - Conteneur des détails
- * @param {Array} dayOrders - Commandes du jour
- */
-function toggleDayDetails(header, container, dayOrders) {
-    const isHidden = container.classList.contains('hidden');
-    
-    if (isHidden) {
-        // Afficher les commandes de ce jour
-        container.innerHTML = '';
-        
-        // Créer un élément pour chaque commande du jour
-        dayOrders.forEach(order => {
-            const orderElement = createOrderElement(order);
-            container.appendChild(orderElement);
-        });
-        
-        // Afficher le conteneur et mettre en évidence l'en-tête
-        container.classList.remove('hidden');
-        header.classList.add('expanded');
-    } else {
-        // Masquer les détails
-        container.innerHTML = '';
-        container.classList.add('hidden');
-        header.classList.remove('expanded');
-    }
 }
 
 /**
@@ -293,27 +373,30 @@ function createOrderElement(order) {
     const orderItem = document.createElement('div');
     orderItem.className = 'order-item';
     orderItem.innerHTML = `
-        <div class="order-details">
-            <div class="order-id">
-                <i class="fas fa-clipboard-check"></i>
-                Commande #${order.orderId}
-            </div>
-            <div class="order-date">
-                Commandée le: ${orderDate}<br>
-                Traitée le: ${processDate}
-            </div>
-            <div class="customer-info">
-                <div class="customer-name">${customerName}</div>
-                <div class="customer-shop">Boutique: ${shopName}</div>
-                <div class="customer-contact">Email: ${email} | Tél: ${phone}</div>
-            </div>
-            <div class="order-items">
-                <div class="item-count">${totalDeliveredItems} article${totalDeliveredItems > 1 ? 's' : ''} livré${totalDeliveredItems > 1 ? 's' : ''}</div>
-                <div class="items-preview">${itemsPreview}${(order.deliveredItems || []).length > 3 ? '...' : ''}</div>
+        <h3 class="order-date-header">
+            <span class="order-icon"><i class="fas fa-clipboard-check"></i></span>
+            Commande #${order.orderId}
+        </h3>
+        <div class="order-date-info">
+            <div>Commandée le: ${orderDate}, ${new Date(order.date).toLocaleTimeString('fr-FR', {hour: '2-digit', minute: '2-digit'})}</div>
+            <div>Traitée le: ${processDate}, ${new Date(order.lastProcessed).toLocaleTimeString('fr-FR', {hour: '2-digit', minute: '2-digit'})}</div>
+        </div>
+        
+        <div class="order-client-info">
+            <div class="client-name-section">
+                <div class="client-name">${customerName}</div>
+                <div class="client-shop">Boutique: ${shopName}</div>
+                <div class="client-contact">Email: ${email} | Tél: ${phone}</div>
             </div>
         </div>
+        
+        <div class="order-items-summary">
+            <div class="item-count">${totalDeliveredItems} article${totalDeliveredItems > 1 ? 's' : ''} livré${totalDeliveredItems > 1 ? 's' : ''}</div>
+            <div class="items-preview">${itemsPreview}${(order.deliveredItems || []).length > 3 ? '...' : ''}</div>
+        </div>
+        
         <div class="order-actions">
-            <button class="action-btn view-btn" data-order-id="${order.orderId}" data-user-id="${order.userId}">
+            <button class="action-btn view-btn" onclick="viewOrderDetails('${order.orderId}', '${order.userId}')">
                 <i class="fas fa-eye"></i> Voir détails
             </button>
             <a href="${API.getInvoiceDownloadLink(order.orderId, order.userId)}" class="action-btn download-btn" target="_blank">
@@ -322,19 +405,20 @@ function createOrderElement(order) {
         </div>
     `;
     
-    // Ajouter l'écouteur d'événement pour le bouton de visualisation
-    const viewButton = orderItem.querySelector('.view-btn');
-    viewButton.addEventListener('click', function() {
-        const orderId = this.getAttribute('data-order-id');
-        const userId = this.getAttribute('data-user-id');
-        HistoryView.viewOrderDetails(orderId, userId);
-    });
-    
     return orderItem;
 }
 
 /**
- * Initialise les événements de recherche
+ * Fonction globale pour voir les détails d'une commande (accessible par onclick)
+ * @param {string} orderId - ID de la commande
+ * @param {string} userId - ID de l'utilisateur
+ */
+window.viewOrderDetails = function(orderId, userId) {
+    HistoryView.viewOrderDetails(orderId, userId);
+};
+
+/**
+ * Initialise les événements de recherche et s'assure que les modales sont correctement configurées
  */
 function initSearchEvents() {
     if (searchBtn) {
@@ -348,6 +432,24 @@ function initSearchEvents() {
             }
         });
     }
+    
+    // S'assurer que les modales sont initialisées
+    const orderModal = document.getElementById('orderModal');
+    if (orderModal) {
+        const closeModal = orderModal.querySelector('.close-modal');
+        if (closeModal) {
+            closeModal.addEventListener('click', function() {
+                orderModal.style.display = 'none';
+            });
+        }
+        
+        // Fermer la modale en cliquant en dehors
+        window.addEventListener('click', function(event) {
+            if (event.target === orderModal) {
+                orderModal.style.display = 'none';
+            }
+        });
+    }
 }
 
 /**
@@ -357,15 +459,11 @@ function searchOrders() {
     const searchValue = searchInput.value.toLowerCase().trim();
     
     if (!searchValue) {
-        // Si la recherche est vide, afficher toutes les commandes
-        displayHierarchicalOrders(allTreatedOrders);
+        // Réinitialiser la vue calendrier
+        organizeOrdersByDate(allTreatedOrders);
+        displayCalendar(currentYear, currentMonth);
         return;
     }
-    
-    // Afficher une indication de recherche
-    historyOrderList.innerHTML = `
-        <div class="loading">Recherche en cours...</div>
-    `;
     
     // Filtrer les commandes
     const filteredOrders = allTreatedOrders.filter(order => {
@@ -394,13 +492,37 @@ function searchOrders() {
                hasMatchingItem;
     });
     
-    // Afficher les commandes filtrées
-    displayHierarchicalOrders(filteredOrders);
-    
-    // Afficher un message indiquant les résultats de recherche
+    // Réorganiser et afficher les résultats
     if (filteredOrders.length > 0) {
+        // Mettre à jour le calendrier avec les résultats filtrés
+        organizeOrdersByDate(filteredOrders);
+        displayCalendar(currentYear, currentMonth);
+        
+        // Afficher un message indiquant les résultats de recherche
         Notification.showNotification(`${filteredOrders.length} commande(s) trouvée(s) pour "${searchValue}"`, 'info');
     } else {
+        // Aucun résultat
+        const calendarContainer = document.getElementById('calendar-container');
+        if (calendarContainer) {
+            calendarContainer.innerHTML = `
+                <div class="empty-state">
+                    <i class="fas fa-search"></i>
+                    <p>Aucune commande trouvée pour "${searchValue}"</p>
+                    <button class="action-btn" id="resetSearch">Réinitialiser la recherche</button>
+                </div>
+            `;
+            
+            // Ajouter l'écouteur pour le bouton de réinitialisation
+            const resetButton = document.getElementById('resetSearch');
+            if (resetButton) {
+                resetButton.addEventListener('click', function() {
+                    searchInput.value = '';
+                    organizeOrdersByDate(allTreatedOrders);
+                    displayCalendar(currentYear, currentMonth);
+                });
+            }
+        }
+        
         Notification.showNotification(`Aucune commande trouvée pour "${searchValue}"`, 'info');
     }
 }
@@ -408,7 +530,7 @@ function searchOrders() {
 // Exposer les fonctions publiques
 export {
     loadTreatedOrders,
-    displayHierarchicalOrders,
-    createOrderElement,
+    displayCalendar,
+    displayDayOrders,
     searchOrders
 };

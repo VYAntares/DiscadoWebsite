@@ -403,18 +403,17 @@ function removeErrorMessage(field) {
  * Sauvegarde le profil utilisateur
  */
 async function saveProfile() {
-    // Désactiver le bouton de sauvegarde
+    // Disable save button
     const saveBtn = document.querySelector('.save-btn');
     if (saveBtn) {
         saveBtn.disabled = true;
         saveBtn.textContent = 'Saving...';
     }
     
-    // Récupérer les données du formulaire
+    // Get form data
     const profileData = {
         firstName: document.getElementById('firstName').value.trim(),
         lastName: document.getElementById('lastName').value.trim(),
-        // Keep fullName for backward compatibility
         fullName: document.getElementById('firstName').value.trim() + ' ' + document.getElementById('lastName').value.trim(),
         email: document.getElementById('email').value.trim(),
         phone: document.getElementById('phone').value.trim(),
@@ -422,36 +421,29 @@ async function saveProfile() {
         shopAddress: document.getElementById('shopAddress').value.trim(),
         shopCity: document.getElementById('shopCity').value.trim(),
         shopZipCode: document.getElementById('shopZipCode').value.trim(),
-        // Keep these fields for backward compatibility
         address: document.getElementById('shopAddress').value.trim(),
         city: document.getElementById('shopCity').value.trim(),
         postalCode: document.getElementById('shopZipCode').value.trim(),
         lastUpdated: new Date().toISOString()
     };
     
-    // Check if profile is complete
-    const isProfileComplete = checkProfileComplete(profileData);
+    // Log data being saved
     console.log('Profile data to save:', profileData);
-    console.log('Is profile complete (client check):', isProfileComplete);
     
     try {
-        // Envoyer les données au serveur
+        // Send data to server
         const result = await saveUserProfile(profileData);
         console.log('Save profile response:', result);
         
         if (result.success) {
             showNotification('Profile saved successfully!', 'success');
             
-            // Si le profil est complet, rediriger vers le catalogue
-            // Vérifie à la fois la réponse du serveur et une vérification côté client
-            if (result.isProfileComplete || isProfileComplete) {
-                showNotification('Profile complete! Redirecting to catalog...', 'info');
-                
-                // Use a timeout to allow notifications to be seen
-                setTimeout(() => {
-                    window.location.href = '/pages/catalog.html';
-                }, 1500);
-            }
+            // Always redirect to catalog after successful save
+            showNotification('Redirecting to catalog...', 'info');
+            
+            setTimeout(() => {
+                window.location.href = '/pages/catalog.html';
+            }, 1500);
         } else {
             showNotification(result.message || 'Error saving profile', 'error');
         }
@@ -459,7 +451,7 @@ async function saveProfile() {
         console.error('Error saving profile:', error);
         showNotification('Error saving profile. Please try again or contact support.', 'error');
     } finally {
-        // Réactiver le bouton de sauvegarde
+        // Re-enable save button
         if (saveBtn) {
             saveBtn.disabled = false;
             saveBtn.textContent = 'Save Profile';

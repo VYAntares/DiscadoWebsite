@@ -142,7 +142,19 @@ module.exports = {
     getOrderItems: db.prepare('SELECT * FROM order_items WHERE order_id = ?'),
     getOrderItemsByStatus: db.prepare('SELECT * FROM order_items WHERE order_id = ? AND status = ?'),
     updateOrderItemStatus: db.prepare('UPDATE order_items SET status = ? WHERE order_id = ? AND product_name = ?'),
-    
+    // Requête pour mettre à jour la quantité d'un article de commande
+    updateOrderItemQuantity: db.prepare(`
+        UPDATE order_items 
+        SET quantity = ? 
+        WHERE order_id = ? AND product_name = ? AND category = ?
+    `),
+
+    // Requête pour mettre à jour la date d'une commande
+    updateOrderDate: db.prepare(`
+        UPDATE orders 
+        SET date = ? 
+        WHERE order_id = ?
+    `),
     // Pending deliveries
     addPendingDelivery: db.prepare(`
         INSERT INTO pending_deliveries (user_id, product_name, product_price, quantity, category) 

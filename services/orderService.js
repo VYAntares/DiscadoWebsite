@@ -7,15 +7,97 @@ const orderService = {
     // Save a new order
     saveOrder(userId, cartItems) {
         try {
+            // Check if the user has a pending order
+            const pendingOrder = this.getUserPendingOrder(userId);
+            
+            if (pendingOrder) {
+                // User has a pending order, add items to it
+                return this.appendToExistingOrder(pendingOrder.order_id, userId, cartItems);
+            } else {
+                // No pending order, create a new one
+                return this.createNewOrder(userId, cartItems);
+            }
+        } catch (error) {
+            console.error('Error saving order:', error);
+            throw error;
+        }
+    },
+    
+    // Get user's pending order (if any)
+    getUserPendingOrder(userId) {
+        try {
+            // Find the most recent pending order for this user
+            const pendingOrderQuery = dbModule.db.prepare(`
+                SELECT * FROM orders 
+                WHERE user_id = ? AND status = 'pending' 
+                ORDER BY date DESC LIMIT 1
+            `);
+            
+            return pendingOrderQuery.get(userId);
+        } catch (error) {
+            console.error('Error getting pending order:', error);
+            return null;
+        }
+    },
+    
+    // Create a new order
+    createNewOrder(userId, cartItems) {
+        return dbModule.transaction(() => {
             const orderId = `order_${Date.now()}`;
             const date = new Date().toISOString();
             
-            return dbModule.transaction(() => {
-                // Create order record
-                dbModule.createOrder.run(orderId, userId, 'pending', date);
+            // Create order record
+            dbModule.createOrder.run(orderId, userId, 'pending', date);
+            
+            // Add order items
+            cartItems.forEach(item => {
+                dbModule.addOrderItem.run(
+                    orderId,
+                    item.Nom,
+                    parseFloat(item.prix),
+                    item.quantity,
+                    item.categorie,
+                    'pending'
+                );
+            });
+            
+            return { success: true, orderId, message: 'New order created successfully' };
+        });
+    },
+    
+    // Add items to an existing order
+    appendToExistingOrder(orderId, userId, cartItems) {
+        return dbModule.transaction(() => {
+            // Get existing items in the order
+            const existingItems = dbModule.getOrderItems.all(orderId);
+            
+            // Process each new item
+            cartItems.forEach(item => {
+                // Check if the item already exists in the order
+                const existingItem = existingItems.find(
+                    existing => existing.product_name === item.Nom && 
+                                existing.category === item.categorie
+                );
                 
-                // Add order items
-                cartItems.forEach(item => {
+                if (existingItem) {
+                    // Item exists, update the quantity
+                    const newQuantity = existingItem.quantity + item.quantity;
+                    
+                    // Update the item quantity
+                    const updateItemQuery = dbModule.db.prepare(`
+                        UPDATE order_items 
+                        SET quantity = ? 
+                        WHERE order_id = ? AND product_name = ? AND category = ?
+                    `);
+                    
+                    updateItemQuery.run(
+                        newQuantity,
+                        orderId,
+                        item.Nom,
+                        item.categorie
+                    );
+                } else {
+                    // New item, add it to the order
                     dbModule.addOrderItem.run(
                         orderId,
                         item.Nom,
@@ -24,14 +106,23 @@ const orderService = {
                         item.categorie,
                         'pending'
                     );
-                });
-                
-                return { success: true, orderId };
+                }
             });
-        } catch (error) {
-            console.error('Error saving order:', error);
-            throw error;
-        }
+            
+            // Update the order date to reflect the latest addition
+            const updateOrderQuery = dbModule.db.prepare(`
+                UPDATE orders SET date = ? WHERE order_id = ?
+            `);
+            
+            updateOrderQuery.run(new Date().toISOString(), orderId);
+            
+            return { 
+                success: true, 
+                orderId, 
+                merged: true,
+                message: 'Items added to your existing pending order' 
+            };
+        });
     },
     
     // Get all orders for a user
@@ -52,6 +143,16 @@ const orderService = {
                     categorie: item.category
                 }));
                 
+                // Group items by category
+                const groupedItems = {};
+                formattedItems.forEach(item => {
+                    const category = item.categorie || 'autres';
+                    if (!groupedItems[category]) {
+                        groupedItems[category] = [];
+                    }
+                    groupedItems[category].push(item);
+                });
+                
                 // Get delivered items
                 const deliveredItems = items
                     .filter(item => item.status === 'delivered')
@@ -61,6 +162,16 @@ const orderService = {
                         quantity: item.quantity,
                         categorie: item.category
                     }));
+                
+                // Group delivered items by category
+                const groupedDeliveredItems = {};
+                deliveredItems.forEach(item => {
+                    const category = item.categorie || 'autres';
+                    if (!groupedDeliveredItems[category]) {
+                        groupedDeliveredItems[category] = [];
+                    }
+                    groupedDeliveredItems[category].push(item);
+                });
                 
                 // Get remaining items
                 const remainingItems = items
@@ -72,6 +183,16 @@ const orderService = {
                         categorie: item.category
                     }));
                 
+                // Group remaining items by category
+                const groupedRemainingItems = {};
+                remainingItems.forEach(item => {
+                    const category = item.categorie || 'autres';
+                    if (!groupedRemainingItems[category]) {
+                        groupedRemainingItems[category] = [];
+                    }
+                    groupedRemainingItems[category].push(item);
+                });
+                
                 // Build order object
                 const orderObj = {
                     orderId: order.order_id,
@@ -79,16 +200,19 @@ const orderService = {
                     status: order.status,
                     date: order.date,
                     items: formattedItems,
+                    groupedItems: groupedItems,
                     lastProcessed: order.last_processed
                 };
                 
                 // Add delivered and remaining items if they exist
                 if (deliveredItems.length > 0) {
                     orderObj.deliveredItems = deliveredItems;
+                    orderObj.groupedDeliveredItems = groupedDeliveredItems;
                 }
                 
                 if (remainingItems.length > 0) {
                     orderObj.remainingItems = remainingItems;
+                    orderObj.groupedRemainingItems = groupedRemainingItems;
                 }
                 
                 // Get user profile
@@ -137,6 +261,8 @@ const orderService = {
             return []; // Return empty array instead of legacy fallback
         }
     },
+    
+    // Other methods remain unchanged...
     
     // Get pending orders (for admin)
     getPendingOrders() {
@@ -257,6 +383,16 @@ const orderService = {
                     categorie: item.category
                 }));
             
+            // Group delivered items by category
+            const groupedDeliveredItems = {};
+            deliveredItems.forEach(item => {
+                const category = item.categorie || 'autres';
+                if (!groupedDeliveredItems[category]) {
+                    groupedDeliveredItems[category] = [];
+                }
+                groupedDeliveredItems[category].push(item);
+            });
+            
             const remainingItems = items
                 .filter(item => item.status === 'remaining')
                 .map(item => ({
@@ -266,6 +402,16 @@ const orderService = {
                     categorie: item.category
                 }));
             
+            // Group remaining items by category
+            const groupedRemainingItems = {};
+            remainingItems.forEach(item => {
+                const category = item.categorie || 'autres';
+                if (!groupedRemainingItems[category]) {
+                    groupedRemainingItems[category] = [];
+                }
+                groupedRemainingItems[category].push(item);
+            });
+            
             // All items (for pending orders)
             const allItems = items.map(item => ({
                 Nom: item.product_name,
@@ -273,6 +419,16 @@ const orderService = {
                 quantity: item.quantity,
                 categorie: item.category
             }));
+            
+            // Group all items by category
+            const groupedItems = {};
+            allItems.forEach(item => {
+                const category = item.categorie || 'autres';
+                if (!groupedItems[category]) {
+                    groupedItems[category] = [];
+                }
+                groupedItems[category].push(item);
+            });
             
             // Build order object
             const orderObj = {
@@ -282,16 +438,19 @@ const orderService = {
                 date: order.date,
                 lastProcessed: order.last_processed,
                 items: allItems,
+                groupedItems: groupedItems,
                 userProfile: userService.getUserProfile(userId)
             };
             
             // Add delivered and remaining items if they exist
             if (deliveredItems.length > 0) {
                 orderObj.deliveredItems = deliveredItems;
+                orderObj.groupedDeliveredItems = groupedDeliveredItems;
             }
             
             if (remainingItems.length > 0) {
                 orderObj.remainingItems = remainingItems;
+                orderObj.groupedRemainingItems = groupedRemainingItems;
             }
             
             return orderObj;
@@ -378,8 +537,10 @@ const orderService = {
                     }
                 });
                 
-                // Update order status
-                const newStatus = remainingItems.length > 0 ? 'partial' : 'completed';
+                // MODIFICATION: Toujours marquer comme "completed" pour le client, même si c'est partiel
+                // const newStatus = remainingItems.length > 0 ? 'partial' : 'completed';
+                const newStatus = 'completed';
+                
                 dbModule.updateOrderStatus.run(newStatus, date, orderId);
                 
                 return {

@@ -59,7 +59,7 @@
 /* =========================================
    Order Status
    ========================================= */
-.order-status {
+   .order-status {
     display: inline-block;
     padding: 5px 10px;
     border-radius: 20px;
@@ -78,9 +78,48 @@
     color: #856404;
 }
 
+/* Nous gardons cette classe pour la compatibilité avec l'interface admin */
 .status-partial {
-    background-color: #cce5ff;
-    color: #004085;
+    background-color: #d4edda; /* Même couleur que completed pour le client */
+    color: #155724; /* Même couleur que completed pour le client */
+}
+
+/* =========================================
+   Section des articles en attente
+   ========================================= */
+/* On modifie cette partie pour garder un style différent dans la section "PENDING ITEMS" */
+.pending-delivery-card {
+    background-color: #fff8e1;
+    border-left: 4px solid #ffc107;
+    margin-bottom: 30px;
+}
+
+.pending-delivery-card::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(to right, #ffc107, transparent);
+    animation: pendingPulse 2s infinite;
+}
+
+/* Section header for pending items */
+.order-section-header td {
+    padding: 10px;
+    font-weight: bold;
+    text-align: center;
+    color: white;
+}
+
+.delivered-section {
+    background-color: #28a745;
+}
+
+.pending-section {
+    background-color: #ffc107;
+    color: #212529 !important;
 }
 
 /* =========================================
@@ -387,4 +426,28 @@
 .category-item.active {
     background-color: #2575fc;
     color: white;
+}
+.category-section {
+    background-color: #f5f7fa;
+    color: #2575fc;
+    font-weight: 600;
+    padding: 8px 15px;
+    text-align: left;
+}
+
+.pending-category {
+    background-color: #fff8e1;
+    color: #ff9800;
+}
+
+.category-header td {
+    padding: 8px 15px;
+}
+
+.delivered-item {
+    background-color: rgba(40, 167, 69, 0.05);
+}
+
+.delivered-item:hover {
+    background-color: rgba(40, 167, 69, 0.1);
 }

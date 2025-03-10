@@ -106,7 +106,7 @@ app.use('/pages/', (req, res, next) => {
 
 // This is temporary until user management is fully migrated to database
 const allowedUsers = [
-  { username: 'endrit', password: 'ChaletDMT123', role: 'admin' },
+  { username: 'admin', password: 'admin', role: 'admin' },
   { username: 'luca', password: 'ChaletDMT123', role: 'admin' }
 ];
 
@@ -256,15 +256,30 @@ app.post('/api/save-profile', requireLogin, (req, res) => {
   const userId = req.session.user.username;
   const profileData = req.body;
   
+  // Debug log to see what's being received
+  console.log(`Saving profile for user ${userId}:`, JSON.stringify(profileData, null, 2));
+  
   try {
+    // Check if we have the minimum required data
+    if (!profileData) {
+      console.error('Missing profile data in request');
+      return res.status(400).json({ 
+        success: false, 
+        message: 'No profile data provided'
+      });
+    }
+    
     // Sauvegarder les données du profil
     const result = userService.saveUserProfile(profileData, userId);
+    console.log('Profile save result:', result);
     
     // Vérifier si le profil est complet
     const isComplete = userService.isProfileComplete(userId);
+    console.log('Is profile complete:', isComplete);
     
     // Récupérer le profil mis à jour pour vérification
     const updatedProfile = userService.getUserProfile(userId);
+    console.log('Updated profile:', updatedProfile);
     
     // Réponse améliorée avec plus de détails
     res.json({ 
@@ -571,7 +586,6 @@ app.use((err, req, res, next) => {
   res.status(500).send('Server error occurred. Please try again later.');
 });
 
-// Function to generate PDF invoices with multi-page support
 function generateInvoicePDF(doc, orderItems, userProfile, orderDate, orderId, remainingItems = []) {
   // Function to add a header element
   function addHeaderElement(text, x, y, options = {}) {
@@ -698,60 +712,90 @@ function generateInvoicePDF(doc, orderItems, userProfile, orderDate, orderId, re
   const { yPosition, columns, lineEnd } = addTableHeader(yPos);
   yPos = yPosition;
 
-  // Add order items
-  let totalHT = 0;
-
+  // Group items by category
+  const groupedItems = {};
   orderItems.forEach(item => {
-    // Check if new page needed
+    const category = item.categorie || 'autres';
+    if (!groupedItems[category]) {
+      groupedItems[category] = [];
+    }
+    groupedItems[category].push(item);
+  });
+
+  // Add order items by category
+  let totalHT = 0;
+  
+  // Sort categories alphabetically
+  const sortedCategories = Object.keys(groupedItems).sort();
+  
+  for (const category of sortedCategories) {
+    // Add category header
     if (needsNewPage(yPos, 30)) {
       yPos = addNewPage();
     }
-
-    const itemTotal = parseFloat(item.prix) * item.quantity;
-    totalHT += itemTotal;
-
-    doc.font('Helvetica').fontSize(10);
-    let xPos = 50;
-
-    // Item name
-    const textOptions = {
-      width: columns[0].width,
-      align: columns[0].align
-    };
     
-    const textHeight = doc.heightOfString(item.Nom, textOptions);
-    const rowHeight = Math.max(textHeight, 20);
+    // Add category title
+    doc.font('Helvetica-Bold').fontSize(12);
+    doc.text(category.charAt(0).toUpperCase() + category.slice(1), 50, yPos);
+    yPos += 20;
+    
+    // Add items in this category
+    doc.font('Helvetica').fontSize(10);
+    
+    for (const item of groupedItems[category]) {
+      // Check if new page needed
+      if (needsNewPage(yPos, 30)) {
+        yPos = addNewPage();
+      }
 
-    // Double-check page break
-    if (needsNewPage(yPos, rowHeight)) {
-      yPos = addNewPage();
+      const itemTotal = parseFloat(item.prix) * item.quantity;
+      totalHT += itemTotal;
+
+      let xPos = 50;
+
+      // Item name
+      const textOptions = {
+        width: columns[0].width,
+        align: columns[0].align
+      };
+      
+      const textHeight = doc.heightOfString(item.Nom, textOptions);
+      const rowHeight = Math.max(textHeight, 20);
+
+      // Double-check page break
+      if (needsNewPage(yPos, rowHeight)) {
+        yPos = addNewPage();
+      }
+
+      doc.text(item.Nom, xPos, yPos, textOptions);
+      xPos += columns[0].width;
+
+      // Quantity
+      doc.text(String(item.quantity), xPos, yPos, {
+        width: columns[1].width,
+        align: columns[1].align
+      });
+      xPos += columns[1].width;
+
+      // Unit price
+      doc.text(`${parseFloat(item.prix).toFixed(2)} CHF`, xPos, yPos, {
+        width: columns[2].width,
+        align: columns[2].align
+      });
+      xPos += columns[2].width;
+
+      // Total
+      doc.text(`${itemTotal.toFixed(2)} CHF`, xPos, yPos, {
+        width: columns[3].width,
+        align: columns[3].align
+      });
+
+      yPos += rowHeight + 10;
     }
-
-    doc.text(item.Nom, xPos, yPos, textOptions);
-    xPos += columns[0].width;
-
-    // Quantity
-    doc.text(String(item.quantity), xPos, yPos, {
-      width: columns[1].width,
-      align: columns[1].align
-    });
-    xPos += columns[1].width;
-
-    // Unit price
-    doc.text(`${parseFloat(item.prix).toFixed(2)} CHF`, xPos, yPos, {
-      width: columns[2].width,
-      align: columns[2].align
-    });
-    xPos += columns[2].width;
-
-    // Total
-    doc.text(`${itemTotal.toFixed(2)} CHF`, xPos, yPos, {
-      width: columns[3].width,
-      align: columns[3].align
-    });
-
-    yPos += rowHeight + 10;
-  });
+    
+    // Add a small space after each category
+    yPos += 10;
+  }
 
   // Calculations and totals
   const TVA = 0.081;
@@ -827,8 +871,22 @@ function generateInvoicePDF(doc, orderItems, userProfile, orderDate, orderId, re
     const toDeliverTable = addTableHeader(120);
     let toDeliverYPos = toDeliverTable.yPosition;
     
-    // Remaining items
+    // Group remaining items by category
+    const groupedRemainingItems = {};
     remainingItems.forEach(item => {
+      const category = item.categorie || 'autres';
+      if (!groupedRemainingItems[category]) {
+        groupedRemainingItems[category] = [];
+      }
+      groupedRemainingItems[category].push(item);
+    });
+    
+    // Sort remaining categories alphabetically
+    const sortedRemainingCategories = Object.keys(groupedRemainingItems).sort();
+    
+    // Process remaining items by category
+    for (const category of sortedRemainingCategories) {
+      // Add category header
       if (needsNewPage(toDeliverYPos, 30)) {
         addPageNumber();
         doc.addPage();
@@ -836,53 +894,72 @@ function generateInvoicePDF(doc, orderItems, userProfile, orderDate, orderId, re
         toDeliverYPos = newHeader.yPosition;
       }
       
-      const itemTotal = parseFloat(item.prix) * item.quantity;
+      // Add category title
+      doc.font('Helvetica-Bold').fontSize(12);
+      doc.text(category.charAt(0).toUpperCase() + category.slice(1), 50, toDeliverYPos);
+      toDeliverYPos += 20;
       
+      // Add items in this category
       doc.font('Helvetica').fontSize(10);
-      let xPos = 50;
       
-      // Item name
-      const textOptions = {
-        width: toDeliverTable.columns[0].width,
-        align: toDeliverTable.columns[0].align
-      };
-      
-      const textHeight = doc.heightOfString(item.Nom, textOptions);
-      const rowHeight = Math.max(textHeight, 20);
-      
-      if (needsNewPage(toDeliverYPos, rowHeight)) {
-        addPageNumber();
-        doc.addPage();
-        const newHeader = addTableHeader(50);
-        toDeliverYPos = newHeader.yPosition;
+      for (const item of groupedRemainingItems[category]) {
+        if (needsNewPage(toDeliverYPos, 30)) {
+          addPageNumber();
+          doc.addPage();
+          const newHeader = addTableHeader(50);
+          toDeliverYPos = newHeader.yPosition;
+        }
+        
+        const itemTotal = parseFloat(item.prix) * item.quantity;
+        
+        let xPos = 50;
+        
+        // Item name
+        const textOptions = {
+          width: toDeliverTable.columns[0].width,
+          align: toDeliverTable.columns[0].align
+        };
+        
+        const textHeight = doc.heightOfString(item.Nom, textOptions);
+        const rowHeight = Math.max(textHeight, 20);
+        
+        if (needsNewPage(toDeliverYPos, rowHeight)) {
+          addPageNumber();
+          doc.addPage();
+          const newHeader = addTableHeader(50);
+          toDeliverYPos = newHeader.yPosition;
+        }
+        
+        // Item name
+        doc.text(item.Nom, xPos, toDeliverYPos, textOptions);
+        xPos += toDeliverTable.columns[0].width;
+        
+        // Quantity
+        doc.text(String(item.quantity), xPos, toDeliverYPos, {
+          width: toDeliverTable.columns[1].width,
+          align: toDeliverTable.columns[1].align
+        });
+        xPos += toDeliverTable.columns[1].width;
+        
+        // Unit price
+        doc.text(`${parseFloat(item.prix).toFixed(2)} CHF`, xPos, toDeliverYPos, {
+          width: toDeliverTable.columns[2].width,
+          align: toDeliverTable.columns[2].align
+        });
+        xPos += toDeliverTable.columns[2].width;
+        
+        // Total
+        doc.text(`${itemTotal.toFixed(2)} CHF`, xPos, toDeliverYPos, {
+          width: toDeliverTable.columns[3].width,
+          align: toDeliverTable.columns[3].align
+        });
+        
+        toDeliverYPos += rowHeight + 10;
       }
       
-      // Item name
-      doc.text(item.Nom, xPos, toDeliverYPos, textOptions);
-      xPos += toDeliverTable.columns[0].width;
-      
-      // Quantity
-      doc.text(String(item.quantity), xPos, toDeliverYPos, {
-        width: toDeliverTable.columns[1].width,
-        align: toDeliverTable.columns[1].align
-      });
-      xPos += toDeliverTable.columns[1].width;
-      
-      // Unit price
-      doc.text(`${parseFloat(item.prix).toFixed(2)} CHF`, xPos, toDeliverYPos, {
-        width: toDeliverTable.columns[2].width,
-        align: toDeliverTable.columns[2].align
-      });
-      xPos += toDeliverTable.columns[2].width;
-      
-      // Total
-      doc.text(`${itemTotal.toFixed(2)} CHF`, xPos, toDeliverYPos, {
-        width: toDeliverTable.columns[3].width,
-        align: toDeliverTable.columns[3].align
-      });
-      
-      toDeliverYPos += rowHeight + 10;
-    });
+      // Add a small space after each category
+      toDeliverYPos += 10;
+    }
     
     // Note
     if (needsNewPage(toDeliverYPos, 30)) {
@@ -903,5 +980,5 @@ function generateInvoicePDF(doc, orderItems, userProfile, orderDate, orderId, re
 // Start server
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server started on http://localhost:${PORT}`);
-  console.log(`Available on network at http://192.168.1.164:${PORT}`);
+  console.log(`Available on network at http://172.20.10.3:${PORT}`);
 });

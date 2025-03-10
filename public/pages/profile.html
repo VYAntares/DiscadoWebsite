@@ -62,6 +62,26 @@
         @keyframes rotate {
             to { transform: rotate(360deg); }
         }
+        
+        /* Style pour la notification de succès */
+        .success-notification {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #4CAF50;
+            color: white;
+            padding: 15px 20px;
+            border-radius: 5px;
+            z-index: 9999;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            animation: fadeIn 0.3s ease;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translate(-50%, -20px); }
+            to { opacity: 1; transform: translate(-50%, 0); }
+        }
     </style>
 </head>
 <body>
@@ -203,6 +223,108 @@
                 });
             });
         });
+    </script>
+    
+    <!-- Solution directe pour résoudre le problème de sauvegarde du profil -->
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Obtenir une référence au formulaire
+        const profileForm = document.getElementById('profileForm');
+        
+        if (profileForm) {
+            // Supprimer tous les gestionnaires d'événements existants (au cas où)
+            const newForm = profileForm.cloneNode(true);
+            profileForm.parentNode.replaceChild(newForm, profileForm);
+            
+            // Ajouter notre nouveau gestionnaire d'événement
+            newForm.addEventListener('submit', function(event) {
+                // Très important - empêche la soumission normale du formulaire
+                event.preventDefault();
+                console.log('Formulaire soumis - événement preventDefault appelé');
+                
+                // Désactiver le bouton pour éviter les soumissions multiples
+                const saveButton = document.querySelector('.save-btn');
+                if (saveButton) {
+                    saveButton.disabled = true;
+                    saveButton.textContent = 'Sauvegarde en cours...';
+                }
+                
+                // Collecter toutes les valeurs du formulaire
+                const formData = {
+                    firstName: document.getElementById('firstName').value,
+                    lastName: document.getElementById('lastName').value,
+                    fullName: document.getElementById('firstName').value + ' ' + document.getElementById('lastName').value,
+                    email: document.getElementById('email').value,
+                    phone: document.getElementById('phone').value,
+                    shopName: document.getElementById('shopName').value,
+                    shopAddress: document.getElementById('shopAddress').value,
+                    shopCity: document.getElementById('shopCity').value,
+                    shopZipCode: document.getElementById('shopZipCode').value,
+                    address: document.getElementById('shopAddress').value, // Pour compatibilité
+                    city: document.getElementById('shopCity').value, // Pour compatibilité
+                    postalCode: document.getElementById('shopZipCode').value, // Pour compatibilité
+                    lastUpdated: new Date().toISOString()
+                };
+                
+                console.log('Données à envoyer:', formData);
+                
+                // Envoyer les données au serveur
+                fetch('/api/save-profile', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(formData),
+                    credentials: 'same-origin'
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Erreur de serveur: ' + response.status);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('Réponse du serveur:', data);
+                    
+                    if (data.success) {
+                        // Créer une notification visible
+                        const notification = document.createElement('div');
+                        notification.className = 'success-notification';
+                        notification.textContent = 'Profil sauvegardé avec succès! Redirection vers le catalogue...';
+                        document.body.appendChild(notification);
+                        
+                        // Rediriger vers le catalogue après un délai
+                        setTimeout(() => {
+                            window.location.href = '/pages/catalog.html';
+                        }, 2000);
+                    } else {
+                        // Réactiver le bouton
+                        if (saveButton) {
+                            saveButton.disabled = false;
+                            saveButton.textContent = 'Save Profile';
+                        }
+                        
+                        // Afficher l'erreur
+                        alert('Erreur: ' + (data.message || 'Échec de la sauvegarde du profil'));
+                    }
+                })
+                .catch(error => {
+                    console.error('Erreur:', error);
+                    alert('Erreur: ' + error.message);
+                    
+                    // Réactiver le bouton
+                    if (saveButton) {
+                        saveButton.disabled = false;
+                        saveButton.textContent = 'Save Profile';
+                    }
+                });
+            });
+            
+            console.log('Nouveau gestionnaire d\'événement de formulaire installé');
+        } else {
+            console.error('Formulaire de profil non trouvé!');
+        }
+    });
     </script>
 </body>
 </html>
