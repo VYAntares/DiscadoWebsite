@@ -7,6 +7,8 @@ import * as API from '../../core/api.js';
 import * as Notification from '../../utils/notification.js';
 import * as Formatter from '../../utils/formatter.js';
 import * as Modal from '../../utils/modal.js';
+import * as HistoryView from '../history/historyView.js';
+
 
 /**
  * Affiche les détails d'une commande
@@ -530,6 +532,26 @@ function displayOrderDetails(order, container) {
 }
 
 /**
+ * Afficher les détails d'une commande directement depuis la vue client
+ * @param {string} orderId - ID de la commande
+ * @param {string} userId - ID du client
+ */
+function showOrderDetailsFromClientView(orderId, userId) {
+    // Obtenir la référence de la modale de commande
+    const orderModal = document.getElementById('orderModal');
+    const orderDetailsTitle = document.getElementById('orderDetailsTitle');
+    const orderDetailsContent = document.getElementById('orderDetailsContent');
+
+    if (!orderModal || !orderDetailsContent) {
+        console.error("Modal de commande non trouvée");
+        return;
+    }
+
+    // Utiliser directement la fonction de HistoryView
+    HistoryView.viewOrderDetails(orderId, userId);
+}
+
+/**
  * Génère le lien de téléchargement de facture
  * @param {string} orderId - ID de la commande
  * @param {string} userId - ID de l'utilisateur
@@ -541,10 +563,13 @@ function generateInvoiceLink(orderId, userId) {
 
 // Exposer les fonctions dans window pour les rendres accessibles depuis HTML
 window.viewOrderDetails = viewOrderDetails;
+window.showOrderDetailsFromClientView = showOrderDetailsFromClientView;
+
 
 // Exposer les fonctions publiques
 export {
     viewOrderDetails,
     displayOrderDetails,
-    generateInvoiceLink
+    generateInvoiceLink,
+    showOrderDetailsFromClientView
 };

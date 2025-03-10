@@ -719,3 +719,18 @@
         font-size: 14px;
     }
 }
+/* Styles pour les éléments en attente de livraison dans la vue client */
+.delivery-section .category-header {
+    background-color: #fff8e1;
+    color: #ff9800;
+    font-weight: 600;
+    padding: 8px 15px;
+}
+
+.items-table .category-header {
+    background-color: #f5f7fa;
+    color: #2575fc;
+    font-weight: 600;
+    padding: 8px 15px;
+    text-align: left;
+}

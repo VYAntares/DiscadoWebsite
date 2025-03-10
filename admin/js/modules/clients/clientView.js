@@ -339,7 +339,7 @@ function displayOrderHistory(container, orders, clientId) {
                 <td><span class="order-status">${statusText}</span></td>
                 <td class="order-count">${totalItems} article${totalItems > 1 ? 's' : ''}</td>
                 <td>
-                    <button class="action-btn details-btn" onclick="viewOrderDetails('${order.orderId}', '${clientId}')">
+                    <button class="action-btn details-btn" onclick="showOrderDetailsFromClientView('${order.orderId}', '${clientId}')">
                         <i class="fas fa-eye"></i> Détails
                     </button>
                 </td>
