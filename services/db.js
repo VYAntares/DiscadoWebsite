@@ -155,6 +155,7 @@ module.exports = {
         SET date = ? 
         WHERE order_id = ?
     `),
+    
     // Pending deliveries
     addPendingDelivery: db.prepare(`
         INSERT INTO pending_deliveries (user_id, product_name, product_price, quantity, category) 
@@ -163,6 +164,12 @@ module.exports = {
     getUserPendingDeliveries: db.prepare('SELECT * FROM pending_deliveries WHERE user_id = ?'),
     removePendingDelivery: db.prepare('DELETE FROM pending_deliveries WHERE id = ?'),
     updatePendingDeliveryQuantity: db.prepare('UPDATE pending_deliveries SET quantity = ? WHERE id = ?'),
+    
+    // Nouvelle requête pour trouver un article en attente de livraison spécifique
+    findPendingDeliveryItem: db.prepare(`
+        SELECT * FROM pending_deliveries 
+        WHERE user_id = ? AND product_name = ? AND category = ?
+    `),
 
     // Transaction wrapper
     transaction: (callback) => {

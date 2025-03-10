@@ -460,8 +460,6 @@ const orderService = {
         }
     },
     
-    // Process an order (mark items as delivered/remaining)
-    
     processOrder(orderId, userId, deliveredItems) {
         try {
             const date = new Date().toISOString();
@@ -479,6 +477,9 @@ const orderService = {
                 
                 // Track remaining items
                 const remainingItems = [];
+                
+                // Récupérer les articles déjà en attente de livraison pour cet utilisateur
+                const existingPendingDeliveries = dbModule.getUserPendingDeliveries.all(userId);
                 
                 // Process each original item
                 allItems.forEach(item => {
@@ -524,14 +525,32 @@ const orderService = {
                                 categorie: item.category
                             });
                             
-                            // Add to pending deliveries
-                            dbModule.addPendingDelivery.run(
-                                userId,
-                                item.product_name,
-                                item.product_price,
-                                remainingQuantity,
-                                item.category
+                            // Gérer les articles en attente de livraison
+                            // Rechercher si l'article existe déjà dans les articles en attente
+                            const existingPendingItem = existingPendingDeliveries.find(
+                                p => p.product_name === item.product_name && p.category === item.category
                             );
+                            
+                            if (existingPendingItem) {
+                                // L'article est déjà en attente, comparer les quantités
+                                if (remainingQuantity > existingPendingItem.quantity) {
+                                    // La nouvelle quantité est plus grande, mettre à jour
+                                    dbModule.updatePendingDeliveryQuantity.run(
+                                        remainingQuantity,
+                                        existingPendingItem.id
+                                    );
+                                }
+                                // Si la nouvelle quantité est inférieure ou égale, on garde l'ancienne
+                            } else {
+                                // L'article n'existe pas encore, l'ajouter
+                                dbModule.addPendingDelivery.run(
+                                    userId,
+                                    item.product_name,
+                                    item.product_price,
+                                    remainingQuantity,
+                                    item.category
+                                );
+                            }
                         }
                     } else {
                         // Not delivered at all, mark as remaining
@@ -545,14 +564,32 @@ const orderService = {
                             categorie: item.category
                         });
                         
-                        // Add to pending deliveries
-                        dbModule.addPendingDelivery.run(
-                            userId,
-                            item.product_name,
-                            item.product_price,
-                            item.quantity,
-                            item.category
+                        // Gérer les articles en attente de livraison
+                        // Rechercher si l'article existe déjà dans les articles en attente
+                        const existingPendingItem = existingPendingDeliveries.find(
+                            p => p.product_name === item.product_name && p.category === item.category
                         );
+                        
+                        if (existingPendingItem) {
+                            // L'article est déjà en attente, comparer les quantités
+                            if (item.quantity > existingPendingItem.quantity) {
+                                // La nouvelle quantité est plus grande, mettre à jour
+                                dbModule.updatePendingDeliveryQuantity.run(
+                                    item.quantity,
+                                    existingPendingItem.id
+                                );
+                            }
+                            // Si la nouvelle quantité est inférieure ou égale, on garde l'ancienne
+                        } else {
+                            // L'article n'existe pas encore, l'ajouter
+                            dbModule.addPendingDelivery.run(
+                                userId,
+                                item.product_name,
+                                item.product_price,
+                                item.quantity,
+                                item.category
+                            );
+                        }
                     }
                 });
                 
