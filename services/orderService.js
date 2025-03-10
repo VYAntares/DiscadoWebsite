@@ -461,6 +461,7 @@ const orderService = {
     },
     
     // Process an order (mark items as delivered/remaining)
+    
     processOrder(orderId, userId, deliveredItems) {
         try {
             const date = new Date().toISOString();
@@ -487,12 +488,33 @@ const orderService = {
                     );
                     
                     if (deliveredItem && deliveredItem.quantity > 0) {
-                        // Update item status to delivered
-                        dbModule.updateOrderItemStatus.run('delivered', orderId, item.product_name);
-                        
-                        // Check if partially delivered
-                        if (deliveredItem.quantity < item.quantity) {
+                        if (deliveredItem.quantity === item.quantity) {
+                            // Fully delivered - update status only
+                            dbModule.updateOrderItemStatus.run('delivered', orderId, item.product_name);
+                        } else if (deliveredItem.quantity < item.quantity) {
+                            // Partially delivered - create two entries
                             const remainingQuantity = item.quantity - deliveredItem.quantity;
+                            
+                            // Modifier la quantité de l'article original pour refléter ce qui a été livré
+                            dbModule.updateOrderItemQuantity.run(
+                                deliveredItem.quantity,
+                                orderId,
+                                item.product_name,
+                                item.category
+                            );
+                            
+                            // Marquer l'article comme livré
+                            dbModule.updateOrderItemStatus.run('delivered', orderId, item.product_name);
+                            
+                            // Créer un nouvel article avec la quantité restante
+                            dbModule.addOrderItem.run(
+                                orderId,
+                                item.product_name,
+                                item.product_price,
+                                remainingQuantity,
+                                item.category,
+                                'remaining'
+                            );
                             
                             // Add to remaining items
                             remainingItems.push({
@@ -501,9 +523,6 @@ const orderService = {
                                 quantity: remainingQuantity,
                                 categorie: item.category
                             });
-                            
-                            // Update item status to remaining
-                            dbModule.updateOrderItemStatus.run('remaining', orderId, item.product_name);
                             
                             // Add to pending deliveries
                             dbModule.addPendingDelivery.run(
@@ -537,9 +556,8 @@ const orderService = {
                     }
                 });
                 
-                // MODIFICATION: Toujours marquer comme "completed" pour le client, même si c'est partiel
-                // const newStatus = remainingItems.length > 0 ? 'partial' : 'completed';
-                const newStatus = 'completed';
+                // Déterminer le statut de la commande
+                const newStatus = remainingItems.length > 0 ? 'partial' : 'completed';
                 
                 dbModule.updateOrderStatus.run(newStatus, date, orderId);
                 
