@@ -45,12 +45,76 @@ async function processOrder(orderId, userId) {
         Notification.showNotification('Erreur lors du chargement des détails', 'error');
     }
 }
+function generateItemsByCategory(items) {
+    // Grouper les articles par catégorie
+    const groupedItems = {};
+    items.forEach(item => {
+        const category = item.categorie || 'autres';
+        if (!groupedItems[category]) {
+            groupedItems[category] = [];
+        }
+        groupedItems[category].push(item);
+    });
+    
+    // Générer le HTML
+    let html = '';
+    
+    // Trier les catégories par ordre alphabétique
+    const sortedCategories = Object.keys(groupedItems).sort();
+    
+    sortedCategories.forEach(category => {
+        // Ajouter l'en-tête de catégorie
+        html += `
+            <tr class="category-header">
+                <td colspan="4" class="category-section">${category.charAt(0).toUpperCase() + category.slice(1)}</td>
+            </tr>
+        `;
+        
+        // Ajouter les articles de cette catégorie
+        groupedItems[category].forEach(item => {
+            html += `
+                <tr data-item-name="${item.Nom}">
+                    <td>
+                        <div class="item-details">
+                            <span class="item-name">${item.Nom}</span>
+                            <span class="item-price">${Formatter.formatPrice(item.prix)} CHF</span>
+                        </div>
+                    </td>
+                    <td class="quantity-cell">${item.quantity}</td>
+                    <td>
+                        <input 
+                            type="number" 
+                            min="0" 
+                            max="${item.quantity}" 
+                            value="0" 
+                            class="delivered-quantity" 
+                            data-item-name="${item.Nom}"
+                            data-item-price="${item.prix}"
+                            data-max-quantity="${item.quantity}"
+                            pattern="[0-9]*"
+                            inputmode="numeric"
+                            onfocus="if(this.value === '0') this.value = ''"
+                            onblur="if(this.value === '') this.value = '0'"
+                        >
+                    </td>
+                    <td>
+                        <div class="action-buttons">
+                            <button class="max-quantity-btn" data-max-quantity="${item.quantity}">
+                                <i class="fas fa-check"></i>
+                            </button>
+                            <button class="unavailable-btn" data-item-name="${item.Nom}">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        });
+    });
+    
+    return html;
+}
 
-/**
- * Affiche la modale de traitement de commande
- * @param {Object} order - Données de la commande
- * @param {Object} clientProfile - Profil du client
- */
 function showProcessOrderModal(order, clientProfile) {
     // Stocker les références pour utilisation ultérieure
     currentOrder = order;
@@ -129,43 +193,7 @@ function showProcessOrderModal(order, clientProfile) {
                         </tr>
                     </thead>
                     <tbody>
-                        ${order.items.map(item => `
-                            <tr data-item-name="${item.Nom}">
-                                <td>
-                                    <div class="item-details">
-                                        <span class="item-name">${item.Nom}</span>
-                                        <span class="item-price">${Formatter.formatPrice(item.prix)} CHF</span>
-                                    </div>
-                                </td>
-                                <td class="quantity-cell">${item.quantity}</td>
-                                <td>
-                                    <input 
-                                        type="number" 
-                                        min="0" 
-                                        max="${item.quantity}" 
-                                        value="0" 
-                                        class="delivered-quantity" 
-                                        data-item-name="${item.Nom}"
-                                        data-item-price="${item.prix}"
-                                        data-max-quantity="${item.quantity}"
-                                        pattern="[0-9]*"
-                                        inputmode="numeric"
-                                        onfocus="if(this.value === '0') this.value = ''"
-                                        onblur="if(this.value === '') this.value = '0'"
-                                    >
-                                </td>
-                                <td>
-                                    <div class="action-buttons">
-                                        <button class="max-quantity-btn" data-max-quantity="${item.quantity}">
-                                            <i class="fas fa-check"></i>
-                                        </button>
-                                        <button class="unavailable-btn" data-item-name="${item.Nom}">
-                                            <i class="fas fa-times"></i>
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
-                        `).join('')}
+                    ${generateItemsByCategory(order.items)}
                     </tbody>
                 </table>
             </div>

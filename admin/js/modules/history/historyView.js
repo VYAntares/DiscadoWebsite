@@ -94,16 +94,16 @@ async function viewOrderDetails(orderId, userId) {
  * @param {HTMLElement} container - Conteneur pour afficher les détails
  */
 function displayOrderDetails(order, container) {
-    // Formater les dates pour l'affichage
+    // Formater les dates pour l'affichage (garder cette partie inchangée)
     const orderDate = Formatter.formatDate(order.date);
     const processDate = Formatter.formatDate(order.lastProcessed);
     
-    // Calculer le montant total uniquement pour les articles livrés
+    // Calculer le montant total uniquement pour les articles livrés (garder cette partie inchangée)
     const totalAmount = (order.deliveredItems || []).reduce((total, item) => {
         return total + (parseFloat(item.prix) * item.quantity);
     }, 0).toFixed(2);
     
-    // Déterminer le statut de la commande
+    // Déterminer le statut de la commande (garder cette partie inchangée)
     let statusText = 'COMPLÈTE';
     let statusClass = 'status-completed';
     
@@ -141,21 +141,45 @@ function displayOrderDetails(order, container) {
                 <tbody>
     `;
     
-    // Ajouter les articles livrés
+    // Ajouter les articles livrés groupés par catégorie
     if (order.deliveredItems && order.deliveredItems.length > 0) {
+        // Grouper les articles par catégorie
+        const groupedItems = {};
         order.deliveredItems.forEach(item => {
-            const itemTotal = (parseFloat(item.prix) * item.quantity).toFixed(2);
-            
+            const category = item.categorie || 'autres';
+            if (!groupedItems[category]) {
+                groupedItems[category] = [];
+            }
+            groupedItems[category].push(item);
+        });
+        
+        // Trier les catégories par ordre alphabétique
+        const sortedCategories = Object.keys(groupedItems).sort();
+        
+        // Ajouter chaque catégorie et ses articles
+        sortedCategories.forEach(category => {
             detailsHTML += `
                 <tr>
-                    <td class="qty-column">${item.quantity}</td>
-                    <td class="product-column">
-                        <span class="product-name">${item.Nom}</span>
+                    <td colspan="4" class="category-section">
+                        ${category.charAt(0).toUpperCase() + category.slice(1)}
                     </td>
-                    <td class="unit-price-column">${Formatter.formatPrice(item.prix)} CHF</td>
-                    <td class="total-column">${itemTotal} CHF</td>
                 </tr>
             `;
+            
+            groupedItems[category].forEach(item => {
+                const itemTotal = (parseFloat(item.prix) * item.quantity).toFixed(2);
+                
+                detailsHTML += `
+                    <tr>
+                        <td class="qty-column">${item.quantity}</td>
+                        <td class="product-column">
+                            <span class="product-name">${item.Nom}</span>
+                        </td>
+                        <td class="unit-price-column">${Formatter.formatPrice(item.prix)} CHF</td>
+                        <td class="total-column">${itemTotal} CHF</td>
+                    </tr>
+                `;
+            });
         });
     } else {
         detailsHTML += `
@@ -188,17 +212,41 @@ function displayOrderDetails(order, container) {
                     <tbody>
         `;
         
+        // Grouper les articles en attente par catégorie
+        const groupedRemainingItems = {};
         order.remainingItems.forEach(item => {
+            const category = item.categorie || 'autres';
+            if (!groupedRemainingItems[category]) {
+                groupedRemainingItems[category] = [];
+            }
+            groupedRemainingItems[category].push(item);
+        });
+        
+        // Trier les catégories par ordre alphabétique
+        const sortedRemainingCategories = Object.keys(groupedRemainingItems).sort();
+        
+        // Ajouter chaque catégorie et ses articles
+        sortedRemainingCategories.forEach(category => {
             detailsHTML += `
-                <tr class="pending-item">
-                    <td class="qty-column">${item.quantity}</td>
-                    <td class="product-column">
-                        <span class="product-name">${item.Nom}</span>
+                <tr>
+                    <td colspan="4" class="category-section pending-category">
+                        ${category.charAt(0).toUpperCase() + category.slice(1)}
                     </td>
-                    <td class="unit-price-column">${Formatter.formatPrice(item.prix)} CHF</td>
-                    <td class="total-column">En attente</td>
                 </tr>
             `;
+            
+            groupedRemainingItems[category].forEach(item => {
+                detailsHTML += `
+                    <tr class="pending-item">
+                        <td class="qty-column">${item.quantity}</td>
+                        <td class="product-column">
+                            <span class="product-name">${item.Nom}</span>
+                        </td>
+                        <td class="unit-price-column">${Formatter.formatPrice(item.prix)} CHF</td>
+                        <td class="total-column">En attente</td>
+                    </tr>
+                `;
+            });
         });
         
         detailsHTML += `

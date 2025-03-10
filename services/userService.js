@@ -54,12 +54,8 @@ const userService = {
     },
     
     // Save user profile
-    // Save user profile
     saveUserProfile(profileData, username) {
         try {
-            // Debug log of incoming data
-            console.log(`Saving profile for ${username}:`, JSON.stringify(profileData, null, 2));
-            
             // Normaliser les données
             const normalizedData = {
                 firstName: profileData.firstName || '',
@@ -73,15 +69,11 @@ const userService = {
                 lastUpdated: profileData.lastUpdated || new Date().toISOString()
             };
             
-            console.log(`Normalized data for ${username}:`, JSON.stringify(normalizedData, null, 2));
-            
             // Vérifier si le profil existe déjà
             const existingProfile = dbModule.getUserProfile.get(username);
-            console.log(`Existing profile for ${username}:`, existingProfile ? "Found" : "Not found");
             
             if (existingProfile) {
                 // Mise à jour du profil existant
-                console.log(`Updating existing profile for ${username}`);
                 dbModule.updateUserProfile.run(
                     normalizedData.firstName,
                     normalizedData.lastName,
@@ -96,7 +88,6 @@ const userService = {
                 );
             } else {
                 // Création d'un nouveau profil
-                console.log(`Creating new profile for ${username}`);
                 dbModule.createUserProfile.run(
                     username,
                     normalizedData.firstName,
@@ -113,11 +104,9 @@ const userService = {
             
             // Vérifier si le profil est complet après la sauvegarde
             const isComplete = this.isProfileComplete(username);
-            console.log(`Profile saved for ${username}, complete: ${isComplete}`);
             
-            // Vérifier la récupération du profil après sauvegarde pour confirmer
+            // Récupérer le profil mis à jour
             const savedProfile = this.getUserProfile(username);
-            console.log(`Retrieved profile after save:`, JSON.stringify(savedProfile, null, 2));
             
             return { 
                 success: true,

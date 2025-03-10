@@ -206,6 +206,16 @@ function displayPendingDelivery(container, pendingDelivery, clientId) {
         return;
     }
     
+    // Grouper les articles par catégorie
+    const groupedItems = {};
+    pendingDelivery.items.forEach(item => {
+        const category = item.categorie || 'autres';
+        if (!groupedItems[category]) {
+            groupedItems[category] = [];
+        }
+        groupedItems[category].push(item);
+    });
+    
     // Construire le HTML pour les articles en attente avec le nouveau design
     let html = `
         <div class="delivery-section">
@@ -226,16 +236,27 @@ function displayPendingDelivery(container, pendingDelivery, clientId) {
                     <tbody>
     `;
     
-    // Ajouter tous les articles en une seule liste
-    pendingDelivery.items.forEach(item => {
+    // Trier les catégories par ordre alphabétique
+    const sortedCategories = Object.keys(groupedItems).sort();
+    
+    // Ajouter les articles par catégorie
+    sortedCategories.forEach(category => {
         html += `
             <tr>
-                <td>${item.Nom}</td>
-                <td>${item.categorie || 'Autre'}</td>
-                <td>${item.quantity}</td>
-                <td>${Formatter.formatPrice(item.prix)} CHF</td>
+                <td colspan="4" class="category-header">${category.charAt(0).toUpperCase() + category.slice(1)}</td>
             </tr>
         `;
+        
+        groupedItems[category].forEach(item => {
+            html += `
+                <tr>
+                    <td>${item.Nom}</td>
+                    <td>${item.categorie || 'Autre'}</td>
+                    <td>${item.quantity}</td>
+                    <td>${Formatter.formatPrice(item.prix)} CHF</td>
+                </tr>
+            `;
+        });
     });
     
     html += `

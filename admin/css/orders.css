@@ -503,3 +503,39 @@
         font-size: 20px;
     }
 }
+/* Dans admin/css/orders.css */
+
+/* Styles pour les en-têtes de catégorie */
+.category-section,
+.category-header {
+    background-color: #f5f7fa;
+    color: #2575fc;
+    font-weight: 600;
+    padding: 8px 15px;
+    text-align: left;
+}
+
+.pending-category {
+    background-color: #fff8e1;
+    color: #ff9800;
+}
+
+.process-order-table .category-header td {
+    color: #2575fc;
+    background-color: #f5f7fa;
+    font-weight: 600;
+    padding: 10px 15px;
+}
+
+/* Styles pour les articles */
+.delivered-item {
+    background-color: rgba(40, 167, 69, 0.05);
+}
+
+.delivered-item:hover {
+    background-color: rgba(40, 167, 69, 0.1);
+}
+
+.pending-item {
+    background-color: rgba(255, 193, 7, 0.1);
+}

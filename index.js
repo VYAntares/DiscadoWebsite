@@ -85,12 +85,9 @@ app.use('/admin/js', (req, res, next) => {
 app.use('/admin/css', express.static(path.join(__dirname, 'admin/css')));
 app.use('/admin/js', express.static(path.join(__dirname, 'admin/js')));
 
-// IMPORTANT: Protect all sensitive pages with authentication
-// Block direct access to pages directory (except login)
 app.use('/pages/', (req, res, next) => {
   const requestPath = req.path;
   
-  // Allow access to login page
   if (requestPath === '/login.html') {
     return next();
   }
@@ -256,13 +253,9 @@ app.post('/api/save-profile', requireLogin, (req, res) => {
   const userId = req.session.user.username;
   const profileData = req.body;
   
-  // Debug log to see what's being received
-  console.log(`Saving profile for user ${userId}:`, JSON.stringify(profileData, null, 2));
-  
   try {
     // Check if we have the minimum required data
     if (!profileData) {
-      console.error('Missing profile data in request');
       return res.status(400).json({ 
         success: false, 
         message: 'No profile data provided'
@@ -271,15 +264,12 @@ app.post('/api/save-profile', requireLogin, (req, res) => {
     
     // Sauvegarder les données du profil
     const result = userService.saveUserProfile(profileData, userId);
-    console.log('Profile save result:', result);
     
     // Vérifier si le profil est complet
     const isComplete = userService.isProfileComplete(userId);
-    console.log('Is profile complete:', isComplete);
     
     // Récupérer le profil mis à jour pour vérification
     const updatedProfile = userService.getUserProfile(userId);
-    console.log('Updated profile:', updatedProfile);
     
     // Réponse améliorée avec plus de détails
     res.json({ 
@@ -291,7 +281,6 @@ app.post('/api/save-profile', requireLogin, (req, res) => {
       redirectUrl: isComplete ? '/pages/catalog.html' : null
     });
   } catch (error) {
-    console.error('Erreur lors de la sauvegarde du profil:', error);
     res.status(500).json({ 
       success: false, 
       message: `Erreur lors de la sauvegarde du profil: ${error.message}`,

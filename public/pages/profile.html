@@ -227,29 +227,28 @@
     
     <!-- Solution directe pour résoudre le problème de sauvegarde du profil -->
     <script>
+        // Replace the script at the bottom of profile.html with this version
     document.addEventListener('DOMContentLoaded', function() {
-        // Obtenir une référence au formulaire
+    // Wait for the profile manager to load data first (give it 500ms)
+    setTimeout(function() {
+        // Get a reference to the form
         const profileForm = document.getElementById('profileForm');
         
         if (profileForm) {
-            // Supprimer tous les gestionnaires d'événements existants (au cas où)
-            const newForm = profileForm.cloneNode(true);
-            profileForm.parentNode.replaceChild(newForm, profileForm);
-            
-            // Ajouter notre nouveau gestionnaire d'événement
-            newForm.addEventListener('submit', function(event) {
-                // Très important - empêche la soumission normale du formulaire
+            // Add our event handler WITHOUT replacing the form
+            profileForm.addEventListener('submit', function(event) {
+                // Prevent normal form submission
                 event.preventDefault();
-                console.log('Formulaire soumis - événement preventDefault appelé');
+                console.log('Form submitted - preventDefault called');
                 
-                // Désactiver le bouton pour éviter les soumissions multiples
+                // Disable the button to prevent multiple submissions
                 const saveButton = document.querySelector('.save-btn');
                 if (saveButton) {
                     saveButton.disabled = true;
-                    saveButton.textContent = 'Sauvegarde en cours...';
+                    saveButton.textContent = 'Saving...';
                 }
                 
-                // Collecter toutes les valeurs du formulaire
+                // Collect all form values
                 const formData = {
                     firstName: document.getElementById('firstName').value,
                     lastName: document.getElementById('lastName').value,
@@ -260,15 +259,15 @@
                     shopAddress: document.getElementById('shopAddress').value,
                     shopCity: document.getElementById('shopCity').value,
                     shopZipCode: document.getElementById('shopZipCode').value,
-                    address: document.getElementById('shopAddress').value, // Pour compatibilité
-                    city: document.getElementById('shopCity').value, // Pour compatibilité
-                    postalCode: document.getElementById('shopZipCode').value, // Pour compatibilité
+                    address: document.getElementById('shopAddress').value, // For compatibility
+                    city: document.getElementById('shopCity').value, // For compatibility
+                    postalCode: document.getElementById('shopZipCode').value, // For compatibility
                     lastUpdated: new Date().toISOString()
                 };
                 
-                console.log('Données à envoyer:', formData);
+                console.log('Data to send:', formData);
                 
-                // Envoyer les données au serveur
+                // Send data to server
                 fetch('/api/save-profile', {
                     method: 'POST',
                     headers: {
@@ -279,40 +278,40 @@
                 })
                 .then(response => {
                     if (!response.ok) {
-                        throw new Error('Erreur de serveur: ' + response.status);
+                        throw new Error('Server error: ' + response.status);
                     }
                     return response.json();
                 })
                 .then(data => {
-                    console.log('Réponse du serveur:', data);
+                    console.log('Server response:', data);
                     
                     if (data.success) {
-                        // Créer une notification visible
+                        // Create visible notification
                         const notification = document.createElement('div');
                         notification.className = 'success-notification';
-                        notification.textContent = 'Profil sauvegardé avec succès! Redirection vers le catalogue...';
+                        notification.textContent = 'Profile saved successfully! Redirecting to catalog...';
                         document.body.appendChild(notification);
                         
-                        // Rediriger vers le catalogue après un délai
+                        // Redirect to catalog after delay
                         setTimeout(() => {
                             window.location.href = '/pages/catalog.html';
                         }, 2000);
                     } else {
-                        // Réactiver le bouton
+                        // Re-enable button
                         if (saveButton) {
                             saveButton.disabled = false;
                             saveButton.textContent = 'Save Profile';
                         }
                         
-                        // Afficher l'erreur
-                        alert('Erreur: ' + (data.message || 'Échec de la sauvegarde du profil'));
+                        // Display error
+                        alert('Error: ' + (data.message || 'Failed to save profile'));
                     }
                 })
                 .catch(error => {
-                    console.error('Erreur:', error);
-                    alert('Erreur: ' + error.message);
+                    console.error('Error:', error);
+                    alert('Error: ' + error.message);
                     
-                    // Réactiver le bouton
+                    // Re-enable button
                     if (saveButton) {
                         saveButton.disabled = false;
                         saveButton.textContent = 'Save Profile';
@@ -320,11 +319,12 @@
                 });
             });
             
-            console.log('Nouveau gestionnaire d\'événement de formulaire installé');
+            console.log('Form event handler installed');
         } else {
-            console.error('Formulaire de profil non trouvé!');
+            console.error('Profile form not found!');
         }
-    });
+    }, 500); // 500ms delay to ensure profile data is loaded first
+});
     </script>
 </body>
 </html>
