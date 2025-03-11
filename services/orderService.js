@@ -607,6 +607,62 @@ const orderService = {
             console.error('Error processing order:', error);
             throw error;
         }
+    },
+
+    createOrderFromPendingItems(userId, items) {
+        try {
+            return dbModule.transaction(() => {
+                // Générer un ID unique pour la nouvelle commande
+                const orderId = `order_${Date.now()}`;
+                const date = new Date().toISOString();
+                
+                // Créer l'enregistrement de commande
+                dbModule.createOrder.run(orderId, userId, 'pending', date);
+                
+                // Ajouter les articles à la commande
+                items.forEach(item => {
+                    dbModule.addOrderItem.run(
+                        orderId,
+                        item.Nom,
+                        parseFloat(item.prix),
+                        item.quantity,
+                        item.categorie,
+                        'pending'
+                    );
+                    
+                    // Trouver cet article dans les articles en attente de livraison
+                    const pendingDeliveryItem = dbModule.findPendingDeliveryItem.get(
+                        userId,
+                        item.Nom,
+                        item.categorie
+                    );
+                    
+                    if (pendingDeliveryItem) {
+                        // Si l'article existe dans les livraisons en attente et la quantité est égale,
+                        // supprimer l'entrée
+                        if (pendingDeliveryItem.quantity === item.quantity) {
+                            dbModule.removePendingDelivery.run(pendingDeliveryItem.id);
+                        } else if (pendingDeliveryItem.quantity > item.quantity) {
+                            // Si la quantité de pending est supérieure, réduire la quantité
+                            const newQuantity = pendingDeliveryItem.quantity - item.quantity;
+                            dbModule.updatePendingDeliveryQuantity.run(
+                                newQuantity,
+                                pendingDeliveryItem.id
+                            );
+                        }
+                    }
+                });
+                
+                return {
+                    success: true,
+                    orderId,
+                    message: 'Commande créée avec succès'
+                };
+            });
+        } catch (error) {
+            console.error('Error creating order from pending items:', error);
+            throw error;
+        }
     }
 };
 

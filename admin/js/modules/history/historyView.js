@@ -7,8 +7,6 @@ import * as API from '../../core/api.js';
 import * as Notification from '../../utils/notification.js';
 import * as Formatter from '../../utils/formatter.js';
 import * as Modal from '../../utils/modal.js';
-import * as HistoryView from '../history/historyView.js';
-
 
 /**
  * Affiche les détails d'une commande
@@ -16,9 +14,8 @@ import * as HistoryView from '../history/historyView.js';
  * @param {string} userId - ID de l'utilisateur
  */
 async function viewOrderDetails(orderId, userId) {
-    // Obtenir les références DOM
+    // Obtenir la référence DOM de la modale
     const orderModal = document.getElementById('orderModal');
-    const orderDetailsContent = document.getElementById('orderModalContent');
     
     if (!orderModal) {
         console.error("Modal de détails de commande non trouvée");
@@ -26,50 +23,77 @@ async function viewOrderDetails(orderId, userId) {
         return;
     }
     
-    // Si orderDetailsContent n'existe pas, essayons de trouver un autre conteneur dans la modale
-    let contentContainer = orderDetailsContent;
+    // Rechercher le conteneur de contenu dans la modale - essayer plusieurs sélecteurs
+    let contentContainer = document.getElementById('orderModalContent');
     if (!contentContainer) {
-        contentContainer = orderModal.querySelector('.modal-content');
-        // Si on trouve toujours pas de conteneur, on en crée un
-        if (!contentContainer) {
-            const newContent = document.createElement('div');
-            newContent.id = 'orderModalContent';
-            newContent.className = 'order-modal-content';
-            
-            // Si la modale a une structure basique, on ajoute notre conteneur
-            if (orderModal.firstElementChild) {
-                orderModal.firstElementChild.appendChild(newContent);
-            } else {
-                const modalContent = document.createElement('div');
-                modalContent.className = 'modal-content';
-                modalContent.innerHTML = `
+        contentContainer = orderModal.querySelector('.modal-body');
+    }
+    if (!contentContainer) {
+        contentContainer = orderModal.querySelector('.order-modal-content');
+    }
+    if (!contentContainer) {
+        // Si aucun conteneur n'est trouvé, en créer un nouveau
+        contentContainer = document.createElement('div');
+        contentContainer.id = 'orderModalContent';
+        contentContainer.className = 'modal-body order-modal-content';
+        
+        // Insérer le conteneur dans la modale
+        const modalContent = orderModal.querySelector('.modal-content');
+        if (modalContent) {
+            // S'il y a déjà une structure modal-content, ajouter notre conteneur dedans
+            modalContent.appendChild(contentContainer);
+        } else {
+            // Sinon, créer une structure complète
+            const newModalContent = document.createElement('div');
+            newModalContent.className = 'modal-content';
+            newModalContent.innerHTML = `
+                <div class="modal-header">
+                    <h2>Détails de la commande #${orderId}</h2>
                     <span class="close-modal">&times;</span>
-                    <h2 class="order-details-title">Détails de la commande</h2>
-                `;
-                modalContent.appendChild(newContent);
-                orderModal.appendChild(modalContent);
+                </div>
+            `;
+            
+            // Ajouter le gestionnaire d'événement pour fermer la modale
+            const closeBtn = newModalContent.querySelector('.close-modal');
+            if (closeBtn) {
+                closeBtn.addEventListener('click', () => {
+                    orderModal.style.display = 'none';
+                });
             }
-            contentContainer = newContent;
+            
+            newModalContent.appendChild(contentContainer);
+            orderModal.appendChild(newModalContent);
         }
     }
     
     // Afficher l'indicateur de chargement
-    contentContainer.innerHTML = `<div class="loading">Chargement des détails...</div>`;
+    contentContainer.innerHTML = `
+        <div class="loading-container">
+            <div class="loading-spinner"></div>
+            <p class="loading-text">Chargement des détails...</p>
+        </div>
+    `;
     
-    // Afficher la modale - d'abord essayer la fonction du module Modal
+    // Afficher la modale
     try {
+        // Essayer d'abord d'utiliser la fonction du module Modal
         Modal.showModal(orderModal);
     } catch (e) {
-        // Fallback en cas d'erreur - afficher manuellement
+        // Fallback en cas d'erreur
         orderModal.style.display = 'flex';
+        orderModal.classList.add('active');
     }
     
     try {
         // Récupérer les détails de la commande
         const orderDetails = await API.fetchOrderDetails(orderId, userId);
         
-        // Afficher les détails de la commande
-        displayOrderDetails(orderDetails, contentContainer);
+        // Attendre un court instant pour s'assurer que la modale est visible
+        // Cela peut aider à résoudre des problèmes de rendu
+        setTimeout(() => {
+            // Afficher les détails de la commande
+            displayOrderDetails(orderDetails, contentContainer);
+        }, 100);
     } catch (error) {
         console.error('Erreur lors du chargement des détails de la commande:', error);
         
@@ -79,11 +103,17 @@ async function viewOrderDetails(orderId, userId) {
                 <i class="fas fa-exclamation-triangle"></i>
                 <p>Erreur lors du chargement des détails de la commande.</p>
                 <p>Détails: ${error.message || "Erreur inconnue"}</p>
-                <button class="action-btn retry-btn" onclick="window.viewOrderDetails('${orderId}', '${userId}')">
+                <button class="action-btn retry-btn" id="retryButton">
                     <i class="fas fa-sync"></i> Réessayer
                 </button>
             </div>
         `;
+        
+        // Ajouter un gestionnaire d'événement pour le bouton de réessai
+        const retryButton = contentContainer.querySelector('#retryButton');
+        if (retryButton) {
+            retryButton.addEventListener('click', () => viewOrderDetails(orderId, userId));
+        }
         
         // Notification d'erreur
         Notification.showNotification("Erreur lors du chargement des détails", "error");
@@ -96,16 +126,21 @@ async function viewOrderDetails(orderId, userId) {
  * @param {HTMLElement} container - Conteneur pour afficher les détails
  */
 function displayOrderDetails(order, container) {
-    // Formater les dates pour l'affichage (garder cette partie inchangée)
-    const orderDate = Formatter.formatDate(order.date);
-    const processDate = Formatter.formatDate(order.lastProcessed);
+    if (!order || !container) {
+        console.error("Données de commande ou conteneur manquant");
+        return;
+    }
     
-    // Calculer le montant total uniquement pour les articles livrés (garder cette partie inchangée)
-    const totalAmount = (order.deliveredItems || []).reduce((total, item) => {
-        return total + (parseFloat(item.prix) * item.quantity);
-    }, 0).toFixed(2);
+    // Formater les dates pour l'affichage
+    const orderDate = order.date ? Formatter.formatDate(order.date) : 'N/A';
+    const processDate = order.lastProcessed ? Formatter.formatDate(order.lastProcessed) : 'N/A';
     
-    // Déterminer le statut de la commande (garder cette partie inchangée)
+    // Calculer le montant total uniquement pour les articles livrés
+    const totalAmount = ((order.deliveredItems || []).reduce((total, item) => {
+        return total + (parseFloat(item.prix || 0) * (item.quantity || 0));
+    }, 0)).toFixed(2);
+    
+    // Déterminer le statut de la commande
     let statusText = 'COMPLÈTE';
     let statusClass = 'status-completed';
     
@@ -118,10 +153,10 @@ function displayOrderDetails(order, container) {
     let detailsHTML = `
         <div class="order-detail-header">
             <div class="order-detail-title">
-                <div class="order-number">Commande #${order.orderId}</div>
+                <div class="order-number">Commande #${order.orderId || 'N/A'}</div>
                 <div class="order-dates">
                     <div>Commandée le: ${orderDate}</div>
-                    <div>Traitée le: ${processDate || '-'}</div>
+                    <div>Traitée le: ${processDate}</div>
                 </div>
             </div>
             <div class="order-status">
@@ -169,15 +204,15 @@ function displayOrderDetails(order, container) {
             `;
             
             groupedItems[category].forEach(item => {
-                const itemTotal = (parseFloat(item.prix) * item.quantity).toFixed(2);
+                const itemTotal = (parseFloat(item.prix || 0) * (item.quantity || 0)).toFixed(2);
                 
                 detailsHTML += `
                     <tr>
-                        <td class="qty-column">${item.quantity}</td>
+                        <td class="qty-column">${item.quantity || 0}</td>
                         <td class="product-column">
-                            <span class="product-name">${item.Nom}</span>
+                            <span class="product-name">${item.Nom || 'Produit sans nom'}</span>
                         </td>
-                        <td class="unit-price-column">${Formatter.formatPrice(item.prix)} CHF</td>
+                        <td class="unit-price-column">${Formatter.formatPrice(item.prix || 0)} CHF</td>
                         <td class="total-column">${itemTotal} CHF</td>
                     </tr>
                 `;
@@ -240,11 +275,11 @@ function displayOrderDetails(order, container) {
             groupedRemainingItems[category].forEach(item => {
                 detailsHTML += `
                     <tr class="pending-item">
-                        <td class="qty-column">${item.quantity}</td>
+                        <td class="qty-column">${item.quantity || 0}</td>
                         <td class="product-column">
-                            <span class="product-name">${item.Nom}</span>
+                            <span class="product-name">${item.Nom || 'Produit sans nom'}</span>
                         </td>
-                        <td class="unit-price-column">${Formatter.formatPrice(item.prix)} CHF</td>
+                        <td class="unit-price-column">${Formatter.formatPrice(item.prix || 0)} CHF</td>
                         <td class="total-column">En attente</td>
                     </tr>
                 `;
@@ -301,7 +336,7 @@ function displayOrderDetails(order, container) {
                target="_blank">
                 <i class="fas fa-file-pdf"></i> Télécharger la Facture
             </a>
-            <button class="close-detail-btn" onclick="document.getElementById('orderModal').style.display='none'">
+            <button class="close-detail-btn" id="closeOrderModal">
                 <i class="fas fa-times"></i> Fermer
             </button>
         </div>
@@ -310,225 +345,17 @@ function displayOrderDetails(order, container) {
     // Mettre à jour le contenu de la modale
     container.innerHTML = detailsHTML;
     
-    // Ajouter des styles spécifiques pour la modale de détails
-    const styleEl = document.createElement('style');
-    styleEl.textContent = `
-        .order-detail-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            margin-bottom: 20px;
-            padding-bottom: 15px;
-            border-bottom: 2px solid #2575fc;
-        }
-        
-        .order-number {
-            font-size: 22px;
-            font-weight: 700;
-            color: #2575fc;
-            margin-bottom: 5px;
-        }
-        
-        .order-dates {
-            color: #666;
-            font-size: 14px;
-        }
-        
-        .status-badge {
-            display: inline-block;
-            padding: 8px 12px;
-            border-radius: 20px;
-            font-size: 14px;
-            font-weight: 600;
-        }
-        
-        .status-completed {
-            background-color: #d4edda;
-            color: #155724;
-        }
-        
-        .status-partial {
-            background-color: #fff3cd;
-            color: #856404;
-        }
-        
-        .section-title {
-            margin: 20px 0 15px;
-            font-size: 18px;
-            color: #333;
-            font-weight: 600;
-        }
-        
-        .pending-title {
-            color: #856404;
-        }
-        
-        .items-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 20px;
-        }
-        
-        .items-table th {
-            background-color: #f8f9fa;
-            padding: 12px 15px;
-            text-align: left;
-            border-bottom: 2px solid #e1e8ed;
-            font-weight: 600;
-            color: #666;
-        }
-        
-        .items-table td {
-            padding: 12px 15px;
-            border-bottom: 1px solid #e1e8ed;
-        }
-        
-        .items-table tr:last-child td {
-            border-bottom: none;
-        }
-        
-        .qty-column {
-            width: 10%;
-            text-align: center;
-        }
-        
-        .product-column {
-            width: 50%;
-        }
-        
-        .unit-price-column, .total-column {
-            width: 20%;
-            text-align: right;
-        }
-        
-        .pending-table th, .pending-table td {
-            background-color: #fff8e6;
-        }
-        
-        .pending-notice {
-            background-color: #fff8e6;
-            border: 1px solid #ffeeba;
-            color: #856404;
-            padding: 10px 15px;
-            border-radius: 6px;
-            margin-bottom: 20px;
-            font-size: 14px;
-        }
-        
-        .client-detail-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-            gap: 15px;
-        }
-        
-        .client-detail-item {
-            background-color: #f8f9fa;
-            padding: 12px 15px;
-            border-radius: 6px;
-        }
-        
-        .client-detail-label {
-            display: block;
-            color: #666;
-            font-size: 13px;
-            margin-bottom: 5px;
-        }
-        
-        .client-detail-value {
-            display: block;
-            font-weight: 500;
-        }
-        
-        .order-summary {
-            background-color: #f8f9fa;
-            padding: 15px;
-            border-radius: 6px;
-            margin: 20px 0;
-            text-align: right;
-        }
-        
-        .order-total-label {
-            font-weight: 600;
-            margin-right: 15px;
-        }
-        
-        .order-total-amount {
-            font-size: 20px;
-            font-weight: 700;
-            color: #28a745;
-        }
-        
-        .order-actions-footer {
-            display: flex;
-            justify-content: space-between;
-            margin-top: 30px;
-            border-top: 1px solid #e1e8ed;
-            padding-top: 20px;
-        }
-        
-        .download-invoice-btn {
-            background-color: #28a745;
-            color: white;
-            padding: 10px 15px;
-            border-radius: 6px;
-            text-decoration: none;
-            font-weight: 500;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-        }
-        
-        .download-invoice-btn:hover {
-            background-color: #218838;
-        }
-        
-        .close-detail-btn {
-            background-color: #6c757d;
-            color: white;
-            border: none;
-            padding: 10px 15px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: 500;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-        }
-        
-        .close-detail-btn:hover {
-            background-color: #5a6268;
-        }
-        
-        .no-items {
-            text-align: center;
-            color: #666;
-            padding: 20px;
-        }
-        
-        @media (max-width: 768px) {
-            .order-detail-header {
-                flex-direction: column;
+    // Ajouter l'écouteur d'événement pour le bouton de fermeture
+    const closeButton = container.querySelector('#closeOrderModal');
+    if (closeButton) {
+        closeButton.addEventListener('click', () => {
+            const modal = document.getElementById('orderModal');
+            if (modal) {
+                modal.style.display = 'none';
+                modal.classList.remove('active');
             }
-            
-            .order-status {
-                margin-top: 10px;
-            }
-            
-            .client-detail-grid {
-                grid-template-columns: 1fr;
-            }
-            
-            .items-table {
-                font-size: 14px;
-            }
-            
-            .items-table th, .items-table td {
-                padding: 8px;
-            }
-        }
-    `;
-    
-    container.appendChild(styleEl);
+        });
+    }
 }
 
 /**
@@ -537,41 +364,52 @@ function displayOrderDetails(order, container) {
  * @param {string} userId - ID du client
  */
 function showOrderDetailsFromClientView(orderId, userId) {
-    // Vérifier si la modale existe déjà, sinon la créer
+    // Vérifier si la modale existe déjà
     let orderModal = document.getElementById('orderModal');
     
+    // Si la modale n'existe pas, la créer
     if (!orderModal) {
-        // Créer la modale si elle n'existe pas
-        orderModal = createOrderModal();
-    }
-    
-    const orderDetailsTitle = document.getElementById('orderDetailsTitle');
-    const orderDetailsContent = document.getElementById('orderDetailsContent');
-    
-    // Mettre à jour le titre avec l'ID de la commande
-    if (orderDetailsTitle) {
-        orderDetailsTitle.textContent = `Détails de la commande #${orderId}`;
-    }
-    
-    // Afficher un indicateur de chargement
-    if (orderDetailsContent) {
-        orderDetailsContent.innerHTML = '<div class="loading-spinner">Chargement des détails...</div>';
-    }
-    
-    // Charger les détails de la commande depuis l'API
-    fetchOrderDetails(orderId, userId)
-        .then(data => {
-            displayOrderDetails(data, orderDetailsContent);
-        })
-        .catch(error => {
-            if (orderDetailsContent) {
-                orderDetailsContent.innerHTML = `<div class="error-message">Erreur lors du chargement des détails: ${error.message}</div>`;
+        // Créer l'élément modale et l'ajouter au DOM
+        orderModal = document.createElement('div');
+        orderModal.id = 'orderModal';
+        orderModal.className = 'modal';
+        
+        // Structure interne de la modale
+        orderModal.innerHTML = `
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>Détails de la commande #${orderId}</h2>
+                    <span class="close-modal">&times;</span>
+                </div>
+                <div id="orderModalContent" class="modal-body">
+                    <!-- Le contenu sera chargé dynamiquement -->
+                </div>
+            </div>
+        `;
+        
+        // Ajouter la modale au body
+        document.body.appendChild(orderModal);
+        
+        // Configurer les gestionnaires d'événements pour fermer la modale
+        const closeBtn = orderModal.querySelector('.close-modal');
+        if (closeBtn) {
+            closeBtn.addEventListener('click', () => {
+                orderModal.style.display = 'none';
+                orderModal.classList.remove('active');
+            });
+        }
+        
+        // Fermeture en cliquant à l'extérieur
+        window.addEventListener('click', (event) => {
+            if (event.target === orderModal) {
+                orderModal.style.display = 'none';
+                orderModal.classList.remove('active');
             }
-            console.error("Erreur lors du chargement des détails de la commande:", error);
         });
+    }
     
-    // Afficher la modale
-    orderModal.style.display = 'block';
+    // Appeler la fonction pour afficher les détails
+    viewOrderDetails(orderId, userId);
 }
 
 /**
@@ -584,10 +422,10 @@ function generateInvoiceLink(orderId, userId) {
     return API.getInvoiceDownloadLink(orderId, userId);
 }
 
-// Exposer les fonctions dans window pour les rendres accessibles depuis HTML
+// Exposer les fonctions dans window pour les rendre accessibles depuis HTML
 window.viewOrderDetails = viewOrderDetails;
 window.showOrderDetailsFromClientView = showOrderDetailsFromClientView;
-
+window.generateInvoiceLink = generateInvoiceLink;
 
 // Exposer les fonctions publiques
 export {

@@ -460,5 +460,6 @@ export {
     viewClientDetails,
     displayClientDetails,
     displayPendingDelivery,
-    displayOrderHistory
+    displayOrderHistory,
+    createOrderFromPendingItems
 };

@@ -556,6 +556,18 @@ app.post('/api/admin/create-client', requireLogin, requireAdmin, (req, res) => {
   }
 });
 
+app.post('/api/admin/create-order-from-pending', requireLogin, requireAdmin, (req, res) => {
+  const { userId, items } = req.body;
+  
+  try {
+      const result = orderService.createOrderFromPendingItems(userId, items);
+      res.json(result);
+  } catch (error) {
+      console.error('Error creating order from pending items:', error);
+      res.status(500).json({ success: false, message: 'Error creating order' });
+  }
+});
+
 // Catch-all route - Redirect to login for unauthorized users
 app.get('*', (req, res) => {
   if (!req.session.user) {
@@ -965,17 +977,6 @@ function generateInvoicePDF(doc, orderItems, userProfile, orderDate, orderId, re
     addPageNumber();
   }
 }
-app.post('/api/admin/create-order-from-pending', requireLogin, requireAdmin, (req, res) => {
-  const { userId, items } = req.body;
-  
-  try {
-      const result = orderService.createOrderFromPendingItems(userId, items);
-      res.json(result);
-  } catch (error) {
-      console.error('Error creating order from pending items:', error);
-      res.status(500).json({ success: false, message: 'Error creating order' });
-  }
-});
 
 // Start server
 app.listen(PORT, '0.0.0.0', () => {
