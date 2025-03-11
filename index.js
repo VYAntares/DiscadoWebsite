@@ -981,5 +981,5 @@ function generateInvoicePDF(doc, orderItems, userProfile, orderDate, orderId, re
 // Start server
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server started on http://localhost:${PORT}`);
-  console.log(`Available on network at http://192.168.1.252:${PORT}`);
+  console.log(`Available on network at http://172.20.10.3:${PORT}`);
 });

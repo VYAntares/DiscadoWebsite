@@ -229,103 +229,118 @@
     <!-- Solution directe pour résoudre le problème de sauvegarde du profil -->
     <script>
         // Replace the script at the bottom of profile.html with this version
-    document.addEventListener('DOMContentLoaded', function() {
-    // Wait for the profile manager to load data first (give it 500ms)
-    setTimeout(function() {
-        // Get a reference to the form
-        const profileForm = document.getElementById('profileForm');
-        
-        if (profileForm) {
-            // Add our event handler WITHOUT replacing the form
-            profileForm.addEventListener('submit', function(event) {
-                // Prevent normal form submission
-                event.preventDefault();
-                console.log('Form submitted - preventDefault called');
-                
-                // Disable the button to prevent multiple submissions
-                const saveButton = document.querySelector('.save-btn');
-                if (saveButton) {
-                    saveButton.disabled = true;
-                    saveButton.textContent = 'Saving...';
-                }
-                
-                // Collect all form values
-                const formData = {
-                    firstName: document.getElementById('firstName').value,
-                    lastName: document.getElementById('lastName').value,
-                    fullName: document.getElementById('firstName').value + ' ' + document.getElementById('lastName').value,
-                    email: document.getElementById('email').value,
-                    phone: document.getElementById('phone').value,
-                    shopName: document.getElementById('shopName').value,
-                    shopAddress: document.getElementById('shopAddress').value,
-                    shopCity: document.getElementById('shopCity').value,
-                    shopZipCode: document.getElementById('shopZipCode').value,
-                    address: document.getElementById('shopAddress').value, // For compatibility
-                    city: document.getElementById('shopCity').value, // For compatibility
-                    postalCode: document.getElementById('shopZipCode').value, // For compatibility
-                    lastUpdated: new Date().toISOString()
-                };
-                
-                console.log('Data to send:', formData);
-                
-                // Send data to server
-                fetch('/api/save-profile', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(formData),
-                    credentials: 'same-origin'
-                })
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error('Server error: ' + response.status);
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    console.log('Server response:', data);
+        document.addEventListener('DOMContentLoaded', function() {
+        // Wait for the profile manager to load data first (give it 500ms)
+        setTimeout(function() {
+            // Get a reference to the form
+            const profileForm = document.getElementById('profileForm');
+            
+            if (profileForm) {
+                // Add our event handler WITHOUT replacing the form
+                profileForm.addEventListener('submit', function(event) {
+                    // Prevent normal form submission
+                    event.preventDefault();
+                    console.log('Form submitted - preventDefault called');
                     
-                    if (data.success) {
-                        // Create visible notification
-                        const notification = document.createElement('div');
-                        notification.className = 'success-notification';
-                        notification.textContent = 'Profile saved successfully! Redirecting to catalog...';
-                        document.body.appendChild(notification);
+                    // Disable the button to prevent multiple submissions
+                    const saveButton = document.querySelector('.save-btn');
+                    if (saveButton) {
+                        saveButton.disabled = true;
+                        saveButton.textContent = 'Saving...';
+                    }
+                    
+                    // Collect all form values
+                    const formData = {
+                        firstName: document.getElementById('firstName').value,
+                        lastName: document.getElementById('lastName').value,
+                        fullName: document.getElementById('firstName').value + ' ' + document.getElementById('lastName').value,
+                        email: document.getElementById('email').value,
+                        phone: document.getElementById('phone').value,
+                        shopName: document.getElementById('shopName').value,
+                        shopAddress: document.getElementById('shopAddress').value,
+                        shopCity: document.getElementById('shopCity').value,
+                        shopZipCode: document.getElementById('shopZipCode').value,
+                        address: document.getElementById('shopAddress').value, // For compatibility
+                        city: document.getElementById('shopCity').value, // For compatibility
+                        postalCode: document.getElementById('shopZipCode').value, // For compatibility
+                        lastUpdated: new Date().toISOString()
+                    };
+                    
+                    console.log('Data to send:', formData);
+                    
+                    // Send data to server
+                    fetch('/api/save-profile', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(formData),
+                        credentials: 'same-origin'
+                    })
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Server error: ' + response.status);
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        console.log('Server response:', data);
                         
-                        // Redirect to catalog after delay
-                        setTimeout(() => {
-                            window.location.href = '/pages/catalog.html';
-                        }, 2000);
-                    } else {
+                        if (data.success) {
+                            // Create visible notification
+                            const notification = document.createElement('div');
+                            notification.className = 'success-notification';
+                            notification.textContent = 'Profile saved successfully! Redirecting to catalog...';
+                            document.body.appendChild(notification);
+                            
+                            // Redirect to catalog after delay
+                            setTimeout(() => {
+                                window.location.href = '/pages/catalog.html';
+                            }, 2000);
+                        } else {
+                            // Re-enable button
+                            if (saveButton) {
+                                saveButton.disabled = false;
+                                saveButton.textContent = 'Save Profile';
+                            }
+                            
+                            // Display error
+                            alert('Error: ' + (data.message || 'Failed to save profile'));
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('Error: ' + error.message);
+                        
                         // Re-enable button
                         if (saveButton) {
                             saveButton.disabled = false;
                             saveButton.textContent = 'Save Profile';
                         }
-                        
-                        // Display error
-                        alert('Error: ' + (data.message || 'Failed to save profile'));
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    alert('Error: ' + error.message);
-                    
-                    // Re-enable button
-                    if (saveButton) {
-                        saveButton.disabled = false;
-                        saveButton.textContent = 'Save Profile';
-                    }
+                    });
                 });
-            });
-            
-            console.log('Form event handler installed');
-        } else {
-            console.error('Profile form not found!');
-        }
-    }, 500); // 500ms delay to ensure profile data is loaded first
-});
+                
+                console.log('Form event handler installed');
+            } else {
+                console.error('Profile form not found!');
+            }
+        }, 500); // 500ms delay to ensure profile data is loaded first
+    });
     </script>
+    <!-- Category Navigation Fix -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+        // Setup category navigation to redirect to catalog
+        const categoryItems = document.querySelectorAll('.category-item');
+        
+        categoryItems.forEach(item => {
+            item.addEventListener('click', function() {
+            const category = this.getAttribute('data-category');
+            // Navigate to catalog page with category parameter
+            window.location.href = `/pages/catalog.html?category=${category}`;
+            });
+        });
+        });
+  </script>
 </body>
 </html>

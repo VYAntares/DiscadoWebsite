@@ -246,6 +246,8 @@ function setupQuantityEvents() {
             
             // Retirer la classe d'indisponibilité si présente
             row.classList.remove('item-unavailable');
+            // Ajouter la classe delivered-item pour colorer la ligne en vert
+            row.classList.add('delivered-item');
             quantityInput.disabled = false;
             
             // Recalculer le total
@@ -270,6 +272,15 @@ function setupQuantityEvents() {
             if (currentValue > max) {
                 this.value = max;
                 Notification.showNotification(`Quantité limitée à ${max}`, 'info');
+            }
+            
+            // Mettre à jour les classes selon la quantité saisie
+            const row = this.closest('tr');
+            if (currentValue > 0) {
+                row.classList.add('delivered-item');
+                row.classList.remove('item-unavailable');
+            } else {
+                row.classList.remove('delivered-item');
             }
             
             calculateOrderTotal();
@@ -306,6 +317,9 @@ function handleUnavailableItem(button) {
     
     // Toujours marquer comme indisponible au clic (sans toggle)
     row.classList.add('item-unavailable');
+    
+    // Retirer la classe 'delivered-item' si elle existe pour éviter le conflit visuel
+    row.classList.remove('delivered-item');
     
     // Mettre la quantité à 0 et désactiver le champ
     quantityInput.value = '0';
