@@ -291,6 +291,7 @@ function updateCategorySelection(category) {
 /**
  * Configure the search functionality
  */
+// Configure the search functionality
 function setupSearch() {
     // Function to perform the search
     function performSearch() {
@@ -312,9 +313,10 @@ function setupSearch() {
         displayProducts(searchResults, currentCategory);
     }
     
-    // Event listener for Enter key in search input
+    // Event listener for search input
     const searchInput = document.getElementById('searchInput');
     if (searchInput) {
+        // Added keyup event listener for real-time search
         searchInput.addEventListener('keyup', function(event) {
             if (event.key === 'Enter') {
                 performSearch();

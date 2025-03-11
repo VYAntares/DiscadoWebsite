@@ -57,13 +57,6 @@ function initDiscadoHeader() {
     <!-- Dropdown Menu -->
     <div id="dropdownMenu" class="dropdown-menu">
         <div class="menu-section">
-            <div class="search-wrapper">
-                <input type="text" id="searchInput" placeholder="Search for a product..." aria-label="Search">
-                <button id="searchButton" aria-label="Search"><i class="fas fa-search"></i></button>
-            </div>
-        </div>
-        
-        <div class="menu-section">
             <h3>Category</h3>
             <ul class="category-list">
                 <li class="category-item active" data-category="all">All Products</li>
