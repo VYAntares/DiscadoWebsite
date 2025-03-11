@@ -1,5 +1,5 @@
 // userService.js - Handle user and profile operations
-const dbModule = require('./db');
+const dbModule = require('./dbbettersqlite');
 
 // Service for managing users and profiles
 const userService = {

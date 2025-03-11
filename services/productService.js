@@ -1,5 +1,5 @@
 // productService.js - Handle product operations
-const dbModule = require('./db');
+const dbModule = require('./dbbettersqlite');
 const fs = require('fs');
 const path = require('path');
 const csv = require('csv-parser');
