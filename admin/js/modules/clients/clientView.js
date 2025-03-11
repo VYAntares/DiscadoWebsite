@@ -11,58 +11,117 @@ import * as HistoryView from '../history/historyView.js';
 
 // Références DOM
 let clientModal;
-let clientDetailsContent;
+let orderDetailsContent;
 let clientDetailsTitle;
 
-/**
- * Affiche les détails d'un client
- * @param {string} clientId - ID du client
- */
 async function viewClientDetails(clientId) {
     // Obtenir les références DOM
-    clientModal = document.getElementById('clientModal');
-    clientDetailsContent = document.getElementById('clientDetailsContent');
-    clientDetailsTitle = document.getElementById('clientDetailsTitle');
+    const orderModal = document.getElementById('orderModal');
+    const orderDetailsContent = document.getElementById('orderDetailsContent');
     
-    if (!clientModal || !clientDetailsContent) {
-        console.error("Modal de détails client non trouvée");
+    if (!orderModal || !orderDetailsContent) {
+        console.error("Éléments de la modal non trouvés");
         return;
     }
     
     // Afficher l'indicateur de chargement
-    clientDetailsContent.innerHTML = `<div class="loading">Chargement des détails...</div>`;
+    orderDetailsContent.innerHTML = `
+        <div class="loading">
+            <div class="spinner"></div>
+            Chargement des détails du client...
+        </div>
+    `;
     
     // Afficher la modale
-    Modal.showModal(clientModal);
+    Modal.showModal(orderModal);
     
     try {
-        // Récupérer tous les profils clients
+        // Récupérer les détails du client
         const clients = await API.fetchClientProfiles();
-        
-        // Rechercher le client par son ID
         const client = clients.find(c => c.clientId === clientId);
         
-        if (client) {
-            // Afficher les détails du client
-            displayClientDetails(client);
-        } else {
-            // Afficher un message si le client n'est pas trouvé
-            clientDetailsContent.innerHTML = `
-                <div class="empty-state">
-                    <i class="fas fa-user-slash"></i>
-                    <p>Client non trouvé</p>
-                    <p>Détails recherchés : ${clientId}</p>
-                </div>
-            `;
+        if (!client) {
+            throw new Error(`Client ${clientId} non trouvé`);
         }
+        
+        // Récupérer l'historique des commandes du client
+        const orders = await API.fetchClientOrders(clientId);
+        
+        // Construire le HTML pour les détails du client
+        const html = `
+            <div class="client-section">
+                <div class="client-header">
+                    <h2 class="client-title">Détails du client: ${client.clientId}</h2>
+                    <button class="client-close-btn" onclick="document.getElementById('orderModal').style.display='none'">&times;</button>
+                </div>
+
+                <!-- Informations personnelles -->
+                <div class="info-section">
+                    <h3 class="info-section-title">Informations personnelles</h3>
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <span class="info-label">Prénom</span>
+                            <span class="info-value">${client.firstName || 'N/A'}</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Nom</span>
+                            <span class="info-value">${client.lastName || 'N/A'}</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Email</span>
+                            <span class="info-value">${client.email || 'N/A'}</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Téléphone</span>
+                            <span class="info-value">${client.phone || 'N/A'}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Informations boutique -->
+                <div class="info-section">
+                    <h3 class="info-section-title">Informations boutique</h3>
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <span class="info-label">Nom de la boutique</span>
+                            <span class="info-value">${client.shopName || 'N/A'}</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Adresse</span>
+                            <span class="info-value">${client.shopAddress || 'N/A'}</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Ville</span>
+                            <span class="info-value">${client.shopCity || 'N/A'}</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Code postal</span>
+                            <span class="info-value">${client.shopZipCode || 'N/A'}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section Articles en attente -->
+                ${renderPendingDeliverySection(orders)}
+
+                <!-- Section Historique des commandes -->
+                ${renderOrderHistorySection(orders)}
+            </div>
+        `;
+        
+        // Mettre à jour le contenu de la modale
+        orderDetailsContent.innerHTML = html;
+        
+        // Configurer les événements si nécessaire
+        setupClientDetailsEvents();
     } catch (error) {
         console.error('Erreur lors du chargement des détails du client:', error);
         
-        // Afficher un message d'erreur
-        clientDetailsContent.innerHTML = `
+        orderDetailsContent.innerHTML = `
             <div class="empty-state">
                 <i class="fas fa-exclamation-triangle"></i>
                 <p>Erreur lors du chargement des détails du client</p>
+                <p>${error.message}</p>
                 <button class="action-btn" id="retryLoadClient">Réessayer</button>
             </div>
         `;
@@ -70,13 +129,107 @@ async function viewClientDetails(clientId) {
         // Ajouter l'écouteur pour le bouton de réessai
         const retryButton = document.getElementById('retryLoadClient');
         if (retryButton) {
-            retryButton.addEventListener('click', function() {
-                viewClientDetails(clientId);
-            });
+            retryButton.addEventListener('click', () => viewClientDetails(clientId));
         }
     }
 }
 
+// Fonctions auxiliaires pour rendre les sections
+
+function renderPendingDeliverySection(orders) {
+    const pendingDelivery = orders.find(order => order.orderId === 'pending-delivery');
+    
+    if (!pendingDelivery || !pendingDelivery.items || pendingDelivery.items.length === 0) {
+        return '';
+    }
+    
+    // Logique de rendu des articles en attente de livraison
+    let pendingItemsHtml = pendingDelivery.items.map(item => `
+        <tr>
+            <td>${item.Nom}</td>
+            <td>${item.quantity}</td>
+            <td>${item.prix} CHF</td>
+        </tr>
+    `).join('');
+    
+    return `
+        <div class="delivery-section">
+            <h3 class="info-section-title">Articles en attente de livraison</h3>
+            <table class="items-table">
+                <thead>
+                    <tr>
+                        <th>Article</th>
+                        <th>Quantité</th>
+                        <th>Prix</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${pendingItemsHtml}
+                </tbody>
+            </table>
+        </div>
+    `;
+}
+
+function renderOrderHistorySection(orders) {
+    // Filtrer les commandes réelles (exclure pending-delivery)
+    const validOrders = orders.filter(order => order.orderId !== 'pending-delivery');
+    
+    if (validOrders.length === 0) {
+        return `
+            <div class="empty-state">
+                <i class="fas fa-shopping-cart"></i>
+                <p>Aucune commande pour ce client</p>
+            </div>
+        `;
+    }
+    
+    // Trier les commandes par date (les plus récentes en premier)
+    validOrders.sort((a, b) => new Date(b.date) - new Date(a.date));
+    
+    let ordersHtml = validOrders.map(order => `
+        <tr>
+            <td>${order.orderId}</td>
+            <td>${new Date(order.date).toLocaleDateString()}</td>
+            <td>${order.items.reduce((sum, item) => sum + item.quantity, 0)} articles</td>
+            <td>
+                <button class="action-btn view-btn" onclick="showOrderDetailsFromClientView('${order.orderId}', '${order.userId}')">
+                    Voir détails
+                </button>
+            </td>
+        </tr>
+    `).join('');
+    
+    return `
+        <div class="orders-history-section">
+            <h3 class="info-section-title">Historique des commandes</h3>
+            <table class="orders-table">
+                <thead>
+                    <tr>
+                        <th>Commande</th>
+                        <th>Date</th>
+                        <th>Articles</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${ordersHtml}
+                </tbody>
+            </table>
+        </div>
+    `;
+}
+
+function setupClientDetailsEvents() {
+    // Ajoutez ici des événements supplémentaires si nécessaire
+}
+
+// Exposer cette fonction globalement pour l'appel depuis onclick
+window.showOrderDetailsFromClientView = function(orderId, userId) {
+    import('./historyView.js').then(module => {
+        module.viewOrderDetails(orderId, userId);
+    });
+};
 /**
  * Affiche les détails d'un client dans la modale
  * @param {Object} client - Données du client
@@ -152,7 +305,7 @@ async function displayClientDetails(client) {
     `;
     
     // Mettre à jour le contenu de la modale
-    clientDetailsContent.innerHTML = html;
+    orderDetailsContent.innerHTML = html;
     
     // Ajouter un gestionnaire d'événements pour le bouton de fermeture
     document.getElementById('closeClientModal').addEventListener('click', function() {

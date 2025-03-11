@@ -1,8 +1,6 @@
-// Save this as /public/js/components/DiscadoHeader.js
-
 /**
  * Enhanced Header Component for Discado
- * Provides a more reliable header implementation
+ * Header 100% statique - ne bouge pas du tout pendant le défilement
  */
 
 // Function to initialize the header
@@ -90,7 +88,7 @@ function initDiscadoHeader() {
     setupMobileMenu();
     setupUserMenu();
     setupPdfCatalog();
-    setupScrollBehavior();
+    // SUPPRIMÉ: setupScrollBehavior(); - On ne change plus rien au scroll
 
     // Load cart count badge
     updateCartCountBadge();
@@ -266,40 +264,6 @@ function setupPdfCatalog() {
             window.open(pdfUrl, '_blank');
         });
     }
-}
-
-/**
- * Setup scroll behavior
- */
-function setupScrollBehavior() {
-    let lastScrollTop = 0;
-    
-    window.addEventListener('scroll', function() {
-        const header = document.querySelector('header');
-        if (!header) return;
-        
-        const currentScrollTop = window.pageYOffset || document.documentElement.scrollTop;
-        
-        // Make header smaller on scroll down
-        if (currentScrollTop > 50) {
-            header.classList.add('header-compact');
-        } else {
-            header.classList.remove('header-compact');
-        }
-        
-        // Hide header on scroll down, show on scroll up
-        if (currentScrollTop > lastScrollTop && currentScrollTop > 120) {
-            // Scrolling down
-            if (!header.style.transform || header.style.transform !== 'translateY(-100%)') {
-                header.style.transform = 'translateY(-100%)';
-            }
-        } else {
-            // Scrolling up
-            header.style.transform = 'translateY(0)';
-        }
-        
-        lastScrollTop = currentScrollTop;
-    });
 }
 
 // Handle cart-related events
