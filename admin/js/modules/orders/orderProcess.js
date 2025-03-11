@@ -375,12 +375,6 @@ async function validateDelivery() {
         // Vérifier si tous les articles sont marqués comme indisponibles
         const allUnavailable = areAllItemsUnavailable();
         
-        // Vérifier qu'au moins un article est livré OU que tous sont indisponibles
-        if (!hasDeliveredItems && !allUnavailable) {
-            Notification.showNotification('Veuillez livrer au moins un article ou marquer tous les articles comme indisponibles', 'error');
-            return;
-        }
-        
         // Désactiver le bouton pendant le traitement
         const validateBtn = document.querySelector('.validate-delivery');
         if (validateBtn) {

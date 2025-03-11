@@ -41,24 +41,72 @@ const orderService = {
     },
     
     // Create a new order
+// Modification de la fonction createNewOrder dans orderService.js
     createNewOrder(userId, cartItems) {
         return dbModule.transaction(() => {
             const orderId = `order_${Date.now()}`;
             const date = new Date().toISOString();
             
-            // Create order record
+            // Récupérer les articles en attente de livraison pour ce client
+            const pendingDeliveries = dbModule.getUserPendingDeliveries.all(userId);
+            
+            // Créer l'enregistrement de commande
             dbModule.createOrder.run(orderId, userId, 'pending', date);
             
-            // Add order items
+            // Traiter chaque article du panier
             cartItems.forEach(item => {
-                dbModule.addOrderItem.run(
-                    orderId,
-                    item.Nom,
-                    parseFloat(item.prix),
-                    item.quantity,
-                    item.categorie,
-                    'pending'
+                // Vérifier si l'article existe dans la liste "à livrer"
+                const pendingItem = pendingDeliveries.find(
+                    pending => pending.product_name === item.Nom && 
+                            pending.category === item.categorie
                 );
+                
+                if (pendingItem) {
+                    // L'article existe dans "à livrer", gérer la déduction
+                    if (pendingItem.quantity <= item.quantity) {
+                        // La quantité commandée est supérieure ou égale à celle "à livrer"
+                        // Supprimer complètement l'article de "à livrer"
+                        dbModule.removePendingDelivery.run(pendingItem.id);
+                        
+                        // Ajouter à la commande normalement
+                        dbModule.addOrderItem.run(
+                            orderId,
+                            item.Nom,
+                            parseFloat(item.prix),
+                            item.quantity,
+                            item.categorie,
+                            'pending'
+                        );
+                    } else {
+                        // La quantité commandée est inférieure à celle "à livrer"
+                        // Réduire la quantité dans "à livrer"
+                        const newPendingQuantity = pendingItem.quantity - item.quantity;
+                        dbModule.updatePendingDeliveryQuantity.run(
+                            newPendingQuantity,
+                            pendingItem.id
+                        );
+                        
+                        // Ajouter à la commande normalement
+                        dbModule.addOrderItem.run(
+                            orderId,
+                            item.Nom,
+                            parseFloat(item.prix),
+                            item.quantity,
+                            item.categorie,
+                            'pending'
+                        );
+                    }
+                } else {
+                    // L'article n'existe pas dans "à livrer", l'ajouter normalement
+                    dbModule.addOrderItem.run(
+                        orderId,
+                        item.Nom,
+                        parseFloat(item.prix),
+                        item.quantity,
+                        item.categorie,
+                        'pending'
+                    );
+                }
             });
             
             return { success: true, orderId, message: 'New order created successfully' };
@@ -66,14 +114,41 @@ const orderService = {
     },
     
     // Add items to an existing order
+// Modification de la fonction appendToExistingOrder pour gérer les articles à livrer
     appendToExistingOrder(orderId, userId, cartItems) {
         return dbModule.transaction(() => {
+            // Récupérer les articles en attente de livraison pour ce client
+            const pendingDeliveries = dbModule.getUserPendingDeliveries.all(userId);
+            
             // Get existing items in the order
             const existingItems = dbModule.getOrderItems.all(orderId);
             
             // Process each new item
             cartItems.forEach(item => {
-                // Check if the item already exists in the order
+                // Vérifier si l'article existe dans la liste "à livrer"
+                const pendingItem = pendingDeliveries.find(
+                    pending => pending.product_name === item.Nom && 
+                            pending.category === item.categorie
+                );
+                
+                if (pendingItem) {
+                    // L'article existe dans "à livrer", gérer la déduction
+                    if (pendingItem.quantity <= item.quantity) {
+                        // La quantité commandée est supérieure ou égale à celle "à livrer"
+                        // Supprimer complètement l'article de "à livrer"
+                        dbModule.removePendingDelivery.run(pendingItem.id);
+                    } else {
+                        // La quantité commandée est inférieure à celle "à livrer"
+                        // Réduire la quantité dans "à livrer"
+                        const newPendingQuantity = pendingItem.quantity - item.quantity;
+                        dbModule.updatePendingDeliveryQuantity.run(
+                            newPendingQuantity,
+                            pendingItem.id
+                        );
+                    }
+                }
+                
+                // Vérifier si l'article existe déjà dans la commande
                 const existingItem = existingItems.find(
                     existing => existing.product_name === item.Nom && 
                                 existing.category === item.categorie
@@ -84,13 +159,7 @@ const orderService = {
                     const newQuantity = existingItem.quantity + item.quantity;
                     
                     // Update the item quantity
-                    const updateItemQuery = dbModule.db.prepare(`
-                        UPDATE order_items 
-                        SET quantity = ? 
-                        WHERE order_id = ? AND product_name = ? AND category = ?
-                    `);
-                    
-                    updateItemQuery.run(
+                    dbModule.updateOrderItemQuantity.run(
                         newQuantity,
                         orderId,
                         item.Nom,
@@ -110,11 +179,7 @@ const orderService = {
             });
             
             // Update the order date to reflect the latest addition
-            const updateOrderQuery = dbModule.db.prepare(`
-                UPDATE orders SET date = ? WHERE order_id = ?
-            `);
-            
-            updateOrderQuery.run(new Date().toISOString(), orderId);
+            dbModule.updateOrderDate.run(new Date().toISOString(), orderId);
             
             return { 
                 success: true, 
@@ -460,6 +525,7 @@ const orderService = {
         }
     },
     
+    // Mise à jour de la fonction processOrder
     processOrder(orderId, userId, deliveredItems) {
         try {
             const date = new Date().toISOString();
@@ -532,15 +598,13 @@ const orderService = {
                             );
                             
                             if (existingPendingItem) {
-                                // L'article est déjà en attente, comparer les quantités
-                                if (remainingQuantity > existingPendingItem.quantity) {
-                                    // La nouvelle quantité est plus grande, mettre à jour
-                                    dbModule.updatePendingDeliveryQuantity.run(
-                                        remainingQuantity,
-                                        existingPendingItem.id
-                                    );
-                                }
-                                // Si la nouvelle quantité est inférieure ou égale, on garde l'ancienne
+                                // L'article est déjà en attente, mettre à jour la quantité
+                                // Nous additionnons la quantité restante à la quantité existante
+                                const updatedQuantity = existingPendingItem.quantity + remainingQuantity;
+                                dbModule.updatePendingDeliveryQuantity.run(
+                                    updatedQuantity,
+                                    existingPendingItem.id
+                                );
                             } else {
                                 // L'article n'existe pas encore, l'ajouter
                                 dbModule.addPendingDelivery.run(
@@ -571,15 +635,13 @@ const orderService = {
                         );
                         
                         if (existingPendingItem) {
-                            // L'article est déjà en attente, comparer les quantités
-                            if (item.quantity > existingPendingItem.quantity) {
-                                // La nouvelle quantité est plus grande, mettre à jour
-                                dbModule.updatePendingDeliveryQuantity.run(
-                                    item.quantity,
-                                    existingPendingItem.id
-                                );
-                            }
-                            // Si la nouvelle quantité est inférieure ou égale, on garde l'ancienne
+                            // L'article est déjà en attente, mettre à jour la quantité
+                            // Nous additionnons la quantité non livrée à la quantité existante
+                            const updatedQuantity = existingPendingItem.quantity + item.quantity;
+                            dbModule.updatePendingDeliveryQuantity.run(
+                                updatedQuantity,
+                                existingPendingItem.id
+                            );
                         } else {
                             // L'article n'existe pas encore, l'ajouter
                             dbModule.addPendingDelivery.run(

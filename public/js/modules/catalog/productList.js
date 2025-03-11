@@ -288,26 +288,31 @@ function updateCategorySelection(category) {
 /**
  * Configure la fonctionnalité de recherche
  */
+/**
+ * Configure the search functionality
+ */
 function setupSearch() {
-    // Fonction pour effectuer la recherche
+    // Function to perform the search
     function performSearch() {
         const searchInput = document.getElementById('searchInput');
         const searchQuery = searchInput?.value?.trim() || '';
     
         if (!searchQuery) {
+            // If search is empty, show all products
+            displayProducts(allProducts);
             return;
         }
     
-        // Récupérer la catégorie actuelle
+        // Get the current category
         const categoryFilter = document.getElementById('categoryFilter');
         const currentCategory = categoryFilter?.value || 'all';
         
-        // Effectuer la recherche
+        // Perform the search
         const searchResults = searchProducts(searchQuery, allProducts);
         displayProducts(searchResults, currentCategory);
     }
     
-    // Écouteur d'événement pour la touche Entrée dans le champ de recherche
+    // Event listener for Enter key in search input
     const searchInput = document.getElementById('searchInput');
     if (searchInput) {
         searchInput.addEventListener('keyup', function(event) {
@@ -317,7 +322,7 @@ function setupSearch() {
         });
     }
     
-    // Écouteur d'événement pour le bouton de recherche
+    // Event listener for search button
     const searchButton = document.getElementById('searchButton');
     if (searchButton) {
         searchButton.addEventListener('click', performSearch);
