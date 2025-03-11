@@ -4,7 +4,7 @@
  */
 
 import { fetchUserOrders } from '../../core/api.js';
-import { formatDate, formatPrice } from '../../utils/formatter.js';
+import { formatDate } from '../../utils/formatter.js';
 
 // Variable pour stocker la commande d'articles en attente
 let pendingDeliveryOrder = null;
@@ -214,19 +214,14 @@ function createPendingDeliveryCard(pendingOrder) {
                     <tr>
                         <th class="qty-column">Qty</th>
                         <th class="product-name-column">Product</th>
-                        <th class="unit-price-column">Unit Price</th>
-                        <th class="total-price-column">Total</th>
                     </tr>
                 </thead>
                 <tbody>
                     ${groupedItems[category].map(item => {
-                        const itemTotal = parseFloat(item.prix) * item.quantity;
                         return `
                             <tr class="pending-item">
                                 <td class="qty-column">${item.quantity}</td>
                                 <td class="product-name-column">${item.Nom}</td>
-                                <td class="unit-price-column">${formatPrice(item.prix)} CHF</td>
-                                <td class="total-price-column">${formatPrice(itemTotal)} CHF</td>
                             </tr>
                         `;
                     }).join('')}
@@ -245,19 +240,14 @@ function createPendingDeliveryCard(pendingOrder) {
                 <tr>
                     <th class="qty-column">Qty</th>
                     <th class="product-name-column">Product</th>
-                    <th class="unit-price-column">Unit Price</th>
-                    <th class="total-price-column">Total</th>
                 </tr>
             </thead>
             <tbody>
                 ${toDeliverItems.map(item => {
-                    const itemTotal = parseFloat(item.prix) * item.quantity;
                     return `
                         <tr class="pending-item">
                             <td class="qty-column">${item.quantity}</td>
                             <td class="product-name-column">${item.Nom}</td>
-                            <td class="unit-price-column">${formatPrice(item.prix)} CHF</td>
-                            <td class="total-price-column">${formatPrice(itemTotal)} CHF</td>
                         </tr>
                     `;
                 }).join('')}
@@ -267,24 +257,18 @@ function createPendingDeliveryCard(pendingOrder) {
         orderCard.appendChild(itemsTable);
     }
     
-    // Calcul du montant total en attente
-    const totalAmount = toDeliverItems.reduce((total, item) => 
-        total + (parseFloat(item.prix) * item.quantity), 0
-    ).toFixed(2);
-    
-    // Ajouter le total
-    const totalSection = document.createElement('div');
-    totalSection.className = 'order-summary';
-    totalSection.innerHTML = `
-        <div class="order-summary-total">
-            Total Pending: ${totalAmount} CHF
+    // Note d'information au lieu du total
+    const noteSection = document.createElement('div');
+    noteSection.className = 'order-summary';
+    noteSection.innerHTML = `
+        <div class="order-summary-note">
             <span class="invoice-not-available">
                 <i class="fas fa-info-circle"></i> These items will be delivered when available
             </span>
         </div>
     `;
     
-    orderCard.appendChild(totalSection);
+    orderCard.appendChild(noteSection);
     
     return orderCard;
 }
