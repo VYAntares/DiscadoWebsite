@@ -87,5 +87,20 @@
             initPendingItems();
         });
     </script>
+    <!-- Category Navigation Fix -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+        // Setup category navigation to redirect to catalog
+        const categoryItems = document.querySelectorAll('.category-item');
+        
+        categoryItems.forEach(item => {
+            item.addEventListener('click', function() {
+            const category = this.getAttribute('data-category');
+            // Navigate to catalog page with category parameter
+            window.location.href = `/pages/catalog.html?category=${category}`;
+            });
+        });
+        });
+    </script>
 </body>
 </html>

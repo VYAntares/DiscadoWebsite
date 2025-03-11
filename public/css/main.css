@@ -860,3 +860,104 @@ header {
     opacity: 1 !important;
     pointer-events: auto !important;
   }
+
+  /* CSS pour une barre de recherche plus élégante */
+
+/* Conteneur de la barre de recherche */
+.search-wrapper {
+    position: relative;
+    width: 100%;
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 10px 15px;
+  }
+  
+  /* Style de la barre de recherche */
+  #searchInput,
+  input[type="search"],
+  input[type="text"].search-input {
+    width: 100%;
+    height: 46px;
+    padding: 0 20px 0 16px;
+    font-size: 15px;
+    background-color: #fff;
+    color: #333;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+    transition: all 0.3s ease;
+    outline: none;
+  }
+  
+  /* Style au survol */
+  #searchInput:hover,
+  input[type="search"]:hover,
+  input[type="text"].search-input:hover {
+    border-color: #ccc;
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.06);
+  }
+  
+  /* Style au focus */
+  #searchInput:focus,
+  input[type="search"]:focus,
+  input[type="text"].search-input:focus {
+    border-color: #2575fc;
+    box-shadow: 0 3px 10px rgba(37, 117, 252, 0.1);
+  }
+  
+  /* Bouton de recherche */
+  #searchButton,
+  .search-button {
+    position: absolute;
+    right: 25px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    font-size: 20px;
+    color: #666;
+    cursor: pointer;
+    transition: color 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+  }
+  
+  /* Style au survol du bouton */
+  #searchButton:hover,
+  .search-button:hover {
+    color: #2575fc;
+  }
+  
+  /* Placeholder style */
+  #searchInput::placeholder,
+  input[type="search"]::placeholder,
+  input[type="text"].search-input::placeholder {
+    color: #aaa;
+    font-style: italic;
+    font-weight: 300;
+  }
+  
+  /* Style pour mobile */
+  @media (max-width: 768px) {
+    .search-wrapper {
+      padding: 8px 10px;
+    }
+    
+    #searchInput,
+    input[type="search"],
+    input[type="text"].search-input {
+      height: 42px;
+      font-size: 14px;
+      padding: 0 15px;
+    }
+    
+    #searchButton,
+    .search-button {
+      right: 20px;
+      font-size: 18px;
+    }
+  }
