@@ -222,11 +222,11 @@ function displayPendingDelivery(container, pendingDelivery, clientId) {
             <h3 class="info-section-title">
                 <i class="fas fa-truck delivery-icon"></i>Articles en attente de livraison
             </h3>
-            
             <div class="delivery-table-container">
                 <table class="items-table">
                     <thead>
                         <tr>
+                            <th><input type="checkbox" id="select-all-pending" title="Sélectionner tout"></th>
                             <th>Article</th>
                             <th>Catégorie</th>
                             <th>Quantité</th>
@@ -239,17 +239,30 @@ function displayPendingDelivery(container, pendingDelivery, clientId) {
     // Trier les catégories par ordre alphabétique
     const sortedCategories = Object.keys(groupedItems).sort();
     
+    // Variable pour générer des IDs uniques
+    let itemCounter = 0;
+    
     // Ajouter les articles par catégorie
     sortedCategories.forEach(category => {
         html += `
             <tr>
-                <td colspan="4" class="category-header">${category.charAt(0).toUpperCase() + category.slice(1)}</td>
+                <td colspan="5" class="category-header">${category.charAt(0).toUpperCase() + category.slice(1)}</td>
             </tr>
         `;
         
         groupedItems[category].forEach(item => {
+            const itemId = `pending-item-${itemCounter++}`;
             html += `
                 <tr>
+                    <td>
+                        <input type="checkbox" 
+                               id="${itemId}" 
+                               class="select-pending-item" 
+                               data-name="${item.Nom}" 
+                               data-price="${item.prix}" 
+                               data-quantity="${item.quantity}" 
+                               data-category="${item.categorie || 'autres'}">
+                    </td>
                     <td>${item.Nom}</td>
                     <td>${item.categorie || 'Autre'}</td>
                     <td>${item.quantity}</td>
@@ -263,11 +276,91 @@ function displayPendingDelivery(container, pendingDelivery, clientId) {
                     </tbody>
                 </table>
             </div>
+            <div class="pending-actions" style="margin-top: 15px; text-align: right;">
+                <button id="create-order-from-pending" class="action-btn primary-btn" data-client-id="${clientId}">
+                    <i class="fas fa-shopping-cart"></i> Créer une commande avec les articles sélectionnés
+                </button>
+            </div>
         </div>
     `;
     
     // Mettre à jour le conteneur
     container.innerHTML = html;
+    
+    // Ajouter les écouteurs d'événements après avoir inséré le HTML
+    setupPendingDeliveryEvents(clientId);
+}
+
+/**
+ * Configure les écouteurs d'événements pour les articles en attente
+ * @param {string} clientId - ID du client
+ */
+function setupPendingDeliveryEvents(clientId) {
+    // Sélectionner/désélectionner tous les articles
+    const selectAllCheckbox = document.getElementById('select-all-pending');
+    if (selectAllCheckbox) {
+        selectAllCheckbox.addEventListener('change', function() {
+            const isChecked = this.checked;
+            document.querySelectorAll('.select-pending-item').forEach(checkbox => {
+                checkbox.checked = isChecked;
+            });
+        });
+    }
+    
+    // Bouton pour créer une commande à partir des articles sélectionnés
+    const createOrderBtn = document.getElementById('create-order-from-pending');
+    if (createOrderBtn) {
+        createOrderBtn.addEventListener('click', function() {
+            const selectedItems = [];
+            document.querySelectorAll('.select-pending-item:checked').forEach(checkbox => {
+                selectedItems.push({
+                    Nom: checkbox.getAttribute('data-name'),
+                    prix: checkbox.getAttribute('data-price'),
+                    quantity: parseInt(checkbox.getAttribute('data-quantity')),
+                    categorie: checkbox.getAttribute('data-category')
+                });
+            });
+            
+            if (selectedItems.length > 0) {
+                createOrderFromPendingItems(clientId, selectedItems);
+            } else {
+                Notification.showNotification('Veuillez sélectionner au moins un article', 'warning');
+            }
+        });
+    }
+}
+
+/**
+ * Crée une commande à partir des articles en attente sélectionnés
+ * @param {string} clientId - ID du client
+ * @param {Array} items - Articles sélectionnés
+ */
+async function createOrderFromPendingItems(clientId, items) {
+    try {
+        const response = await fetch('/api/admin/create-order-from-pending', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                userId: clientId,
+                items: items
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            Notification.showNotification('Commande créée avec succès', 'success');
+            // Rafraîchir l'affichage
+            viewClientDetails(clientId);
+        } else {
+            Notification.showNotification(`Erreur: ${result.message}`, 'error');
+        }
+    } catch (error) {
+        console.error('Erreur:', error);
+        Notification.showNotification('Erreur de communication avec le serveur', 'error');
+    }
 }
 
 /**

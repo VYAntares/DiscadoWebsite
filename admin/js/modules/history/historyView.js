@@ -537,18 +537,41 @@ function displayOrderDetails(order, container) {
  * @param {string} userId - ID du client
  */
 function showOrderDetailsFromClientView(orderId, userId) {
-    // Obtenir la référence de la modale de commande
-    const orderModal = document.getElementById('orderModal');
+    // Vérifier si la modale existe déjà, sinon la créer
+    let orderModal = document.getElementById('orderModal');
+    
+    if (!orderModal) {
+        // Créer la modale si elle n'existe pas
+        orderModal = createOrderModal();
+    }
+    
     const orderDetailsTitle = document.getElementById('orderDetailsTitle');
     const orderDetailsContent = document.getElementById('orderDetailsContent');
-
-    if (!orderModal || !orderDetailsContent) {
-        console.error("Modal de commande non trouvée");
-        return;
+    
+    // Mettre à jour le titre avec l'ID de la commande
+    if (orderDetailsTitle) {
+        orderDetailsTitle.textContent = `Détails de la commande #${orderId}`;
     }
-
-    // Utiliser directement la fonction de HistoryView
-    HistoryView.viewOrderDetails(orderId, userId);
+    
+    // Afficher un indicateur de chargement
+    if (orderDetailsContent) {
+        orderDetailsContent.innerHTML = '<div class="loading-spinner">Chargement des détails...</div>';
+    }
+    
+    // Charger les détails de la commande depuis l'API
+    fetchOrderDetails(orderId, userId)
+        .then(data => {
+            displayOrderDetails(data, orderDetailsContent);
+        })
+        .catch(error => {
+            if (orderDetailsContent) {
+                orderDetailsContent.innerHTML = `<div class="error-message">Erreur lors du chargement des détails: ${error.message}</div>`;
+            }
+            console.error("Erreur lors du chargement des détails de la commande:", error);
+        });
+    
+    // Afficher la modale
+    orderModal.style.display = 'block';
 }
 
 /**

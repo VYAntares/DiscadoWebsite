@@ -965,9 +965,20 @@ function generateInvoicePDF(doc, orderItems, userProfile, orderDate, orderId, re
     addPageNumber();
   }
 }
+app.post('/api/admin/create-order-from-pending', requireLogin, requireAdmin, (req, res) => {
+  const { userId, items } = req.body;
+  
+  try {
+      const result = orderService.createOrderFromPendingItems(userId, items);
+      res.json(result);
+  } catch (error) {
+      console.error('Error creating order from pending items:', error);
+      res.status(500).json({ success: false, message: 'Error creating order' });
+  }
+});
 
 // Start server
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server started on http://localhost:${PORT}`);
-  console.log(`Available on network at http://172.20.10.3:${PORT}`);
+  console.log(`Available on network at http://192.168.1.252:${PORT}`);
 });
