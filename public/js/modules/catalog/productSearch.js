@@ -4,7 +4,7 @@
  */
 
 /**
- * Effectue une recherche dans la liste des produits
+ * Effectue une recherche dans la liste des produits avec une correspondance flexible
  * @param {string} query - Terme de recherche
  * @param {Array} products - Liste des produits dans laquelle chercher
  * @returns {Array} Produits correspondant à la recherche
@@ -14,18 +14,43 @@ export function searchProducts(query, products) {
         return products; // Retourne tous les produits si la recherche est vide
     }
     
-    query = query.toLowerCase().trim();
+    // Nettoyer et préparer la requête de recherche
+    const cleanQuery = cleanSearchQuery(query);
     
     return products.filter(product => {
         // Vérifier si le produit a un nom valide
         if (!product.Nom) return false;
         
-        const productName = product.Nom.toLowerCase();
-        const productCategory = (product.categorie || '').toLowerCase();
+        // Nettoyer le nom du produit
+        const cleanProductName = cleanSearchQuery(product.Nom);
+        const cleanProductCategory = cleanSearchQuery(product.categorie || '');
         
-        // Recherche dans le nom du produit et la catégorie
-        return productName.includes(query) || productCategory.includes(query);
+        // Séparer les mots de la requête et du produit
+        const queryWords = cleanQuery.split(' ');
+        const productNameWords = cleanProductName.split(' ');
+        
+        // Vérifier si tous les mots de la requête sont présents
+        return queryWords.every(word => 
+            cleanProductName.includes(word) || 
+            cleanProductCategory.includes(word)
+        );
     });
+}
+
+/**
+ * Nettoie une chaîne de recherche pour une comparaison flexible
+ * @param {string} text - Texte à nettoyer
+ * @returns {string} Texte nettoyé
+ */
+function cleanSearchQuery(text) {
+    if (!text) return '';
+    
+    return text
+        .toLowerCase()           // Convertir en minuscules
+        .normalize('NFD')         // Décomposer les caractères accentués
+        .replace(/[\u0300-\u036f]/g, '') // Supprimer les accents
+        .replace(/[^a-z0-9\s]/g, '') // Supprimer les caractères spéciaux
+        .trim();                  // Supprimer les espaces en début et fin
 }
 
 /**
@@ -39,8 +64,15 @@ export function highlightSearchTerm(text, query) {
         return text;
     }
     
-    const regex = new RegExp(`(${query.trim()})`, 'gi');
-    return text.replace(regex, '<mark>$1</mark>');
+    // Nettoyer la requête et le texte
+    const cleanQuery = cleanSearchQuery(query);
+    const cleanText = text;
+    
+    // Créer une expression régulière flexible
+    const queryWords = cleanQuery.split(' ');
+    const regex = new RegExp(`(${queryWords.join('|')})`, 'gi');
+    
+    return cleanText.replace(regex, '<mark>$1</mark>');
 }
 
 /**
