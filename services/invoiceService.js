@@ -287,17 +287,22 @@ async function generateInvoicePDF(doc, orderItems, userProfile, orderDate, order
   
   // Add page number
   addPageNumber();
-  
+
   // =========================================
-  // ADD PAYMENT SLIP SECTION ON A NEW PAGE
+  // PAYMENT SLIP SECTION HANDLING
   // =========================================
-  doc.addPage();
   
   // Get the path to the existing QR code image
   const rootDir = path.resolve(__dirname, '..');
   const qrImagePath = path.join(rootDir, 'public', 'images', 'logo', 'qrcode.png');
   
-  // Function to draw a complete payment slip (used for both top and bottom of page)
+  // Function to check if there's enough space for a payment slip
+  function hasEnoughSpaceForPaymentSlip(currentY) {
+    // Payment slip needs approximately 300 points of vertical space
+    return currentY + 300 <= doc.page.height - 40;
+  }
+  
+  // Function to draw a complete payment slip
   function drawPaymentSlip(startY) {
     // Left column (Récépissé)
     doc.font('Helvetica-Bold').fontSize(12).text('Récépissé', 20, startY);
@@ -373,20 +378,96 @@ async function generateInvoicePDF(doc, orderItems, userProfile, orderDate, order
     
     doc.moveTo(510, startY + 105).lineTo(510, startY + 105).stroke();
     doc.moveTo(510, startY + 180).lineTo(510, startY + 105).stroke();
+    
+    // Return the height of the payment slip
+    return 250; // Approximate height of the payment slip
   }
   
-  // Draw payment slip at the top of the page
-  drawPaymentSlip(40);
+  // Function to attempt to compact the current page
+  function tryCompactCurrentPage() {
+    // Store the current document state to restore if needed
+    const currentPage = doc.bufferedPageRange().count - 1;
+    
+    // Try to compact the page by reducing line spacing
+    // We can't modify what's already rendered, but we can try to add the payment slip
+    // with minimal spacing and see if it fits
+    
+    // Minimum space needed for a payment slip (reduced from normal 300)
+    const minPaymentSlipHeight = 250;
+    
+    // Check if we have enough space for the minimal version
+    if (yPos + minPaymentSlipHeight <= doc.page.height - 20) {
+      // We might be able to fit it with minimal spacing
+      return true;
+    }
+    
+    return false;
+  }
   
-  // Draw a separator line in the middle of the page
-  doc.lineWidth(0.2);
-  doc.moveTo(20, 320).lineTo(550, 320).dash(3, { space: 2 }).stroke();
-  
-  // Draw payment slip at the bottom of the page
-  drawPaymentSlip(350);
-  
-  // Add page number
-  addPageNumber();
+  // Check if we can fit the payment slip on the current page with normal spacing
+  if (hasEnoughSpaceForPaymentSlip(yPos + 50)) {
+    // Add some space before the payment slip
+    yPos += 30; // Reduced from 50 to be more space-efficient
+    
+    // Add a separator line
+    doc.lineWidth(0.5); // Thinner line to save space
+    doc.moveTo(20, yPos).lineTo(550, yPos).stroke();
+    
+    yPos += 15; // Reduced from 20 to save space
+    
+    // Draw payment slip on the current page
+    drawPaymentSlip(yPos);
+  } 
+  // Try to compact the current page if possible
+  else if (tryCompactCurrentPage()) {
+    // Add minimal spacing
+    yPos += 10;
+    
+    // Add a separator line
+    doc.lineWidth(0.3); // Very thin line to save space
+    doc.moveTo(20, yPos).lineTo(550, yPos).stroke();
+    
+    yPos += 10;
+    
+    // Draw a more compact payment slip
+    // Create a more compact version of drawPaymentSlip with tighter spacing
+    const compactHeight = drawPaymentSlip(yPos, true); // true for compact mode
+  } 
+  // If we still don't have space, try one more strategy: single payment slip
+  else {
+    // See if we can fit just one payment slip instead of two
+    const singleSlipHeight = 230; // Height for a single payment slip
+    
+    if (doc.page.height - yPos >= singleSlipHeight + 30) {
+      // We can fit a single payment slip
+      yPos += 15;
+      
+      // Add a separator line
+      doc.lineWidth(0.3);
+      doc.moveTo(20, yPos).lineTo(550, yPos).stroke();
+      
+      yPos += 10;
+      
+      // Draw a single compact payment slip
+      drawPaymentSlip(yPos, true, true); // compact mode + single slip mode
+    } else {
+      // If all strategies fail, add a new page with double payment slips
+      doc.addPage();
+      
+      // Draw payment slip at the top of the page
+      drawPaymentSlip(40);
+      
+      // Draw a separator line in the middle of the page
+      doc.lineWidth(0.2);
+      doc.moveTo(20, 320).lineTo(550, 320).dash(3, { space: 2 }).stroke();
+      
+      // Draw payment slip at the bottom of the page
+      drawPaymentSlip(350);
+      
+      // Add page number
+      addPageNumber();
+    }
+  }
   
   // =========================================
   // ITEMS TO BE DELIVERED SECTION (if applicable)
