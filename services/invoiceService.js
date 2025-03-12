@@ -1,6 +1,4 @@
 // services/invoiceService.js
-// Assurez-vous que ce fichier existe et est correctement configuré
-
 const path = require('path');
 const fs = require('fs');
 const PDFDocument = require('pdfkit');
@@ -15,9 +13,6 @@ const PDFDocument = require('pdfkit');
  * @returns {Promise<void>}
  */
 async function generateInvoicePDF(doc, orderItems, userProfile, orderDate, orderId) {
-  // Ajouter une nouvelle page pour la facture
-  doc.addPage();
-  
   // Function to add a header element with reduced line spacing
   function addHeaderElement(text, x, y, options = {}) {
     doc.font('Helvetica').fontSize(9).text(text, x, y, options);
@@ -79,65 +74,140 @@ async function generateInvoicePDF(doc, orderItems, userProfile, orderDate, order
     // Add the invoice title with the number
     doc.font('Helvetica-Bold').fontSize(14).text(`Facture ${formattedOrderId}`, 50, titleY + 5);
     // Move the date line down one position
-    addHeaderElement(`Order processing date: ${invoiceDate.toLocaleDateString('Fr')}`, 50, titleY + 30);
+    addHeaderElement(`Invoice date: ${invoiceDate.toLocaleDateString('Fr')}`, 50, titleY + 30);
 
     // Return position for table to start
     return titleY + 50; // Adjusted spacing
   }
 
-  // Add table header - slightly reduced size
-  function addTableHeader(yPosition) {
-    // Column configuration
+  // Fonction améliorée pour créer un tableau bien structuré
+  function createCompactTable(startY) {
+    // Configuration des colonnes
     const columns = [
-      { title: 'Description',    width: 200, align: 'left' },
-      { title: 'Quantity',       width:  70, align: 'center' },
-      { title: 'Unit Price',     width: 100, align: 'right' },
-      { title: 'Total',          width: 100, align: 'right' }
+      { title: 'Description', width: 230, align: 'left' },
+      { title: 'Quantity', width: 70, align: 'center' },
+      { title: 'Unit Price', width: 100, align: 'right' },
+      { title: 'Total', width: 100, align: 'right' }
     ];
-
-    // Starting X position
-    let currentX = 50;
-
-    // Table header
-    doc.font('Helvetica-Bold').fontSize(9); // Reduced font size
-
-    columns.forEach(col => {
-      doc.text(col.title, currentX, yPosition, {
-        width: col.width,
+    
+    const tableX = 50;
+    const tableWidth = columns.reduce((sum, col) => sum + col.width, 0);
+    const tableRight = tableX + tableWidth;
+    
+    // Dessiner le cadre extérieur du tableau
+    doc.rect(tableX, startY, tableWidth, 25).stroke();
+    
+    // Entêtes de colonnes
+    let currentX = tableX;
+    doc.font('Helvetica-Bold').fontSize(10);
+    
+    columns.forEach((col, index) => {
+      // Dessiner la séparation verticale (sauf pour la première colonne)
+      if (index > 0) {
+        doc.moveTo(currentX, startY).lineTo(currentX, startY + 25).stroke();
+      }
+      
+      // Ajouter le titre de la colonne
+      doc.text(col.title, currentX + 5, startY + 8, {
+        width: col.width - 10,
         align: col.align
       });
+      
       currentX += col.width;
     });
-
-    // Header separator line
-    doc.lineWidth(1);
-    const lineEnd = 50 + columns.reduce((sum, col) => sum + col.width, 0);
-    doc.moveTo(50, yPosition + 15) // Reduced spacing
-       .lineTo(lineEnd, yPosition + 15)
-       .stroke();
-
-    return { yPosition: yPosition + 20, columns, lineEnd }; // Reduced spacing after header
+    
+    return { 
+      yPosition: startY + 25, 
+      columns, 
+      tableX, 
+      tableWidth, 
+      tableRight 
+    };
   }
 
-  // Check if new page is needed
-  function needsNewPage(currentYPos, requiredHeight = 40) { // Reduced minimum height
-    return currentYPos + requiredHeight > doc.page.height - 40;
+  // Fonction pour ajouter une ligne au tableau
+  function addTableRow(item, category, rowY, isCategory = false) {
+    const { tableX, columns, tableWidth } = tableConfig;
+    const rowHeight = 20;
+    
+    // Rectangle pour la ligne
+    doc.rect(tableX, rowY, tableWidth, rowHeight).stroke();
+    
+    // Contenu de la ligne
+    let currentX = tableX;
+    
+    if (isCategory) {
+      // Ligne de catégorie
+      doc.font('Helvetica-Bold').fontSize(9);
+      doc.fillColor('#f0f0f0');
+      doc.rect(tableX, rowY, tableWidth, rowHeight).fill();
+      doc.fillColor('black');
+      doc.text(category.charAt(0).toUpperCase() + category.slice(1), currentX + 5, rowY + 6, {
+        width: tableWidth - 10
+      });
+    } else {
+      doc.font('Helvetica').fontSize(9);
+      
+      // Description du produit
+      doc.text(item.Nom, currentX + 5, rowY + 6, {
+        width: columns[0].width - 10,
+        align: columns[0].align
+      });
+      currentX += columns[0].width;
+      
+      // Ligne verticale après la description
+      doc.moveTo(currentX, rowY).lineTo(currentX, rowY + rowHeight).stroke();
+      
+      // Quantité
+      doc.text(String(item.quantity), currentX + 5, rowY + 6, {
+        width: columns[1].width - 10,
+        align: columns[1].align
+      });
+      currentX += columns[1].width;
+      
+      // Ligne verticale après la quantité
+      doc.moveTo(currentX, rowY).lineTo(currentX, rowY + rowHeight).stroke();
+      
+      // Prix unitaire
+      doc.text(`${parseFloat(item.prix).toFixed(2)} CHF`, currentX + 5, rowY + 6, {
+        width: columns[2].width - 10,
+        align: columns[2].align
+      });
+      currentX += columns[2].width;
+      
+      // Ligne verticale après le prix unitaire
+      doc.moveTo(currentX, rowY).lineTo(currentX, rowY + rowHeight).stroke();
+      
+      // Total
+      const itemTotal = parseFloat(item.prix) * item.quantity;
+      doc.text(`${itemTotal.toFixed(2)} CHF`, currentX + 5, rowY + 6, {
+        width: columns[3].width - 10,
+        align: columns[3].align
+      });
+    }
+    
+    return rowY + rowHeight;
   }
 
-  // Add a new page
+  // Fonction pour ajouter une nouvelle page avec tableau
   function addNewPage() {
     doc.addPage();
-    return addTableHeader(40).yPosition; // Start higher on new pages
+    return createCompactTable(40).yPosition;
   }
 
-  // Add invoice header
+  // Vérifier si une nouvelle page est nécessaire
+  function needsNewPage(currentY, requiredHeight = 30) {
+    return currentY + requiredHeight > doc.page.height - 120;
+  }
+
+  // Ajouter l'en-tête de la facture
   let yPos = addInvoiceHeader();
-
-  // Add table header
-  const { yPosition, columns, lineEnd } = addTableHeader(yPos);
-  yPos = yPosition;
-
-  // Group items by category
+  
+  // Créer le tableau avec en-têtes
+  const tableConfig = createCompactTable(yPos);
+  yPos = tableConfig.yPosition;
+  
+  // Grouper les articles par catégorie
   const groupedItems = {};
   orderItems.forEach(item => {
     const category = item.categorie || 'autres';
@@ -146,174 +216,132 @@ async function generateInvoicePDF(doc, orderItems, userProfile, orderDate, order
     }
     groupedItems[category].push(item);
   });
-
-  // Add order items by category
-  let totalHT = 0;
   
-  // Sort categories alphabetically
+  // Ajouter les articles au tableau par catégorie
+  let totalHT = 0;
   const sortedCategories = Object.keys(groupedItems).sort();
   
   for (const category of sortedCategories) {
-    // Add category header
-    if (needsNewPage(yPos, 25)) {
+    // Vérifier s'il faut une nouvelle page pour la catégorie
+    if (needsNewPage(yPos)) {
       yPos = addNewPage();
     }
     
-    // Add category title
-    doc.font('Helvetica-Bold').fontSize(10); // Reduced from 12
-    doc.text(category.charAt(0).toUpperCase() + category.slice(1), 50, yPos);
-    yPos += 15; // Reduced spacing
+    // Ajouter l'en-tête de catégorie
+    yPos = addTableRow(null, category, yPos, true);
     
-    // Add items in this category
-    doc.font('Helvetica').fontSize(9); // Reduced from 10
-    
+    // Ajouter les articles de cette catégorie
     for (const item of groupedItems[category]) {
-      // Check if new page needed
-      if (needsNewPage(yPos, 25)) {
+      // Vérifier s'il faut une nouvelle page
+      if (needsNewPage(yPos)) {
         yPos = addNewPage();
       }
-
-      const itemTotal = parseFloat(item.prix) * item.quantity;
-      totalHT += itemTotal;
-
-      let xPos = 50;
-
-      // Item name
-      const textOptions = {
-        width: columns[0].width,
-        align: columns[0].align
-      };
       
-      const textHeight = doc.heightOfString(item.Nom, textOptions);
-      const rowHeight = Math.max(textHeight, 15); // Reduced minimum height
-
-      // Double-check page break
-      if (needsNewPage(yPos, rowHeight)) {
-        yPos = addNewPage();
-      }
-
-      doc.text(item.Nom, xPos, yPos, textOptions);
-      xPos += columns[0].width;
-
-      // Quantity
-      doc.text(String(item.quantity), xPos, yPos, {
-        width: columns[1].width,
-        align: columns[1].align
-      });
-      xPos += columns[1].width;
-
-      // Unit price
-      doc.text(`${parseFloat(item.prix).toFixed(2)} CHF`, xPos, yPos, {
-        width: columns[2].width,
-        align: columns[2].align
-      });
-      xPos += columns[2].width;
-
-      // Total
-      doc.text(`${itemTotal.toFixed(2)} CHF`, xPos, yPos, {
-        width: columns[3].width,
-        align: columns[3].align
-      });
-
-      yPos += rowHeight + 8; // Reduced spacing between rows
+      // Ajouter la ligne de l'article
+      yPos = addTableRow(item, category, yPos);
+      
+      // Calculer le total
+      totalHT += parseFloat(item.prix) * item.quantity;
     }
-    
-    // Add a small space after each category
-    yPos += 5; // Reduced spacing between categories
   }
-
-  // Calculations and totals
+  
+  // Calculs et totaux
   const TVA = 0.081;
   const montantTVA = totalHT * TVA;
   const totalTTC = totalHT + montantTVA;
-
-  // Check if new page needed for totals
+  
+  // Vérifier s'il faut une nouvelle page pour les totaux
   if (needsNewPage(yPos, 80)) {
     yPos = addNewPage();
   }
-
-  // Separator line before totals
-  doc.moveTo(50, yPos + 5)
-     .lineTo(lineEnd, yPos + 5)
-     .stroke();
-
-  // Totals alignment
-  doc.font('Helvetica-Bold').fontSize(9);
-
-  const col3Start = 50 + columns[0].width + columns[1].width;
-  const col4Start = col3Start + columns[2].width;
-
-  // Subtotal
-  yPos += 12; // Reduced spacing
-  doc.text('SOUS-TOTAL HT', col3Start, yPos, {
-    width: columns[2].width,
-    align: 'right'
-  });
-  doc.text(`${totalHT.toFixed(2)} CHF`, col4Start, yPos, {
-    width: columns[3].width,
-    align: 'right'
-  });
-
-  // VAT
-  yPos += 12; // Reduced spacing
-  doc.text('TVA 8.1%', col3Start, yPos, {
-    width: columns[2].width,
-    align: 'right'
-  });
-  doc.text(`${montantTVA.toFixed(2)} CHF`, col4Start, yPos, {
-    width: columns[3].width,
-    align: 'right'
-  });
-
-  // Total
-  yPos += 12; // Reduced spacing
-  doc.text('TOTAL TTC', col3Start, yPos, {
-    width: columns[2].width,
-    align: 'right'
-  });
-  doc.text(`${totalTTC.toFixed(2)} CHF`, col4Start, yPos, {
-    width: columns[3].width,
-    align: 'right'
-  });
   
-  // Add payment terms on the same line as the total, aligned with items on the left
+  // Section des totaux
+  const totalsX = tableConfig.tableRight - 200;
+  const totalsWidth = 200;
+  const rowHeight = 20;
+  
+  // Sous-total
+  doc.rect(totalsX, yPos, totalsWidth, rowHeight).stroke();
   doc.font('Helvetica-Bold').fontSize(9);
-  doc.text('CONDITIONS DE PAIEMENT: net à 30 jours', 50, yPos, {
-    width: columns[0].width + columns[1].width,
+  doc.text('SOUS-TOTAL HT', totalsX + 5, yPos + 6, {
+    width: 100,
     align: 'left'
   });
-
-  // =========================================
-  // PAYMENT SLIP SECTION HANDLING
-  // =========================================
+  doc.text(`${totalHT.toFixed(2)} CHF`, totalsX + 105, yPos + 6, {
+    width: 90,
+    align: 'right'
+  });
+  yPos += rowHeight;
   
+  // TVA
+  doc.rect(totalsX, yPos, totalsWidth, rowHeight).stroke();
+  doc.text('TVA 8.1%', totalsX + 5, yPos + 6, {
+    width: 100,
+    align: 'left'
+  });
+  doc.text(`${montantTVA.toFixed(2)} CHF`, totalsX + 105, yPos + 6, {
+    width: 90,
+    align: 'right'
+  });
+  yPos += rowHeight;
+  
+  // Total TTC et conditions de paiement sur la même ligne
+  // Créer un rectangle pour toute la largeur du tableau
+  doc.rect(tableConfig.tableX, yPos, tableConfig.tableWidth, rowHeight).stroke();
+  
+  // Zone pour les conditions de paiement (partie gauche)
+  doc.font('Helvetica-Bold').fontSize(9);
+  doc.text('CONDITIONS DE PAIEMENT: net à 30 jours', tableConfig.tableX + 5, yPos + 6, {
+    width: tableConfig.tableWidth - totalsWidth - 10,
+    align: 'left'
+  });
+  
+  // Zone pour le total TTC (partie droite)
+  doc.rect(totalsX, yPos, totalsWidth, rowHeight).stroke();
+  doc.fillColor('#f0f0f0');
+  doc.rect(totalsX, yPos, totalsWidth, rowHeight).fill();
+  doc.fillColor('black');
+  doc.text('TOTAL TTC', totalsX + 5, yPos + 6, {
+    width: 100,
+    align: 'left'
+  });
+  doc.text(`${totalTTC.toFixed(2)} CHF`, totalsX + 105, yPos + 6, {
+    width: 90,
+    align: 'right'
+  });
+  
+  yPos += rowHeight + 10;
+  
+  // =========================================
+  // PAYMENT SLIP SECTION
+  // =========================================
+
   // Get the path to the receipt image
   const rootDir = path.resolve(__dirname, '..');
   const receiptImagePath = path.join(rootDir, 'public', 'images', 'logo', 'recepisse.png');
-  
+
   // Set receipt image to fill page width with proper margins
   const pageWidth = doc.page.width;
-  const pageMargin = 0; // No margins for the receipt
   const receiptImageWidth = pageWidth; // Full page width
-  
+
   // Calculate approximate height based on image aspect ratio (assuming 1.8:1 ratio)
   const receiptAspectRatio = 1.8; // Width:Height ratio
   const receiptImageHeight = receiptImageWidth / receiptAspectRatio;
-  
+
   // Check if there's enough space in the current page for the receipt
   const minBottomMargin = 0; // Minimize bottom margin to maximize space
   const spaceNeeded = receiptImageHeight + minBottomMargin;
-  const spaceAvailable = doc.page.height - yPos;
-  
+  const spaceAvailable = doc.page.height - yPos - 40; // Allowing some extra space
+
   if (spaceAvailable >= spaceNeeded) {
     // There's enough space on current page
     // Calculate position to place receipt at the absolute bottom of the page
     const receiptYPosition = doc.page.height - receiptImageHeight;
-    
+
     // Add a separator line
     doc.lineWidth(0.5);
     doc.moveTo(0, receiptYPosition - 10).lineTo(doc.page.width, receiptYPosition - 10).stroke();
-    
+
     // Position the receipt at the very bottom of the page
     doc.image(receiptImagePath, 0, receiptYPosition, { 
       width: receiptImageWidth,
@@ -322,16 +350,30 @@ async function generateInvoicePDF(doc, orderItems, userProfile, orderDate, order
   } else {
     // Not enough space, add a new page for receipt
     doc.addPage();
-    
+
     // Position the receipt at the absolute bottom of the new page
     const receiptYPosition = doc.page.height - receiptImageHeight;
-    
+
     // Insert the receipt image aligned to the bottom
     doc.image(receiptImagePath, 0, receiptYPosition, { 
       width: receiptImageWidth,
       align: 'center'
     });
   }
+
+  // Add QRCode at the end of the document
+  const qrCodeImagePath = path.join(rootDir, 'public', 'images', 'logo', 'qrcode.png');
+  const qrCodeImageWidth = 100; // Adjust the width as needed
+
+  // Add a new page for the QRCode if there isn't enough space
+  if (doc.y + 150 > doc.page.height - 50) {
+    doc.addPage();
+  }
+
+  // Add the QRCode image at the desired position
+  doc.image(qrCodeImagePath, doc.page.width - qrCodeImageWidth - 50, doc.page.height - 150, { 
+    width: qrCodeImageWidth 
+  });
 }
 
 module.exports = {
