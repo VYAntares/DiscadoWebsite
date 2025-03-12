@@ -290,3 +290,258 @@
         font-size: 9px;
     }
 }
+
+/* PC Optimizations for history/calendar view */
+
+/* Calendar styling improvements */
+.calendar-container {
+    padding: 15px;
+    margin-bottom: 30px;
+  }
+  
+  .calendar-body {
+    gap: 15px;
+    margin-top: 10px;
+  }
+  
+  .calendar-day {
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 2px;
+    position: relative;
+    font-weight: 500;
+  }
+  
+  .calendar-day.has-orders {
+    background-color: rgba(255, 255, 255, 0.15);
+  }
+  
+  .calendar-day.selected {
+    background-color: #e74c3c;
+    transform: scale(1.15);
+    z-index: 1;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+  }
+  
+  .order-count {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    min-width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 600;
+  }
+  
+  /* Orders list improvements */
+  .day-orders-container {
+    background-color: white;
+    border-radius: 10px;
+    padding: 20px;
+    margin-top: 20px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+  }
+  
+  .selected-date {
+    margin-bottom: 20px;
+    font-size: 18px;
+    color: #2575fc;
+    font-weight: 600;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #e1e8ed;
+  }
+  
+  .order-item {
+    padding: 20px;
+    margin-bottom: 15px;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+    border-left: 4px solid #2575fc;
+  }
+  
+  .order-date-header {
+    font-size: 18px;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  
+  .order-client-info {
+    margin-bottom: 15px;
+  }
+  
+  .order-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+  }
+  
+  /* iPhone specific optimizations for the history detail pages */
+  @media screen and (max-width: 480px) {
+    /* Fix for duplicate order title */
+    .order-details-modal .order-details-title:first-child {
+      display: none;
+    }
+  
+    /* Modal content adjustments */
+    .order-details-modal .modal-content {
+      margin: 0;
+      width: 100%;
+      max-width: 100%;
+      height: 100%;
+      max-height: 100%;
+      border-radius: 0;
+      padding: 15px 10px;
+    }
+  
+    /* Close button optimization */
+    .order-details-modal .close-modal {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      z-index: 1001;
+      background-color: rgba(255, 255, 255, 0.8);
+    }
+  
+    /* Order detail header adjustments */
+    .order-detail-header {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 10px;
+    }
+  
+    .order-number {
+      font-size: 18px;
+    }
+  
+    /* Table adjustments */
+    .items-table {
+      font-size: 13px;
+    }
+  
+    .items-table th,
+    .items-table td {
+      padding: 8px 6px;
+    }
+  
+    /* Product column should be prioritized */
+    .product-column {
+      min-width: 120px;
+    }
+  
+    /* Make quantity columns narrower */
+    .qty-column {
+      width: 8%;
+    }
+  
+    /* Price columns can be narrower */
+    .unit-price-column,
+    .total-column {
+      width: 18%;
+    }
+  
+    /* Action buttons */
+    .action-btn {
+      padding: 8px 10px;
+      font-size: 12px;
+      min-height: 44px; /* Apple's recommended touch target size */
+    }
+  
+    /* Client detail section */
+    .client-detail-grid {
+      grid-template-columns: 1fr;
+      gap: 8px;
+    }
+  
+    .client-detail-item {
+      padding: 8px;
+    }
+  
+    /* Fix order summary on smaller screens */
+    .order-summary {
+      flex-direction: column;
+      text-align: right;
+    }
+  
+    .order-total-amount {
+      font-size: 18px;
+    }
+  
+    /* Fix action buttons footer */
+    .order-actions-footer {
+      flex-direction: column;
+      gap: 10px;
+    }
+  
+    .download-invoice-btn,
+    .close-detail-btn {
+      width: 100%;
+      justify-content: center;
+    }
+  
+    /* Fix category headers in item tables */
+    .category-header,
+    .category-section {
+      padding: 8px 6px;
+      font-size: 13px;
+    }
+  
+    /* Calendar improvements for mobile */
+    .calendar-selectors {
+      flex-direction: column;
+      gap: 10px;
+      padding: 15px;
+    }
+  
+    .calendar-select {
+      width: 100%;
+    }
+  
+    .calendar-day {
+      width: 35px;
+      height: 35px;
+      font-size: 13px;
+    }
+  
+    .order-count {
+      min-width: 18px;
+      height: 18px;
+      font-size: 10px;
+    }
+  }
+  
+  /* For very small screens (iPhone SE, etc.) */
+  @media screen and (max-width: 375px) {
+    .calendar-day {
+      width: 32px;
+      height: 32px;
+      font-size: 12px;
+    }
+  
+    .order-count {
+      min-width: 16px;
+      height: 16px;
+      font-size: 9px;
+    }
+  
+    .items-table th,
+    .items-table td {
+      padding: 6px 4px;
+      font-size: 11px;
+    }
+  
+    .action-btn {
+      padding: 6px 8px;
+      font-size: 11px;
+    }
+  }

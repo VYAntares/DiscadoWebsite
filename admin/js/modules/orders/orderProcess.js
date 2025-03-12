@@ -85,7 +85,6 @@ function generateItemsByCategory(items) {
                         <input 
                             type="number" 
                             min="0" 
-                            max="${item.quantity}" 
                             value="0" 
                             class="delivered-quantity" 
                             data-item-name="${item.Nom}"
@@ -265,22 +264,24 @@ function setupQuantityEvents() {
     // Gestion dynamique du total lors de la modification des quantités
     quantityInputs.forEach(input => {
         input.addEventListener('input', function() {
-            // Appliquer les restrictions min/max
+            // Obtenir la quantité maximale commandée (pour référence)
             const max = parseInt(this.getAttribute('data-max-quantity'), 10);
             const currentValue = parseInt(this.value, 10) || 0;
             
-            if (currentValue > max) {
-                this.value = max;
-                Notification.showNotification(`Quantité limitée à ${max}`, 'info');
-            }
-            
             // Mettre à jour les classes selon la quantité saisie
             const row = this.closest('tr');
-            if (currentValue > 0) {
-                row.classList.add('delivered-item');
-                row.classList.remove('item-unavailable');
-            } else {
+            
+            if (currentValue > max) {
+                // Quantité qui dépasse la commande - style différent
+                row.classList.add('exceeds-ordered');
                 row.classList.remove('delivered-item');
+            } else if (currentValue > 0) {
+                // Quantité normale
+                row.classList.add('delivered-item');
+                row.classList.remove('item-unavailable', 'exceeds-ordered');
+            } else {
+                // Quantité à zéro
+                row.classList.remove('delivered-item', 'exceeds-ordered');
             }
             
             calculateOrderTotal();

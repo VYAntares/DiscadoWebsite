@@ -555,8 +555,18 @@ const orderService = {
                     );
                     
                     if (deliveredItem && deliveredItem.quantity > 0) {
-                        if (deliveredItem.quantity === item.quantity) {
-                            // Fully delivered - update status only
+                        if (deliveredItem.quantity >= item.quantity) {
+                            // Fully delivered or excess quantity - update both status and quantity
+                            
+                            // Modifier la quantité de l'article original pour refléter la quantité réellement livrée
+                            dbModule.updateOrderItemQuantity.run(
+                                deliveredItem.quantity, // Utiliser la quantité réellement livrée (même si > commandée)
+                                orderId,
+                                item.product_name,
+                                item.category
+                            );
+                            
+                            // Marquer l'article comme livré
                             dbModule.updateOrderItemStatus.run('delivered', orderId, item.product_name);
                         } else if (deliveredItem.quantity < item.quantity) {
                             // Partially delivered - create two entries

@@ -8,6 +8,7 @@ const fs = require('fs');
 const userService = require('./services/userService');
 const orderService = require('./services/orderService');
 const productService = require('./services/productService');
+const invoiceService = require('./services/invoiceService');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -415,7 +416,8 @@ app.get('/api/admin/client-orders/:clientId', requireLogin, requireAdmin, (req, 
   }
 });
 
-app.get('/api/download-invoice/:orderId', requireLogin, (req, res) => {
+// Route pour télécharger la facture (client)
+app.get('/api/download-invoice/:orderId', requireLogin, async (req, res) => {
   const userId = req.session.user.username;
   const orderId = req.params.orderId;
   
@@ -453,8 +455,8 @@ app.get('/api/download-invoice/:orderId', requireLogin, (req, res) => {
     // Pipe to response
     doc.pipe(res);
     
-    // Generate invoice
-    generateInvoicePDF(doc, orderItems, userProfile, orderDate, orderId, remainingItems);
+    // Generate invoice - Utiliser la fonction asynchrone du service
+    await invoiceService.generateInvoicePDF(doc, orderItems, userProfile, orderDate, orderId, remainingItems);
     
     // Finalize PDF
     doc.end();
@@ -464,7 +466,8 @@ app.get('/api/download-invoice/:orderId', requireLogin, (req, res) => {
   }
 });
 
-app.get('/api/admin/download-invoice/:orderId/:userId', requireLogin, requireAdmin, (req, res) => {
+// Route pour télécharger la facture (admin)
+app.get('/api/admin/download-invoice/:orderId/:userId', requireLogin, requireAdmin, async (req, res) => {
   const { orderId, userId } = req.params;
   
   try {
@@ -501,8 +504,8 @@ app.get('/api/admin/download-invoice/:orderId/:userId', requireLogin, requireAdm
     // Pipe to response
     doc.pipe(res);
     
-    // Generate invoice
-    generateInvoicePDF(doc, orderItems, userProfile, orderDate, orderId, remainingItems);
+    // Generate invoice - Utiliser la fonction asynchrone du service
+    await invoiceService.generateInvoicePDF(doc, orderItems, userProfile, orderDate, orderId, remainingItems);
     
     // Finalize PDF
     doc.end();
@@ -511,7 +514,6 @@ app.get('/api/admin/download-invoice/:orderId/:userId', requireLogin, requireAdm
     res.status(500).json({ error: 'Error generating invoice' });
   }
 });
-
 // Route for creating a new client account (admin only)
 app.post('/api/admin/create-client', requireLogin, requireAdmin, (req, res) => {
   const { username, password, profileData } = req.body;
@@ -587,396 +589,396 @@ app.use((err, req, res, next) => {
   res.status(500).send('Server error occurred. Please try again later.');
 });
 
-function generateInvoicePDF(doc, orderItems, userProfile, orderDate, orderId, remainingItems = []) {
-  // Function to add a header element
-  function addHeaderElement(text, x, y, options = {}) {
-    doc.font('Helvetica').fontSize(10).text(text, x, y, options);
-  }
+// function generateInvoicePDF(doc, orderItems, userProfile, orderDate, orderId, remainingItems = []) {
+//   // Function to add a header element
+//   function addHeaderElement(text, x, y, options = {}) {
+//     doc.font('Helvetica').fontSize(10).text(text, x, y, options);
+//   }
 
-  // Page counter
-  let pageCount = 0;
-  const totalPages = calculateTotalPages(orderItems, remainingItems);
+//   // Page counter
+//   let pageCount = 0;
+//   const totalPages = calculateTotalPages(orderItems, remainingItems);
   
-  // Function to calculate total pages
-  function calculateTotalPages(items, remainingItems) {
-    const itemsPerFirstPage = 10;
-    const itemsPerPage = 15;
+//   // Function to calculate total pages
+//   function calculateTotalPages(items, remainingItems) {
+//     const itemsPerFirstPage = 10;
+//     const itemsPerPage = 15;
     
-    let pages = 1;
+//     let pages = 1;
     
-    if (items.length > itemsPerFirstPage) {
-      pages += Math.ceil((items.length - itemsPerFirstPage) / itemsPerPage);
-    }
+//     if (items.length > itemsPerFirstPage) {
+//       pages += Math.ceil((items.length - itemsPerFirstPage) / itemsPerPage);
+//     }
     
-    if (remainingItems && remainingItems.length > 0) {
-      pages += Math.ceil((remainingItems.length - itemsPerFirstPage) / itemsPerPage);
-    }
+//     if (remainingItems && remainingItems.length > 0) {
+//       pages += Math.ceil((remainingItems.length - itemsPerFirstPage) / itemsPerPage);
+//     }
     
-    return pages;
-  }
+//     return pages;
+//   }
   
-  // Function to add page number
-  function addPageNumber() {
-    pageCount++;
-    doc.font('Helvetica').fontSize(8);
-    doc.text(
-      `Page ${pageCount}/${totalPages}`,
-      doc.page.width - 50,
-      doc.page.height - 20,
-      { align: 'right' }
-    );
-  }
+//   // Function to add page number
+//   function addPageNumber() {
+//     pageCount++;
+//     doc.font('Helvetica').fontSize(8);
+//     doc.text(
+//       `Page ${pageCount}/${totalPages}`,
+//       doc.page.width - 50,
+//       doc.page.height - 20,
+//       { align: 'right' }
+//     );
+//   }
 
-  // Invoice header
-  function addInvoiceHeader() {
-    // Logo
-    doc.image(path.join(__dirname, 'public', 'images', 'logo', 'logo_discado_noir.png'), 50, 45, { width: 100 });
+//   // Invoice header
+//   function addInvoiceHeader() {
+//     // Logo
+//     doc.image(path.join(__dirname, 'public', 'images', 'logo', 'logo_discado_noir.png'), 50, 45, { width: 100 });
 
-    // Sender information
-    addHeaderElement('Discado Sàrl', 50, 150);
-    addHeaderElement('Sevelin 4A', 50, 165);
-    addHeaderElement('1007 Lausanne', 50, 180);
-    addHeaderElement('+41 79 457 33 85', 50, 195);
-    addHeaderElement('discadoswiss@gmail.com', 50, 210);
+//     // Sender information
+//     addHeaderElement('Discado Sàrl', 50, 150);
+//     addHeaderElement('Sevelin 4A', 50, 165);
+//     addHeaderElement('1007 Lausanne', 50, 180);
+//     addHeaderElement('+41 79 457 33 85', 50, 195);
+//     addHeaderElement('discadoswiss@gmail.com', 50, 210);
 
-    // Client information
-    const clientY = 150;
-    addHeaderElement('To:', 350, clientY);
-    addHeaderElement(`${userProfile.firstName} ${userProfile.lastName}`, 350, clientY + 15);
-    addHeaderElement(userProfile.shopName, 350, clientY + 30);
-    addHeaderElement(userProfile.shopAddress || userProfile.address, 350, clientY + 45);
-    addHeaderElement(
-      `${userProfile.shopZipCode || userProfile.postalCode} ${userProfile.shopCity || userProfile.city}`,
-      350,
-      clientY + 60
-    );
+//     // Client information
+//     const clientY = 150;
+//     addHeaderElement('To:', 350, clientY);
+//     addHeaderElement(`${userProfile.firstName} ${userProfile.lastName}`, 350, clientY + 15);
+//     addHeaderElement(userProfile.shopName, 350, clientY + 30);
+//     addHeaderElement(userProfile.shopAddress || userProfile.address, 350, clientY + 45);
+//     addHeaderElement(
+//       `${userProfile.shopZipCode || userProfile.postalCode} ${userProfile.shopCity || userProfile.city}`,
+//       350,
+//       clientY + 60
+//     );
 
-    // Invoice details
-    const invoiceDate = orderDate;
+//     // Invoice details
+//     const invoiceDate = orderDate;
 
-    doc.font('Helvetica-Bold').fontSize(16).text('Delivery Note', 50, 250);
-    addHeaderElement(`Order processing date: ${invoiceDate.toLocaleDateString('Fr')}`, 50, 280);
+//     doc.font('Helvetica-Bold').fontSize(16).text('Delivery Note', 50, 250);
+//     addHeaderElement(`Order processing date: ${invoiceDate.toLocaleDateString('Fr')}`, 50, 280);
 
-    return 350;
-  }
+//     return 350;
+//   }
 
-  // Add table header
-  function addTableHeader(yPosition) {
-    // Column configuration
-    const columns = [
-      { title: 'Description',    width: 200, align: 'left' },
-      { title: 'Quantity',       width:  70, align: 'center' },
-      { title: 'Unit Price',     width: 100, align: 'right' },
-      { title: 'Total',          width: 100, align: 'right' }
-    ];
+//   // Add table header
+//   function addTableHeader(yPosition) {
+//     // Column configuration
+//     const columns = [
+//       { title: 'Description',    width: 200, align: 'left' },
+//       { title: 'Quantity',       width:  70, align: 'center' },
+//       { title: 'Unit Price',     width: 100, align: 'right' },
+//       { title: 'Total',          width: 100, align: 'right' }
+//     ];
 
-    // Starting X position
-    let currentX = 50;
+//     // Starting X position
+//     let currentX = 50;
 
-    // Table header
-    doc.font('Helvetica-Bold').fontSize(10);
+//     // Table header
+//     doc.font('Helvetica-Bold').fontSize(10);
 
-    columns.forEach(col => {
-      doc.text(col.title, currentX, yPosition, {
-        width: col.width,
-        align: col.align
-      });
-      currentX += col.width;
-    });
+//     columns.forEach(col => {
+//       doc.text(col.title, currentX, yPosition, {
+//         width: col.width,
+//         align: col.align
+//       });
+//       currentX += col.width;
+//     });
 
-    // Header separator line
-    doc.lineWidth(1.2);
-    const lineEnd = 50 + columns.reduce((sum, col) => sum + col.width, 0);
-    doc.moveTo(50, yPosition + 20)
-       .lineTo(lineEnd, yPosition + 20)
-       .stroke();
+//     // Header separator line
+//     doc.lineWidth(1.2);
+//     const lineEnd = 50 + columns.reduce((sum, col) => sum + col.width, 0);
+//     doc.moveTo(50, yPosition + 20)
+//        .lineTo(lineEnd, yPosition + 20)
+//        .stroke();
 
-    return { yPosition: yPosition + 30, columns, lineEnd };
-  }
+//     return { yPosition: yPosition + 30, columns, lineEnd };
+//   }
 
-  // Check if new page is needed
-  function needsNewPage(currentYPos, requiredHeight = 50) {
-    return currentYPos + requiredHeight > doc.page.height - 40;
-  }
+//   // Check if new page is needed
+//   function needsNewPage(currentYPos, requiredHeight = 50) {
+//     return currentYPos + requiredHeight > doc.page.height - 40;
+//   }
 
-  // Add a new page
-  function addNewPage() {
-    addPageNumber();
-    doc.addPage();
-    return addTableHeader(50).yPosition;
-  }
+//   // Add a new page
+//   function addNewPage() {
+//     addPageNumber();
+//     doc.addPage();
+//     return addTableHeader(50).yPosition;
+//   }
 
-  // Add invoice header
-  let yPos = addInvoiceHeader();
+//   // Add invoice header
+//   let yPos = addInvoiceHeader();
 
-  // Add table header
-  const { yPosition, columns, lineEnd } = addTableHeader(yPos);
-  yPos = yPosition;
+//   // Add table header
+//   const { yPosition, columns, lineEnd } = addTableHeader(yPos);
+//   yPos = yPosition;
 
-  // Group items by category
-  const groupedItems = {};
-  orderItems.forEach(item => {
-    const category = item.categorie || 'autres';
-    if (!groupedItems[category]) {
-      groupedItems[category] = [];
-    }
-    groupedItems[category].push(item);
-  });
+//   // Group items by category
+//   const groupedItems = {};
+//   orderItems.forEach(item => {
+//     const category = item.categorie || 'autres';
+//     if (!groupedItems[category]) {
+//       groupedItems[category] = [];
+//     }
+//     groupedItems[category].push(item);
+//   });
 
-  // Add order items by category
-  let totalHT = 0;
+//   // Add order items by category
+//   let totalHT = 0;
   
-  // Sort categories alphabetically
-  const sortedCategories = Object.keys(groupedItems).sort();
+//   // Sort categories alphabetically
+//   const sortedCategories = Object.keys(groupedItems).sort();
   
-  for (const category of sortedCategories) {
-    // Add category header
-    if (needsNewPage(yPos, 30)) {
-      yPos = addNewPage();
-    }
+//   for (const category of sortedCategories) {
+//     // Add category header
+//     if (needsNewPage(yPos, 30)) {
+//       yPos = addNewPage();
+//     }
     
-    // Add category title
-    doc.font('Helvetica-Bold').fontSize(12);
-    doc.text(category.charAt(0).toUpperCase() + category.slice(1), 50, yPos);
-    yPos += 20;
+//     // Add category title
+//     doc.font('Helvetica-Bold').fontSize(12);
+//     doc.text(category.charAt(0).toUpperCase() + category.slice(1), 50, yPos);
+//     yPos += 20;
     
-    // Add items in this category
-    doc.font('Helvetica').fontSize(10);
+//     // Add items in this category
+//     doc.font('Helvetica').fontSize(10);
     
-    for (const item of groupedItems[category]) {
-      // Check if new page needed
-      if (needsNewPage(yPos, 30)) {
-        yPos = addNewPage();
-      }
+//     for (const item of groupedItems[category]) {
+//       // Check if new page needed
+//       if (needsNewPage(yPos, 30)) {
+//         yPos = addNewPage();
+//       }
 
-      const itemTotal = parseFloat(item.prix) * item.quantity;
-      totalHT += itemTotal;
+//       const itemTotal = parseFloat(item.prix) * item.quantity;
+//       totalHT += itemTotal;
 
-      let xPos = 50;
+//       let xPos = 50;
 
-      // Item name
-      const textOptions = {
-        width: columns[0].width,
-        align: columns[0].align
-      };
+//       // Item name
+//       const textOptions = {
+//         width: columns[0].width,
+//         align: columns[0].align
+//       };
       
-      const textHeight = doc.heightOfString(item.Nom, textOptions);
-      const rowHeight = Math.max(textHeight, 20);
+//       const textHeight = doc.heightOfString(item.Nom, textOptions);
+//       const rowHeight = Math.max(textHeight, 20);
 
-      // Double-check page break
-      if (needsNewPage(yPos, rowHeight)) {
-        yPos = addNewPage();
-      }
+//       // Double-check page break
+//       if (needsNewPage(yPos, rowHeight)) {
+//         yPos = addNewPage();
+//       }
 
-      doc.text(item.Nom, xPos, yPos, textOptions);
-      xPos += columns[0].width;
+//       doc.text(item.Nom, xPos, yPos, textOptions);
+//       xPos += columns[0].width;
 
-      // Quantity
-      doc.text(String(item.quantity), xPos, yPos, {
-        width: columns[1].width,
-        align: columns[1].align
-      });
-      xPos += columns[1].width;
+//       // Quantity
+//       doc.text(String(item.quantity), xPos, yPos, {
+//         width: columns[1].width,
+//         align: columns[1].align
+//       });
+//       xPos += columns[1].width;
 
-      // Unit price
-      doc.text(`${parseFloat(item.prix).toFixed(2)} CHF`, xPos, yPos, {
-        width: columns[2].width,
-        align: columns[2].align
-      });
-      xPos += columns[2].width;
+//       // Unit price
+//       doc.text(`${parseFloat(item.prix).toFixed(2)} CHF`, xPos, yPos, {
+//         width: columns[2].width,
+//         align: columns[2].align
+//       });
+//       xPos += columns[2].width;
 
-      // Total
-      doc.text(`${itemTotal.toFixed(2)} CHF`, xPos, yPos, {
-        width: columns[3].width,
-        align: columns[3].align
-      });
+//       // Total
+//       doc.text(`${itemTotal.toFixed(2)} CHF`, xPos, yPos, {
+//         width: columns[3].width,
+//         align: columns[3].align
+//       });
 
-      yPos += rowHeight + 10;
-    }
+//       yPos += rowHeight + 10;
+//     }
     
-    // Add a small space after each category
-    yPos += 10;
-  }
+//     // Add a small space after each category
+//     yPos += 10;
+//   }
 
-  // Calculations and totals
-  const TVA = 0.081;
-  const montantTVA = totalHT * TVA;
-  const totalTTC = totalHT + montantTVA;
+//   // Calculations and totals
+//   const TVA = 0.081;
+//   const montantTVA = totalHT * TVA;
+//   const totalTTC = totalHT + montantTVA;
 
-  // Check if new page needed for totals
-  if (needsNewPage(yPos, 100)) {
-    yPos = addNewPage();
-  }
+//   // Check if new page needed for totals
+//   if (needsNewPage(yPos, 100)) {
+//     yPos = addNewPage();
+//   }
 
-  // Separator line before totals
-  doc.moveTo(50, yPos + 5)
-     .lineTo(lineEnd, yPos + 5)
-     .stroke();
+//   // Separator line before totals
+//   doc.moveTo(50, yPos + 5)
+//      .lineTo(lineEnd, yPos + 5)
+//      .stroke();
 
-  // Totals alignment
-  doc.font('Helvetica-Bold').fontSize(10);
+//   // Totals alignment
+//   doc.font('Helvetica-Bold').fontSize(10);
 
-  const col3Start = 50 + columns[0].width + columns[1].width;
-  const col4Start = col3Start + columns[2].width;
+//   const col3Start = 50 + columns[0].width + columns[1].width;
+//   const col4Start = col3Start + columns[2].width;
 
-  // Subtotal
-  yPos += 15;
-  doc.text('SUBTOTAL', col3Start, yPos, {
-    width: columns[2].width,
-    align: 'right'
-  });
-  doc.text(`${totalHT.toFixed(2)} CHF`, col4Start, yPos, {
-    width: columns[3].width,
-    align: 'right'
-  });
+//   // Subtotal
+//   yPos += 15;
+//   doc.text('SUBTOTAL', col3Start, yPos, {
+//     width: columns[2].width,
+//     align: 'right'
+//   });
+//   doc.text(`${totalHT.toFixed(2)} CHF`, col4Start, yPos, {
+//     width: columns[3].width,
+//     align: 'right'
+//   });
 
-  // VAT
-  yPos += 15;
-  doc.text('VAT 8.1%', col3Start, yPos, {
-    width: columns[2].width,
-    align: 'right'
-  });
-  doc.text(`${montantTVA.toFixed(2)} CHF`, col4Start, yPos, {
-    width: columns[3].width,
-    align: 'right'
-  });
+//   // VAT
+//   yPos += 15;
+//   doc.text('VAT 8.1%', col3Start, yPos, {
+//     width: columns[2].width,
+//     align: 'right'
+//   });
+//   doc.text(`${montantTVA.toFixed(2)} CHF`, col4Start, yPos, {
+//     width: columns[3].width,
+//     align: 'right'
+//   });
 
-  // Total
-  yPos += 15;
-  doc.text('TOTAL', col3Start, yPos, {
-    width: columns[2].width,
-    align: 'right'
-  });
-  doc.text(`${totalTTC.toFixed(2)} CHF`, col4Start, yPos, {
-    width: columns[3].width,
-    align: 'right'
-  });
+//   // Total
+//   yPos += 15;
+//   doc.text('TOTAL', col3Start, yPos, {
+//     width: columns[2].width,
+//     align: 'right'
+//   });
+//   doc.text(`${totalTTC.toFixed(2)} CHF`, col4Start, yPos, {
+//     width: columns[3].width,
+//     align: 'right'
+//   });
 
-  // Footer
-  yPos += 25;
-  doc.font('Helvetica').fontSize(10);
-  doc.text('Thank you for your order!', 50, yPos, { align: 'center', width: doc.page.width - 100 });
+//   // Footer
+//   yPos += 25;
+//   doc.font('Helvetica').fontSize(10);
+//   doc.text('Thank you for your order!', 50, yPos, { align: 'center', width: doc.page.width - 100 });
   
-  // Add page number
-  addPageNumber();
+//   // Add page number
+//   addPageNumber();
   
-  // Items to deliver section (if applicable)
-  if (remainingItems && remainingItems.length > 0) {
-    doc.addPage();
+//   // Items to deliver section (if applicable)
+//   if (remainingItems && remainingItems.length > 0) {
+//     doc.addPage();
     
-    // Title
-    doc.font('Helvetica-Bold').fontSize(16).text('Items to be delivered later', 50, 50);
-    doc.font('Helvetica').fontSize(10).text('The following items from your order will be delivered at a later date.', 50, 80);
+//     // Title
+//     doc.font('Helvetica-Bold').fontSize(16).text('Items to be delivered later', 50, 50);
+//     doc.font('Helvetica').fontSize(10).text('The following items from your order will be delivered at a later date.', 50, 80);
     
-    // Table header
-    const toDeliverTable = addTableHeader(120);
-    let toDeliverYPos = toDeliverTable.yPosition;
+//     // Table header
+//     const toDeliverTable = addTableHeader(120);
+//     let toDeliverYPos = toDeliverTable.yPosition;
     
-    // Group remaining items by category
-    const groupedRemainingItems = {};
-    remainingItems.forEach(item => {
-      const category = item.categorie || 'autres';
-      if (!groupedRemainingItems[category]) {
-        groupedRemainingItems[category] = [];
-      }
-      groupedRemainingItems[category].push(item);
-    });
+//     // Group remaining items by category
+//     const groupedRemainingItems = {};
+//     remainingItems.forEach(item => {
+//       const category = item.categorie || 'autres';
+//       if (!groupedRemainingItems[category]) {
+//         groupedRemainingItems[category] = [];
+//       }
+//       groupedRemainingItems[category].push(item);
+//     });
     
-    // Sort remaining categories alphabetically
-    const sortedRemainingCategories = Object.keys(groupedRemainingItems).sort();
+//     // Sort remaining categories alphabetically
+//     const sortedRemainingCategories = Object.keys(groupedRemainingItems).sort();
     
-    // Process remaining items by category
-    for (const category of sortedRemainingCategories) {
-      // Add category header
-      if (needsNewPage(toDeliverYPos, 30)) {
-        addPageNumber();
-        doc.addPage();
-        const newHeader = addTableHeader(50);
-        toDeliverYPos = newHeader.yPosition;
-      }
+//     // Process remaining items by category
+//     for (const category of sortedRemainingCategories) {
+//       // Add category header
+//       if (needsNewPage(toDeliverYPos, 30)) {
+//         addPageNumber();
+//         doc.addPage();
+//         const newHeader = addTableHeader(50);
+//         toDeliverYPos = newHeader.yPosition;
+//       }
       
-      // Add category title
-      doc.font('Helvetica-Bold').fontSize(12);
-      doc.text(category.charAt(0).toUpperCase() + category.slice(1), 50, toDeliverYPos);
-      toDeliverYPos += 20;
+//       // Add category title
+//       doc.font('Helvetica-Bold').fontSize(12);
+//       doc.text(category.charAt(0).toUpperCase() + category.slice(1), 50, toDeliverYPos);
+//       toDeliverYPos += 20;
       
-      // Add items in this category
-      doc.font('Helvetica').fontSize(10);
+//       // Add items in this category
+//       doc.font('Helvetica').fontSize(10);
       
-      for (const item of groupedRemainingItems[category]) {
-        if (needsNewPage(toDeliverYPos, 30)) {
-          addPageNumber();
-          doc.addPage();
-          const newHeader = addTableHeader(50);
-          toDeliverYPos = newHeader.yPosition;
-        }
+//       for (const item of groupedRemainingItems[category]) {
+//         if (needsNewPage(toDeliverYPos, 30)) {
+//           addPageNumber();
+//           doc.addPage();
+//           const newHeader = addTableHeader(50);
+//           toDeliverYPos = newHeader.yPosition;
+//         }
         
-        const itemTotal = parseFloat(item.prix) * item.quantity;
+//         const itemTotal = parseFloat(item.prix) * item.quantity;
         
-        let xPos = 50;
+//         let xPos = 50;
         
-        // Item name
-        const textOptions = {
-          width: toDeliverTable.columns[0].width,
-          align: toDeliverTable.columns[0].align
-        };
+//         // Item name
+//         const textOptions = {
+//           width: toDeliverTable.columns[0].width,
+//           align: toDeliverTable.columns[0].align
+//         };
         
-        const textHeight = doc.heightOfString(item.Nom, textOptions);
-        const rowHeight = Math.max(textHeight, 20);
+//         const textHeight = doc.heightOfString(item.Nom, textOptions);
+//         const rowHeight = Math.max(textHeight, 20);
         
-        if (needsNewPage(toDeliverYPos, rowHeight)) {
-          addPageNumber();
-          doc.addPage();
-          const newHeader = addTableHeader(50);
-          toDeliverYPos = newHeader.yPosition;
-        }
+//         if (needsNewPage(toDeliverYPos, rowHeight)) {
+//           addPageNumber();
+//           doc.addPage();
+//           const newHeader = addTableHeader(50);
+//           toDeliverYPos = newHeader.yPosition;
+//         }
         
-        // Item name
-        doc.text(item.Nom, xPos, toDeliverYPos, textOptions);
-        xPos += toDeliverTable.columns[0].width;
+//         // Item name
+//         doc.text(item.Nom, xPos, toDeliverYPos, textOptions);
+//         xPos += toDeliverTable.columns[0].width;
         
-        // Quantity
-        doc.text(String(item.quantity), xPos, toDeliverYPos, {
-          width: toDeliverTable.columns[1].width,
-          align: toDeliverTable.columns[1].align
-        });
-        xPos += toDeliverTable.columns[1].width;
+//         // Quantity
+//         doc.text(String(item.quantity), xPos, toDeliverYPos, {
+//           width: toDeliverTable.columns[1].width,
+//           align: toDeliverTable.columns[1].align
+//         });
+//         xPos += toDeliverTable.columns[1].width;
         
-        // Unit price
-        doc.text(`${parseFloat(item.prix).toFixed(2)} CHF`, xPos, toDeliverYPos, {
-          width: toDeliverTable.columns[2].width,
-          align: toDeliverTable.columns[2].align
-        });
-        xPos += toDeliverTable.columns[2].width;
+//         // Unit price
+//         doc.text(`${parseFloat(item.prix).toFixed(2)} CHF`, xPos, toDeliverYPos, {
+//           width: toDeliverTable.columns[2].width,
+//           align: toDeliverTable.columns[2].align
+//         });
+//         xPos += toDeliverTable.columns[2].width;
         
-        // Total
-        doc.text(`${itemTotal.toFixed(2)} CHF`, xPos, toDeliverYPos, {
-          width: toDeliverTable.columns[3].width,
-          align: toDeliverTable.columns[3].align
-        });
+//         // Total
+//         doc.text(`${itemTotal.toFixed(2)} CHF`, xPos, toDeliverYPos, {
+//           width: toDeliverTable.columns[3].width,
+//           align: toDeliverTable.columns[3].align
+//         });
         
-        toDeliverYPos += rowHeight + 10;
-      }
+//         toDeliverYPos += rowHeight + 10;
+//       }
       
-      // Add a small space after each category
-      toDeliverYPos += 10;
-    }
+//       // Add a small space after each category
+//       toDeliverYPos += 10;
+//     }
     
-    // Note
-    if (needsNewPage(toDeliverYPos, 30)) {
-      addPageNumber();
-      doc.addPage();
-      toDeliverYPos = 50;
-    }
+//     // Note
+//     if (needsNewPage(toDeliverYPos, 30)) {
+//       addPageNumber();
+//       doc.addPage();
+//       toDeliverYPos = 50;
+//     }
     
-    toDeliverYPos += 30;
-    doc.font('Helvetica').fontSize(10);
-    doc.text('These items will be delivered as soon as they are available in stock.', 50, toDeliverYPos, { align: 'center', width: doc.page.width - 100 });
+//     toDeliverYPos += 30;
+//     doc.font('Helvetica').fontSize(10);
+//     doc.text('These items will be delivered as soon as they are available in stock.', 50, toDeliverYPos, { align: 'center', width: doc.page.width - 100 });
     
-    // Add page number to last page
-    addPageNumber();
-  }
-}
+//     // Add page number to last page
+//     addPageNumber();
+//   }
+// }
 
 // Start server
 app.listen(PORT, '0.0.0.0', () => {
