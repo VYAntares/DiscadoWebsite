@@ -1,3 +1,42 @@
+// Ce fichier `db.js` est un module central de gestion de la base de données pour une application utilisant **better-sqlite3** avec SQLite. Il définit la structure des tables et fournit des requêtes préparées pour interagir avec la base de données.
+
+// ### **Que fait ce fichier ?**
+
+// 1. **Initialisation de la base de données :**
+//    - Il s'assure que le dossier `database/` existe et y crée un fichier `discado.db` s'il n'existe pas.
+//    - Il active les **foreign keys** (clé étrangère) pour garantir l'intégrité des relations entre les tables.
+//    - Il crée les tables suivantes si elles n'existent pas :
+//      - **users** : stocke les informations des utilisateurs.
+//      - **user_profiles** : stocke les informations de profil des utilisateurs.
+//      - **products** : stocke les produits disponibles.
+//      - **orders** : enregistre les commandes passées par les utilisateurs.
+//      - **order_items** : détaille les articles inclus dans une commande.
+//      - **pending_deliveries** : liste les articles en attente de livraison.
+
+// 2. **Exportation d'instances et de requêtes préparées :**
+//    - Il exporte l'instance `db` pour permettre l'exécution de requêtes SQL ailleurs dans l'application.
+//    - Il définit et exporte des **requêtes SQL préparées** pour interagir efficacement avec la base :
+//      - **Gestion des utilisateurs** : récupérer un utilisateur, créer un utilisateur, lister tous les utilisateurs.
+//      - **Gestion des profils** : récupérer, créer et mettre à jour un profil utilisateur.
+//      - **Gestion des commandes** : créer une commande, récupérer une commande par ID, récupérer les commandes d'un utilisateur, etc.
+//      - **Gestion des articles de commande** : ajouter un article à une commande, récupérer les articles d'une commande, mettre à jour le statut ou la quantité d'un article.
+//      - **Gestion des livraisons en attente** : ajouter, récupérer et modifier des articles en attente de livraison.
+
+// 3. **Gestion des transactions :**
+//    - Il définit une fonction `transaction(callback)`, qui permet d'exécuter des requêtes en transaction pour garantir l'intégrité des opérations complexes.
+
+// ---
+
+// ### **Pourquoi utiliser better-sqlite3 ?**
+// - Il permet d'exécuter des requêtes SQL de manière **synchronisée** sans devoir gérer des callbacks ou des promesses.
+// - Il est **plus rapide** que `sqlite3` (module classique) car il fonctionne en mode natif avec SQLite.
+// - Il prend en charge **les requêtes préparées**, ce qui améliore la **sécurité** (évite les injections SQL) et **les performances**.
+
+// ---
+
+// ### **Conclusion**
+// Ce fichier sert de **couche d'abstraction** entre l'application et la base de données SQLite. Il assure la création des tables et fournit des fonctions prêtes à l'emploi pour manipuler les utilisateurs, les commandes et les livraisons. Il permet ainsi d'interagir avec la base de manière **simple, efficace et sécurisée**. 🚀
+
 // db.js - Central database module
 const Database = require('better-sqlite3');
 const path = require('path');

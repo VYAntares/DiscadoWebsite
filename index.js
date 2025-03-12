@@ -983,5 +983,5 @@ app.use((err, req, res, next) => {
 // Start server
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server started on http://localhost:${PORT}`);
-  console.log(`Available on network at http://192.168.1.252:${PORT}`);
+  console.log(`Available on network at http://192.168.0.187:${PORT}`);
 });
