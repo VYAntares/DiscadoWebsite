@@ -111,7 +111,7 @@ const allowedUsers = [
 (async function migrateUsers() {
   try {
     // Check if users exist in database
-    const db = require('./services/dbbettersqlite').db;
+    const db = require('./services/db').db;
     const { count } = db.prepare('SELECT COUNT(*) as count FROM users').get();
     
     if (count === 0) {

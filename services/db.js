@@ -1,8 +1,7 @@
-// db.js - Adapté pour fonctionner sur Render avec NeDB (100% JavaScript)
-const Datastore = require('nedb');
+// db.js - Central database module
+const Database = require('better-sqlite3');
 const path = require('path');
 const fs = require('fs');
-const { promisify } = require('util');
 
 // Ensure database directory exists
 const dbDir = path.join(__dirname, '../database');
@@ -10,371 +9,171 @@ if (!fs.existsSync(dbDir)) {
     fs.mkdirSync(dbDir, { recursive: true });
 }
 
-// Mode d'utilisation (mémoire pour Render, fichiers pour développement local)
-const isProduction = process.env.NODE_ENV === 'production';
-console.log(`Mode: ${isProduction ? 'Production (base en mémoire)' : 'Développement (base fichier)'}`);
+const dbPath = path.join(dbDir, 'discado.db');
+const db = new Database(dbPath);
 
-// Initialiser les bases de données (une par table)
-const users = new Datastore({
-    inMemory: isProduction,
-    filename: isProduction ? null : path.join(dbDir, 'users.db'),
-    autoload: !isProduction
-});
+// Enable foreign keys
+db.pragma('foreign_keys = ON');
 
-const userProfiles = new Datastore({
-    inMemory: isProduction,
-    filename: isProduction ? null : path.join(dbDir, 'user_profiles.db'),
-    autoload: !isProduction
-});
+// Initialize database schema
+function initDatabase() {
+    // Create users table
+    db.exec(`
+    CREATE TABLE IF NOT EXISTS users (
+        username TEXT PRIMARY KEY,
+        password TEXT NOT NULL,
+        role TEXT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+    `);
 
-const products = new Datastore({
-    inMemory: isProduction,
-    filename: isProduction ? null : path.join(dbDir, 'products.db'),
-    autoload: !isProduction
-});
+    // Create user_profiles table
+    db.exec(`
+    CREATE TABLE IF NOT EXISTS user_profiles (
+        username TEXT PRIMARY KEY,
+        first_name TEXT,
+        last_name TEXT,
+        email TEXT,
+        phone TEXT,
+        shop_name TEXT,
+        shop_address TEXT,
+        shop_city TEXT,
+        shop_zip_code TEXT,
+        last_updated TIMESTAMP,
+        FOREIGN KEY (username) REFERENCES users(username)
+    )
+    `);
 
-const orders = new Datastore({
-    inMemory: isProduction,
-    filename: isProduction ? null : path.join(dbDir, 'orders.db'),
-    autoload: !isProduction
-});
+    // Create products table
+    db.exec(`
+    CREATE TABLE IF NOT EXISTS products (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        price REAL NOT NULL,
+        category TEXT NOT NULL,
+        image_url TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+    `);
 
-const orderItems = new Datastore({
-    inMemory: isProduction,
-    filename: isProduction ? null : path.join(dbDir, 'order_items.db'),
-    autoload: !isProduction
-});
+    // Create orders table
+    db.exec(`
+    CREATE TABLE IF NOT EXISTS orders (
+        order_id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL,
+        status TEXT NOT NULL,
+        date TIMESTAMP NOT NULL,
+        last_processed TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(username)
+    )
+    `);
 
-const pendingDeliveries = new Datastore({
-    inMemory: isProduction,
-    filename: isProduction ? null : path.join(dbDir, 'pending_deliveries.db'),
-    autoload: !isProduction
-});
+    // Create order_items table
+    db.exec(`
+    CREATE TABLE IF NOT EXISTS order_items (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        order_id TEXT NOT NULL,
+        product_name TEXT NOT NULL,
+        product_price REAL NOT NULL,
+        quantity INTEGER NOT NULL,
+        category TEXT,
+        status TEXT DEFAULT 'pending', -- pending, delivered, remaining
+        FOREIGN KEY (order_id) REFERENCES orders(order_id)
+    )
+    `);
 
-// Promisifier les méthodes NeDB
-const findOne = (db, query) => {
-    return new Promise((resolve, reject) => {
-        db.findOne(query, (err, doc) => {
-            if (err) reject(err);
-            else resolve(doc);
-        });
-    });
-};
+    // Create pending_deliveries table for items waiting to be delivered
+    db.exec(`
+    CREATE TABLE IF NOT EXISTS pending_deliveries (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id TEXT NOT NULL,
+        product_name TEXT NOT NULL,
+        product_price REAL NOT NULL,
+        quantity INTEGER NOT NULL,
+        category TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(username)
+    )
+    `);
 
-const find = (db, query, sort = {}) => {
-    return new Promise((resolve, reject) => {
-        db.find(query).sort(sort).exec((err, docs) => {
-            if (err) reject(err);
-            else resolve(docs);
-        });
-    });
-};
-
-const insert = (db, doc) => {
-    return new Promise((resolve, reject) => {
-        db.insert(doc, (err, newDoc) => {
-            if (err) reject(err);
-            else resolve(newDoc);
-        });
-    });
-};
-
-const update = (db, query, update, options = {}) => {
-    return new Promise((resolve, reject) => {
-        db.update(query, update, options, (err, numAffected) => {
-            if (err) reject(err);
-            else resolve({ changes: numAffected });
-        });
-    });
-};
-
-const remove = (db, query, options = {}) => {
-    return new Promise((resolve, reject) => {
-        db.remove(query, options, (err, numRemoved) => {
-            if (err) reject(err);
-            else resolve({ changes: numRemoved });
-        });
-    });
-};
-
-// Initialiser les bases de données, créer des données de test
-async function initDatabase() {
-    try {
-        if (isProduction) {
-            // Données de test pour l'admin
-            await insert(users, {
-                username: 'admin',
-                password: 'admin',
-                role: 'admin',
-                created_at: new Date().toISOString()
-            });
-
-            // Données de test pour le client
-            await insert(users, {
-                username: 'client',
-                password: 'client',
-                role: 'client',
-                created_at: new Date().toISOString()
-            });
-
-            // Profil du client de test
-            await insert(userProfiles, {
-                username: 'client',
-                first_name: 'Jean',
-                last_name: 'Dupont',
-                email: 'jean@example.com',
-                phone: '0123456789',
-                shop_name: 'Boutique Test',
-                shop_address: '123 Rue Test',
-                shop_city: 'Ville Test',
-                shop_zip_code: '12345',
-                last_updated: new Date().toISOString()
-            });
-
-            // Quelques produits de test
-            await insert(products, {
-                name: 'Produit Test 1',
-                price: 9.99,
-                category: 'Category1',
-                image_url: '/images/category1/product1.jpg',
-                created_at: new Date().toISOString()
-            });
-
-            await insert(products, {
-                name: 'Produit Test 2',
-                price: 19.99,
-                category: 'Category2',
-                image_url: '/images/category2/product2.jpg',
-                created_at: new Date().toISOString()
-            });
-
-            console.log('Données de test ajoutées avec succès');
-        }
-    } catch (error) {
-        console.error('Erreur lors de l\'initialisation des données de test:', error);
-    }
+    console.log('Database initialized successfully');
 }
 
-// Indexer les bases de données
-users.ensureIndex({ fieldName: 'username', unique: true });
-userProfiles.ensureIndex({ fieldName: 'username', unique: true });
-orders.ensureIndex({ fieldName: 'order_id', unique: true });
-orderItems.ensureIndex({ fieldName: 'id', unique: true });
-pendingDeliveries.ensureIndex({ fieldName: 'id', unique: true });
-
-// Initialiser la base de données
+// Initialize the database
 initDatabase();
 
-// Exporter le module avec une interface compatible avec le code existant
+// Export database instance and prepared statements
 module.exports = {
-    // Propriété db pour la compatibilité
-    db: { 
-        users, userProfiles, products, orders, orderItems, pendingDeliveries 
-    },
-
+    db,
+    
     // User-related queries
-    getUserByUsername: {
-        get: (username) => findOne(users, { username })
-    },
-    createUser: {
-        run: async (username, password, role) => {
-            const result = await insert(users, {
-                username,
-                password,
-                role,
-                created_at: new Date().toISOString()
-            });
-            return { lastID: result._id, changes: 1 };
-        }
-    },
-    getAllUsers: {
-        all: () => find(users, {})
-    },
-
+    getUserByUsername: db.prepare('SELECT * FROM users WHERE username = ?'),
+    createUser: db.prepare('INSERT INTO users (username, password, role) VALUES (?, ?, ?)'),
+    getAllUsers: db.prepare('SELECT * FROM users'),
+    
     // User profile queries
-    getUserProfile: {
-        get: (username) => findOne(userProfiles, { username })
-    },
-    createUserProfile: {
-        run: async (username, firstName, lastName, email, phone, shopName, shopAddress, shopCity, shopZipCode, lastUpdated) => {
-            const result = await insert(userProfiles, {
-                username,
-                first_name: firstName,
-                last_name: lastName,
-                email,
-                phone,
-                shop_name: shopName,
-                shop_address: shopAddress,
-                shop_city: shopCity,
-                shop_zip_code: shopZipCode,
-                last_updated: lastUpdated
-            });
-            return { lastID: result._id, changes: 1 };
-        }
-    },
-    updateUserProfile: {
-        run: (firstName, lastName, email, phone, shopName, shopAddress, shopCity, shopZipCode, lastUpdated, username) => {
-            return update(
-                userProfiles,
-                { username },
-                {
-                    $set: {
-                        first_name: firstName,
-                        last_name: lastName,
-                        email,
-                        phone,
-                        shop_name: shopName,
-                        shop_address: shopAddress,
-                        shop_city: shopCity,
-                        shop_zip_code: shopZipCode,
-                        last_updated: lastUpdated
-                    }
-                }
-            );
-        }
-    },
-    getAllProfiles: {
-        all: () => find(userProfiles, {})
-    },
-
+    getUserProfile: db.prepare('SELECT * FROM user_profiles WHERE username = ?'),
+    createUserProfile: db.prepare(`
+        INSERT INTO user_profiles 
+        (username, first_name, last_name, email, phone, shop_name, shop_address, shop_city, shop_zip_code, last_updated) 
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `),
+    updateUserProfile: db.prepare(`
+        UPDATE user_profiles 
+        SET first_name = ?, last_name = ?, email = ?, phone = ?, 
+            shop_name = ?, shop_address = ?, shop_city = ?, shop_zip_code = ?, last_updated = ?
+        WHERE username = ?
+    `),
+    getAllProfiles: db.prepare('SELECT * FROM user_profiles'),
+    
     // Order queries
-    createOrder: {
-        run: (orderId, userId, status, date) => {
-            return insert(orders, {
-                order_id: orderId,
-                user_id: userId,
-                status,
-                date
-            });
-        }
-    },
-    getOrderById: {
-        get: (orderId) => findOne(orders, { order_id: orderId })
-    },
-    getUserOrders: {
-        all: (userId) => find(orders, { user_id: userId }, { date: -1 })
-    },
-    getPendingOrders: {
-        all: () => find(orders, { status: 'pending' }, { date: 1 })
-    },
-    getTreatedOrders: {
-        all: () => find(orders, { status: { $in: ['completed', 'partial'] } }, { date: -1 })
-    },
-    updateOrderStatus: {
-        run: (status, lastProcessed, orderId) => {
-            return update(
-                orders,
-                { order_id: orderId },
-                { $set: { status, last_processed: lastProcessed } }
-            );
-        }
-    },
-
+    createOrder: db.prepare('INSERT INTO orders (order_id, user_id, status, date) VALUES (?, ?, ?, ?)'),
+    getOrderById: db.prepare('SELECT * FROM orders WHERE order_id = ?'),
+    getUserOrders: db.prepare('SELECT * FROM orders WHERE user_id = ? ORDER BY date DESC'),
+    getPendingOrders: db.prepare("SELECT * FROM orders WHERE status = 'pending' ORDER BY date ASC"),
+    getTreatedOrders: db.prepare("SELECT * FROM orders WHERE status IN ('completed', 'partial') ORDER BY date DESC"),
+    updateOrderStatus: db.prepare('UPDATE orders SET status = ?, last_processed = ? WHERE order_id = ?'),
+    
     // Order items queries
-    addOrderItem: {
-        run: async (orderId, productName, productPrice, quantity, category, status) => {
-            // Générer un ID unique pour l'item
-            const id = Date.now() + Math.floor(Math.random() * 1000);
-            
-            const result = await insert(orderItems, {
-                id,
-                order_id: orderId,
-                product_name: productName,
-                product_price: productPrice,
-                quantity,
-                category,
-                status: status || 'pending'
-            });
-            
-            return { lastID: result._id, changes: 1 };
-        }
-    },
-    getOrderItems: {
-        all: (orderId) => find(orderItems, { order_id: orderId })
-    },
-    getOrderItemsByStatus: {
-        all: (orderId, status) => find(orderItems, { order_id: orderId, status })
-    },
-    updateOrderItemStatus: {
-        run: (status, orderId, productName) => {
-            return update(
-                orderItems,
-                { order_id: orderId, product_name: productName },
-                { $set: { status } },
-                { multi: true }
-            );
-        }
-    },
-    updateOrderItemQuantity: {
-        run: (quantity, orderId, productName, category) => {
-            return update(
-                orderItems,
-                { order_id: orderId, product_name: productName, category },
-                { $set: { quantity } }
-            );
-        }
-    },
-    updateOrderDate: {
-        run: (date, orderId) => {
-            return update(
-                orders,
-                { order_id: orderId },
-                { $set: { date } }
-            );
-        }
-    },
+    addOrderItem: db.prepare(`
+        INSERT INTO order_items (order_id, product_name, product_price, quantity, category, status) 
+        VALUES (?, ?, ?, ?, ?, ?)
+    `),
+    getOrderItems: db.prepare('SELECT * FROM order_items WHERE order_id = ?'),
+    getOrderItemsByStatus: db.prepare('SELECT * FROM order_items WHERE order_id = ? AND status = ?'),
+    updateOrderItemStatus: db.prepare('UPDATE order_items SET status = ? WHERE order_id = ? AND product_name = ?'),
+    // Requête pour mettre à jour la quantité d'un article de commande
+    updateOrderItemQuantity: db.prepare(`
+        UPDATE order_items 
+        SET quantity = ? 
+        WHERE order_id = ? AND product_name = ? AND category = ?
+    `),
 
+    // Requête pour mettre à jour la date d'une commande
+    updateOrderDate: db.prepare(`
+        UPDATE orders 
+        SET date = ? 
+        WHERE order_id = ?
+    `),
+    
     // Pending deliveries
-    addPendingDelivery: {
-        run: async (userId, productName, productPrice, quantity, category) => {
-            // Générer un ID unique
-            const id = Date.now() + Math.floor(Math.random() * 1000);
-            
-            const result = await insert(pendingDeliveries, {
-                id,
-                user_id: userId,
-                product_name: productName,
-                product_price: productPrice,
-                quantity,
-                category,
-                created_at: new Date().toISOString()
-            });
-            
-            return { lastID: result._id, changes: 1 };
-        }
-    },
-    getUserPendingDeliveries: {
-        all: (userId) => find(pendingDeliveries, { user_id: userId })
-    },
-    removePendingDelivery: {
-        run: (id) => remove(pendingDeliveries, { id })
-    },
-    updatePendingDeliveryQuantity: {
-        run: (quantity, id) => {
-            return update(
-                pendingDeliveries,
-                { id },
-                { $set: { quantity } }
-            );
-        }
-    },
-    findPendingDeliveryItem: {
-        get: (userId, productName, category) => {
-            return findOne(pendingDeliveries, {
-                user_id: userId,
-                product_name: productName,
-                category
-            });
-        }
-    },
+    addPendingDelivery: db.prepare(`
+        INSERT INTO pending_deliveries (user_id, product_name, product_price, quantity, category) 
+        VALUES (?, ?, ?, ?, ?)
+    `),
+    getUserPendingDeliveries: db.prepare('SELECT * FROM pending_deliveries WHERE user_id = ?'),
+    removePendingDelivery: db.prepare('DELETE FROM pending_deliveries WHERE id = ?'),
+    updatePendingDeliveryQuantity: db.prepare('UPDATE pending_deliveries SET quantity = ? WHERE id = ?'),
+    
+    // Nouvelle requête pour trouver un article en attente de livraison spécifique
+    findPendingDeliveryItem: db.prepare(`
+        SELECT * FROM pending_deliveries 
+        WHERE user_id = ? AND product_name = ? AND category = ?
+    `),
 
     // Transaction wrapper
-    transaction: async (callback) => {
-        try {
-            return await callback();
-        } catch (error) {
-            console.error('Transaction error:', error);
-            throw error;
-        }
+    transaction: (callback) => {
+        const runTransaction = db.transaction(callback);
+        return runTransaction();
     }
 };
