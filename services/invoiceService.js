@@ -2,15 +2,16 @@
 const path = require('path');
 const fs = require('fs');
 const PDFDocument = require('pdfkit');
+const { generateInvoiceTotalPage } = require('./invoiceTotalService');
 
 /**
- * Generates a PDF invoice with payment slip
+ * Generates a PDF invoice with items list and separate total page
  * @param {PDFDocument} doc - PDFKit document instance
  * @param {Array} orderItems - List of items in the order
  * @param {Object} userProfile - Customer profile information
  * @param {Date} orderDate - Date of the order
  * @param {String} orderId - Order identifier
- * @returns {Promise<void>}
+ * @returns {Promise<Object>} - Returns calculation totals for the total page
  */
 async function generateInvoicePDF(doc, orderItems, userProfile, orderDate, orderId) {
   // Function to add a header element with reduced line spacing
@@ -35,7 +36,6 @@ async function generateInvoicePDF(doc, orderItems, userProfile, orderDate, order
     addHeaderElement('TVA CHE-114.139.308', 50, senderY + lineSpacing * 8);
 
     // Client information - starting 5 lines BELOW sender info
-    // Position client info 5 lines below sender start position
     const clientStartY = senderY + lineSpacing * 7; // 5 lines after the sender start + 1 empty line
     
     // Start client info (removing "To:" label)
@@ -68,16 +68,17 @@ async function generateInvoicePDF(doc, orderItems, userProfile, orderDate, order
     }
     
     // Position title after the longer of the two sections (sender + 5 lines or client info)
-    // Client info now starts 6 lines after sender, and has 4 lines, so ends at senderY + 10 lines
     const titleY = senderY + lineSpacing * 11; // This puts it after both sender and client info
     
     // Add the invoice title with the number
     doc.font('Helvetica-Bold').fontSize(14).text(`Facture ${formattedOrderId}`, 50, titleY + 5);
+    // Add info about total being on last page
+    doc.font('Helvetica-Oblique').fontSize(9).text('Pour le détail du montant total, veuillez consulter la dernière page.', 50, titleY + 25);
     // Move the date line down one position
-    addHeaderElement(`Invoice date: ${invoiceDate.toLocaleDateString('Fr')}`, 50, titleY + 30);
+    addHeaderElement(`Invoice date: ${invoiceDate.toLocaleDateString('Fr')}`, 50, titleY + 40);
 
     // Return position for table to start
-    return titleY + 50; // Adjusted spacing
+    return titleY + 60; // Adjusted spacing
   }
 
   // Fonction améliorée pour créer un tableau bien structuré
@@ -200,54 +201,6 @@ async function generateInvoicePDF(doc, orderItems, userProfile, orderDate, order
     return currentY + requiredHeight > doc.page.height - 120;
   }
 
-  // Function to add the payment slip only on the last page
-  function addPaymentSlip() {
-    // Get the path to the receipt image
-    const rootDir = path.resolve(__dirname, '..');
-    const receiptImagePath = path.join(rootDir, 'public', 'images', 'logo', 'recepisse.png');
-    
-    // Set receipt image to fill page width with proper margins
-    const pageWidth = doc.page.width;
-    const receiptImageWidth = pageWidth; // Full page width
-    
-    // Calculate approximate height based on image aspect ratio (assuming 1.8:1 ratio)
-    const receiptAspectRatio = 1.8; // Width:Height ratio
-    const receiptImageHeight = receiptImageWidth / receiptAspectRatio;
-    
-    // Check if there's enough space in the current page for the receipt
-    const minBottomMargin = 0; // Minimize bottom margin to maximize space
-    const spaceNeeded = receiptImageHeight + minBottomMargin;
-    const spaceAvailable = doc.page.height - yPos - 40; // Allowing some extra space
-    
-    if (spaceAvailable >= spaceNeeded) {
-      // There's enough space on current page
-      // Calculate position to place receipt at the absolute bottom of the page
-      const receiptYPosition = doc.page.height - receiptImageHeight;
-      
-      // Add a separator line
-      doc.lineWidth(0.5);
-      doc.moveTo(0, receiptYPosition - 10).lineTo(doc.page.width, receiptYPosition - 10).stroke();
-      
-      // Position the receipt at the very bottom of the page
-      doc.image(receiptImagePath, 0, receiptYPosition, { 
-        width: receiptImageWidth,
-        align: 'center'
-      });
-    } else {
-      // Not enough space, add a new page for receipt
-      doc.addPage();
-      
-      // Position the receipt at the absolute bottom of the new page
-      const receiptYPosition = doc.page.height - receiptImageHeight;
-      
-      // Insert the receipt image aligned to the bottom
-      doc.image(receiptImagePath, 0, receiptYPosition, { 
-        width: receiptImageWidth,
-        align: 'center'
-      });
-    }
-  }
-
   // Ajouter l'en-tête de la facture
   let yPos = addInvoiceHeader();
   
@@ -293,76 +246,32 @@ async function generateInvoicePDF(doc, orderItems, userProfile, orderDate, order
     }
   }
   
-  // Calculs et totaux
+  // Ajouter une note en bas de page indiquant que le total est sur la dernière page
+  yPos += 20;
+  doc.font('Helvetica-Bold').fontSize(10);
+  doc.text('Voir page suivante pour le montant total et le bulletin de paiement.', 50, yPos);
+
+  // Calculs pour les totaux
   const TVA = 0.081;
   const montantTVA = totalHT * TVA;
   const totalTTC = totalHT + montantTVA;
   
-  // Vérifier s'il faut une nouvelle page pour les totaux
-  if (needsNewPage(yPos, 80)) {
-    yPos = addNewPage();
-  }
-  
-  // Section des totaux
-  const totalsX = tableConfig.tableRight - 200;
-  const totalsWidth = 200;
-  const rowHeight = 20;
-  
-  // Sous-total
-  doc.rect(totalsX, yPos, totalsWidth, rowHeight).stroke();
-  doc.font('Helvetica-Bold').fontSize(9);
-  doc.text('SOUS-TOTAL HT', totalsX + 5, yPos + 6, {
-    width: 100,
-    align: 'left'
+  // Ne pas ajouter de page ici, laissons invoiceTotalService s'en charger
+  await generateInvoiceTotalPage(doc, {
+    totalHT,
+    montantTVA,
+    totalTTC,
+    orderDate,
+    orderId,
+    userProfile
   });
-  doc.text(`${totalHT.toFixed(2)} CHF`, totalsX + 105, yPos + 6, {
-    width: 90,
-    align: 'right'
-  });
-  yPos += rowHeight;
-  
-  // TVA
-  doc.rect(totalsX, yPos, totalsWidth, rowHeight).stroke();
-  doc.text('TVA 8.1%', totalsX + 5, yPos + 6, {
-    width: 100,
-    align: 'left'
-  });
-  doc.text(`${montantTVA.toFixed(2)} CHF`, totalsX + 105, yPos + 6, {
-    width: 90,
-    align: 'right'
-  });
-  yPos += rowHeight;
-  
-  // Total TTC et conditions de paiement sur la même ligne
-  // Créer un rectangle pour toute la largeur du tableau
-  doc.rect(tableConfig.tableX, yPos, tableConfig.tableWidth, rowHeight).stroke();
-  
-  // Zone pour les conditions de paiement (partie gauche)
-  doc.font('Helvetica-Bold').fontSize(9);
-  doc.text('CONDITIONS DE PAIEMENT: net à 30 jours', tableConfig.tableX + 5, yPos + 6, {
-    width: tableConfig.tableWidth - totalsWidth - 10,
-    align: 'left'
-  });
-  
-  // Zone pour le total TTC (partie droite)
-  doc.rect(totalsX, yPos, totalsWidth, rowHeight).stroke();
-  doc.fillColor('#f0f0f0');
-  doc.rect(totalsX, yPos, totalsWidth, rowHeight).fill();
-  doc.fillColor('black');
-  doc.text('TOTAL TTC', totalsX + 5, yPos + 6, {
-    width: 100,
-    align: 'left'
-  });
-  doc.text(`${totalTTC.toFixed(2)} CHF`, totalsX + 105, yPos + 6, {
-    width: 90,
-    align: 'right'
-  });
-  
-  yPos += rowHeight + 10;
-  
-  // Add the payment slip on the last page only
-  // This function is now called here, after all content has been added
-  addPaymentSlip();
+
+  // Retourner les totaux calculés
+  return {
+    totalHT,
+    montantTVA,
+    totalTTC
+  };
 }
 
 module.exports = {

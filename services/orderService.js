@@ -1,9 +1,81 @@
 // orderService.js - Handle order operations
+const fs = require('fs');
+const path = require('path');
 const dbModule = require('./db');
 const userService = require('./userService');
 
+// Objet pour gérer le compteur de commandes
+const orderCounter = {
+  counterFilePath: path.join(__dirname, '../data/orderCounter.json'),
+  
+  loadCounter() {
+    try {
+      if (fs.existsSync(this.counterFilePath)) {
+        const data = fs.readFileSync(this.counterFilePath, 'utf8');
+        const parsed = JSON.parse(data);
+        return parsed.counter || 1;
+      }
+    } catch (error) {
+      console.error('Erreur lors du chargement du compteur:', error);
+    }
+    return 1; // Valeur par défaut
+  },
+  
+  saveCounter(counter) {
+    try {
+      const dir = path.dirname(this.counterFilePath);
+      if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+      }
+      
+      fs.writeFileSync(this.counterFilePath, JSON.stringify({ counter }, null, 2), 'utf8');
+    } catch (error) {
+      console.error('Erreur lors de la sauvegarde du compteur:', error);
+    }
+  },
+  
+  generateOrderId(date = new Date()) {
+    // Charger le compteur actuel
+    let counter = this.loadCounter();
+    
+    // Format de date YYMMDD
+    const year = date.getFullYear().toString().slice(-2);
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const day = date.getDate().toString().padStart(2, '0');
+    
+    const datePrefix = `${year}${month}${day}`;
+    
+    // Formater le compteur sur 4 chiffres
+    const counterStr = counter.toString().padStart(4, '0');
+    
+    // Incrémenter le compteur pour la prochaine utilisation
+    counter++;
+    
+    // Réinitialiser le compteur s'il dépasse 9999
+    if (counter > 9999) {
+      counter = 1;
+    }
+    
+    // Sauvegarder le nouveau compteur
+    this.saveCounter(counter);
+    
+    // Retourner l'ID formaté
+    return `${datePrefix}-${counterStr}`;
+  },
+  
+  resetCounter(value = 1) {
+    this.saveCounter(value);
+    return value;
+  }
+};
+
 // Service for managing orders
 const orderService = {
+    // Réinitialiser le compteur manuellement
+    resetOrderCounter(value = 1) {
+        return orderCounter.resetCounter(value);
+    },
+    
     // Save a new order
     saveOrder(userId, cartItems) {
         try {
@@ -41,21 +113,10 @@ const orderService = {
     },
     
     // Create a new order
-// Modification de la fonction createNewOrder dans orderService.js
     createNewOrder(userId, cartItems) {
         return dbModule.transaction(() => {
-            // Dans createNewOrder et createOrderFromPendingItems:
-            const now = new Date();
-            const year = now.getFullYear().toString().slice(-2); // Derniers 2 chiffres de l'année
-            const month = (now.getMonth() + 1).toString().padStart(2, '0'); // Mois (01-12)
-            const day = now.getDate().toString().padStart(2, '0'); // Jour (01-31)
-            const hour = now.getHours().toString().padStart(2, '0'); // Heure (00-23)
-            const minute = now.getMinutes().toString().padStart(2, '0'); // Minutes (00-59)
-            const second = now.getSeconds().toString().padStart(2, '0'); // Secondes (00-59)
-            const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0'); // Nombre aléatoire de 3 chiffres
-
-            // Format: YYMM-DDHH-MMSSR (Minutes, Secondes, Random)
-            const orderId = `${year}${month}-${day}${hour}-${minute}${second}${random}`;
+            // Utiliser notre générateur d'ID
+            const orderId = orderCounter.generateOrderId();
             const date = new Date().toISOString();
             
             // Récupérer les articles en attente de livraison pour ce client
@@ -125,7 +186,6 @@ const orderService = {
     },
     
     // Add items to an existing order
-// Modification de la fonction appendToExistingOrder pour gérer les articles à livrer
     appendToExistingOrder(orderId, userId, cartItems) {
         return dbModule.transaction(() => {
             // Récupérer les articles en attente de livraison pour ce client
@@ -337,8 +397,6 @@ const orderService = {
             return []; // Return empty array instead of legacy fallback
         }
     },
-    
-    // Other methods remain unchanged...
     
     // Get pending orders (for admin)
     getPendingOrders() {
@@ -695,18 +753,8 @@ const orderService = {
     createOrderFromPendingItems(userId, items) {
         try {
             return dbModule.transaction(() => {
-                // Dans createNewOrder et createOrderFromPendingItems:
-                const now = new Date();
-                const year = now.getFullYear().toString().slice(-2); // Derniers 2 chiffres de l'année
-                const month = (now.getMonth() + 1).toString().padStart(2, '0'); // Mois (01-12)
-                const day = now.getDate().toString().padStart(2, '0'); // Jour (01-31)
-                const hour = now.getHours().toString().padStart(2, '0'); // Heure (00-23)
-                const minute = now.getMinutes().toString().padStart(2, '0'); // Minutes (00-59)
-                const second = now.getSeconds().toString().padStart(2, '0'); // Secondes (00-59)
-                const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0'); // Nombre aléatoire de 3 chiffres
-
-                // Format: YYMM-DDHH-MMSSR (Minutes, Secondes, Random)
-                const orderId = `${year}${month}-${day}${hour}-${minute}${second}${random}`;
+                // Utiliser notre générateur d'ID
+                const orderId = orderCounter.generateOrderId();
                 const date = new Date().toISOString();
                 
                 // Créer l'enregistrement de commande
