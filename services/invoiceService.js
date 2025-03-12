@@ -1,34 +1,8 @@
 // services/invoiceService.js
-const QRCode = require('qrcode');
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
 const PDFDocument = require('pdfkit');
-
-/**
- * Creates a QR code and returns the path to the file
- * @param {string} content - QR code content
- * @param {string} orderId - Order ID for unique filename
- * @returns {Promise<string>} - Path to the temporary QR code file
- */
-async function createQRCode(content, orderId) {
-  const tempFilePath = path.join(os.tmpdir(), `payment-qr-${orderId}-${Date.now()}.png`);
-  
-  return new Promise((resolve, reject) => {
-    QRCode.toFile(tempFilePath, content, {
-      errorCorrectionLevel: 'M',
-      type: 'png',
-      width: 200,
-      margin: 0
-    }, (err) => {
-      if (err) {
-        reject(err);
-      } else {
-        resolve(tempFilePath);
-      }
-    });
-  });
-}
 
 /**
  * Generates a PDF invoice with payment slip - ASYNC VERSION
@@ -319,76 +293,100 @@ async function generateInvoicePDF(doc, orderItems, userProfile, orderDate, order
   // =========================================
   doc.addPage();
   
-  // Swiss QR code content
-  const qrContent = `SPC\n0200\n1\CH2380808009929375493\nS\nDISCADO Sàrl\nSévelin 4A\n1007\nLausanne\nCH\n\n\n\n\n\n\n\nCHF\n\n\n\n\n\n\n\nNON\n\n\nEPD\n`;
+  // Get the path to the existing QR code image
+  const rootDir = path.resolve(__dirname, '..');
+  const qrImagePath = path.join(rootDir, 'public', 'images', 'logo', 'qrcode.png');
   
-  // Generate QR code file (this is async)
-  const qrCodePath = await createQRCode(qrContent, orderId);
+  // Function to draw a complete payment slip (used for both top and bottom of page)
+  function drawPaymentSlip(startY) {
+    // Left column (Récépissé)
+    doc.font('Helvetica-Bold').fontSize(12).text('Récépissé', 20, startY);
+    
+    // Left column: Account details
+    doc.font('Helvetica').fontSize(9);
+    doc.text('Compte / Payable à', 20, startY + 20);
+    doc.text('CH23 8080 8009 9293 7549 3', 20, startY + 32);
+    doc.text('DISCADO Sàrl', 20, startY + 44);
+    doc.text('Sévelin 4A', 20, startY + 56);
+    doc.text('1007 Lausanne', 20, startY + 68);
+    
+    doc.text('Payable par (nom/adresse)', 20, startY + 90);
+    
+    // Draw left column rectangle for payee info (L-bracket style)
+    doc.lineWidth(0.5);
+    // Draw L-bracket for payee info (top-left)
+    doc.moveTo(20, startY + 105).lineTo(20, startY + 180).stroke();
+    doc.moveTo(20, startY + 180).lineTo(130, startY + 180).stroke();
+    
+    // Draw L-bracket for payee info (bottom-right)
+    doc.moveTo(130, startY + 105).lineTo(130, startY + 105).stroke();
+    doc.moveTo(130, startY + 105).lineTo(130, startY + 180).stroke();
+    
+    // Currency and amount left
+    doc.text('Monnaie', 20, startY + 190);
+    doc.text('CHF', 20, startY + 205);
+    
+    doc.text('Montant', 70, startY + 190);
+    
+    // Draw rectangle L-bracket for amount
+    doc.moveTo(70, startY + 205).lineTo(70, startY + 225).stroke();
+    doc.moveTo(70, startY + 225).lineTo(130, startY + 225).stroke();
+    
+    doc.moveTo(130, startY + 205).lineTo(130, startY + 205).stroke();
+    doc.moveTo(130, startY + 225).lineTo(130, startY + 205).stroke();
+    
+    // Point de dépôt text
+    doc.fontSize(8).text('Point de dépôt', 20, startY + 235);
+    
+    // Middle section: Section paiement
+    doc.fontSize(12).text('Section paiement', 220, startY);
+    
+    // Add QR code image in the middle
+    doc.image(qrImagePath, 220, startY + 25, { width: 150 });
+    
+    // Middle section currency and amount
+    doc.fontSize(9).text('Monnaie', 220, startY + 190);
+    doc.text('CHF', 220, startY + 205);
+    
+    doc.text('Montant', 270, startY + 190);
+    
+    // Draw L-bracket for amount in middle section
+    doc.moveTo(270, startY + 205).lineTo(270, startY + 225).stroke();
+    doc.moveTo(270, startY + 225).lineTo(330, startY + 225).stroke();
+    
+    doc.moveTo(330, startY + 205).lineTo(330, startY + 205).stroke();
+    doc.moveTo(330, startY + 225).lineTo(330, startY + 205).stroke();
+    
+    // Right column (Compte)
+    doc.fontSize(9);
+    doc.text('Compte / Payable à', 400, startY + 20);
+    doc.text('CH23 8080 8009 9293 7549 3', 400, startY + 32);
+    doc.text('DISCADO Sàrl', 400, startY + 44);
+    doc.text('Sévelin 4A', 400, startY + 56);
+    doc.text('1007 Lausanne', 400, startY + 68);
+    
+    doc.text('Payable par (nom/adresse)', 400, startY + 90);
+    
+    // Draw right column L-bracket for payee info
+    doc.moveTo(400, startY + 105).lineTo(400, startY + 180).stroke();
+    doc.moveTo(400, startY + 180).lineTo(510, startY + 180).stroke();
+    
+    doc.moveTo(510, startY + 105).lineTo(510, startY + 105).stroke();
+    doc.moveTo(510, startY + 180).lineTo(510, startY + 105).stroke();
+  }
   
-  // Title: Récépissé
-  doc.font('Helvetica-Bold').fontSize(12).text('Récépissé', 50, 50);
+  // Draw payment slip at the top of the page
+  drawPaymentSlip(40);
   
-//   Left column: Account details
-  doc.font('Helvetica').fontSize(10);
-  doc.text('Compte / Payable à', 50, 80);
-  doc.text('CH23 8080 8009 9293 7549 3', 50, 95);
-  doc.text('DISCADO Sàrl', 50, 110);
-  doc.text('Sévelin 4A', 50, 125);
-  doc.text('1007 Lausanne', 50, 140);
+  // Draw a separator line in the middle of the page
+  doc.lineWidth(0.2);
+  doc.moveTo(20, 320).lineTo(550, 320).dash(3, { space: 2 }).stroke();
   
-  doc.text('Payable par (nom/adresse)', 50, 165);
-  
-  // Draw left column rectangle for payee info
-  doc.rect(50, 180, 110, 80).stroke();
-  
-  // Currency and amount left
-  doc.text('Monnaie', 50, 280);
-  doc.text('CHF', 50, 295);
-  
-  doc.text('Montant', 110, 280);
-  
-  // Draw left column rectangle for amount
-  doc.rect(110, 295, 50, 20).stroke();
-  
-  // Point de dépôt text
-  doc.fontSize(8).text('Point de dépôt', 50, 330);
-  
-  // Middle section: Section paiement
-  doc.fontSize(12).text('Section paiement', 230, 50);
-  
-  // Add QR code in the middle
-  doc.image(qrCodePath, 230, 80, { width: 200 });
-  
-  // Middle section currency and amount
-  doc.fontSize(10).text('Monnaie', 230, 295);
-  doc.text('CHF', 230, 310);
-  
-  doc.text('Montant', 290, 295);
-  
-  // Draw rectangle for amount
-  doc.rect(290, 310, 60, 20).stroke();
-  
-//   // Right column: duplicated account info
-//   doc.text('Compte / Payable à', 400, 50);
-//   doc.text('CH23 8080 8009 9293 7549 3', 400, 65);
-//   doc.text('DISCADO Sàrl', 400, 80);
-//   doc.text('Sévelin 4A', 400, 95);
-//   doc.text('1007 Lausanne', 400, 110);
-  
-//   doc.text('Payable par (nom/adresse)', 400, 140);
-  
-//   // Draw right column rectangle for payee info
-//   doc.rect(400, 155, 110, 80).stroke();
+  // Draw payment slip at the bottom of the page
+  drawPaymentSlip(350);
   
   // Add page number
   addPageNumber();
-  
-  // Clean up temporary file - try to delete it but don't worry if it fails
-  try {
-    fs.unlinkSync(qrCodePath);
-  } catch (err) {
-    // Ignore errors on cleanup
-  }
   
   // =========================================
   // ITEMS TO BE DELIVERED SECTION (if applicable)
