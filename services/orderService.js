@@ -44,7 +44,13 @@ const orderService = {
 // Modification de la fonction createNewOrder dans orderService.js
     createNewOrder(userId, cartItems) {
         return dbModule.transaction(() => {
-            const orderId = `order_${Date.now()}`;
+            const now = new Date();
+            const year = now.getFullYear().toString().slice(-2); // Derniers 2 chiffres de l'année
+            const month = (now.getMonth() + 1).toString().padStart(2, '0'); // Mois (01-12)
+            const day = now.getDate().toString().padStart(2, '0'); // Jour (01-31)
+            const hour = now.getHours().toString().padStart(2, '0'); // Heure (00-23)
+            
+            const orderId = `order ${year}${month}-${day}${hour}`;
             const date = new Date().toISOString();
             
             // Récupérer les articles en attente de livraison pour ce client
@@ -684,8 +690,14 @@ const orderService = {
     createOrderFromPendingItems(userId, items) {
         try {
             return dbModule.transaction(() => {
-                // Générer un ID unique pour la nouvelle commande
-                const orderId = `order_${Date.now()}`;
+                // Générer un ID unique pour la nouvelle commande au format YYMM-DDHH
+                const now = new Date();
+                const year = now.getFullYear().toString().slice(-2); // Derniers 2 chiffres de l'année
+                const month = (now.getMonth() + 1).toString().padStart(2, '0'); // Mois (01-12)
+                const day = now.getDate().toString().padStart(2, '0'); // Jour (01-31)
+                const hour = now.getHours().toString().padStart(2, '0'); // Heure (00-23)
+                
+                const orderId = `order ${year}${month}-${day}${hour}`;
                 const date = new Date().toISOString();
                 
                 // Créer l'enregistrement de commande
