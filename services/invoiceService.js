@@ -82,7 +82,7 @@ async function generateInvoicePDF(doc, orderItems, userProfile, orderDate, order
     // Invoice details
     const invoiceDate = orderDate;
 
-    doc.font('Helvetica-Bold').fontSize(16).text('Delivery Note', 50, 250);
+    doc.font('Helvetica-Bold').fontSize(16).text('Facture', 50, 250);
     addHeaderElement(`Order processing date: ${invoiceDate.toLocaleDateString('Fr')}`, 50, 280);
 
     return 350;
