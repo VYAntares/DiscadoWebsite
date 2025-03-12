@@ -455,8 +455,16 @@ app.get('/api/download-invoice/:orderId', requireLogin, async (req, res) => {
     // Pipe to response
     doc.pipe(res);
     
-    // Generate invoice - Utiliser la fonction asynchrone du service
-    await invoiceService.generateInvoicePDF(doc, orderItems, userProfile, orderDate, orderId, remainingItems);
+    // NOUVEAU CODE: Générer d'abord le bon de livraison, puis la facture
+    // Importer les deux services
+    const deliveryNoteService = require('./services/deliveryNoteService');
+    const invoiceService = require('./services/invoiceService');
+    
+    // 1. Générer le bon de livraison (sans section facture)
+    await deliveryNoteService.generateDeliveryNotePDF(doc, orderItems, userProfile, orderDate, orderId, remainingItems, false);
+    
+    // 2. Générer la facture sur une nouvelle page (elle ajoutera sa propre page)
+    await invoiceService.generateInvoicePDF(doc, orderItems, userProfile, orderDate, orderId);
     
     // Finalize PDF
     doc.end();
@@ -466,7 +474,7 @@ app.get('/api/download-invoice/:orderId', requireLogin, async (req, res) => {
   }
 });
 
-// Route pour télécharger la facture (admin)
+// Faire la même chose pour la route admin:
 app.get('/api/admin/download-invoice/:orderId/:userId', requireLogin, requireAdmin, async (req, res) => {
   const { orderId, userId } = req.params;
   
@@ -504,8 +512,16 @@ app.get('/api/admin/download-invoice/:orderId/:userId', requireLogin, requireAdm
     // Pipe to response
     doc.pipe(res);
     
-    // Generate invoice - Utiliser la fonction asynchrone du service
-    await invoiceService.generateInvoicePDF(doc, orderItems, userProfile, orderDate, orderId, remainingItems);
+    // NOUVEAU CODE: Générer d'abord le bon de livraison, puis la facture
+    // Importer les deux services
+    const deliveryNoteService = require('./services/deliveryNoteService');
+    const invoiceService = require('./services/invoiceService');
+    
+    // 1. Générer le bon de livraison (sans section facture)
+    await deliveryNoteService.generateDeliveryNotePDF(doc, orderItems, userProfile, orderDate, orderId, remainingItems, false);
+    
+    // 2. Générer la facture sur une nouvelle page (elle ajoutera sa propre page)
+    await invoiceService.generateInvoicePDF(doc, orderItems, userProfile, orderDate, orderId);
     
     // Finalize PDF
     doc.end();
@@ -514,6 +530,7 @@ app.get('/api/admin/download-invoice/:orderId/:userId', requireLogin, requireAdm
     res.status(500).json({ error: 'Error generating invoice' });
   }
 });
+
 // Route for creating a new client account (admin only)
 app.post('/api/admin/create-client', requireLogin, requireAdmin, (req, res) => {
   const { username, password, profileData } = req.body;
@@ -983,5 +1000,5 @@ app.use((err, req, res, next) => {
 // Start server
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server started on http://localhost:${PORT}`);
-  console.log(`Available on network at http://192.168.0.187:${PORT}`);
+  console.log(`Available on network at http://172.20.10.3:${PORT}`);
 });

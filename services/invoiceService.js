@@ -1,20 +1,23 @@
-// services/invoiceService.js - OPTIMIZED VERSION
+// services/invoiceService.js
+// Assurez-vous que ce fichier existe et est correctement configuré
+
 const path = require('path');
 const fs = require('fs');
-const os = require('os');
 const PDFDocument = require('pdfkit');
 
 /**
- * Generates a PDF invoice with payment slip - COMPACT VERSION
+ * Generates a PDF invoice with payment slip
  * @param {PDFDocument} doc - PDFKit document instance
  * @param {Array} orderItems - List of items in the order
  * @param {Object} userProfile - Customer profile information
  * @param {Date} orderDate - Date of the order
  * @param {String} orderId - Order identifier
- * @param {Array} remainingItems - Items to be delivered later (optional)
  * @returns {Promise<void>}
  */
-async function generateInvoicePDF(doc, orderItems, userProfile, orderDate, orderId, remainingItems = []) {
+async function generateInvoicePDF(doc, orderItems, userProfile, orderDate, orderId) {
+  // Ajouter une nouvelle page pour la facture
+  doc.addPage();
+  
   // Function to add a header element with reduced line spacing
   function addHeaderElement(text, x, y, options = {}) {
     doc.font('Helvetica').fontSize(9).text(text, x, y, options);
@@ -328,117 +331,6 @@ async function generateInvoicePDF(doc, orderItems, userProfile, orderDate, order
       width: receiptImageWidth,
       align: 'center'
     });
-  }
-  
-  // Process remaining items section with more compact layout
-  if (remainingItems && remainingItems.length > 0) {
-    // Add a new page for remaining items
-    doc.addPage();
-    
-    // Title - with better spacing around section title
-    doc.font('Helvetica-Bold').fontSize(14).text('Items to be delivered later', 50, 45);
-    doc.font('Helvetica').fontSize(9).text('The following items from your order will be delivered at a later date.', 50, 70);
-    
-    // Table header
-    const toDeliverTable = addTableHeader(90); // Adjusted for better spacing after title
-    let toDeliverYPos = toDeliverTable.yPosition;
-    
-    // Group remaining items by category
-    const groupedRemainingItems = {};
-    remainingItems.forEach(item => {
-      const category = item.categorie || 'autres';
-      if (!groupedRemainingItems[category]) {
-        groupedRemainingItems[category] = [];
-      }
-      groupedRemainingItems[category].push(item);
-    });
-    
-    // Sort remaining categories alphabetically
-    const sortedRemainingCategories = Object.keys(groupedRemainingItems).sort();
-    
-    // Process remaining items by category
-    for (const category of sortedRemainingCategories) {
-      // Add category header
-      if (needsNewPage(toDeliverYPos, 25)) {
-        doc.addPage();
-        const newHeader = addTableHeader(40); // Start higher on new pages
-        toDeliverYPos = newHeader.yPosition;
-      }
-      
-      // Add category title
-      doc.font('Helvetica-Bold').fontSize(10);
-      doc.text(category.charAt(0).toUpperCase() + category.slice(1), 50, toDeliverYPos);
-      toDeliverYPos += 15; // Reduced spacing
-      
-      // Add items in this category
-      doc.font('Helvetica').fontSize(9);
-      
-      for (const item of groupedRemainingItems[category]) {
-        if (needsNewPage(toDeliverYPos, 25)) {
-          doc.addPage();
-          const newHeader = addTableHeader(40);
-          toDeliverYPos = newHeader.yPosition;
-        }
-        
-        const itemTotal = parseFloat(item.prix) * item.quantity;
-        
-        let xPos = 50;
-        
-        // Item name
-        const textOptions = {
-          width: toDeliverTable.columns[0].width,
-          align: toDeliverTable.columns[0].align
-        };
-        
-        const textHeight = doc.heightOfString(item.Nom, textOptions);
-        const rowHeight = Math.max(textHeight, 15); // Reduced minimum height
-        
-        if (needsNewPage(toDeliverYPos, rowHeight)) {
-          doc.addPage();
-          const newHeader = addTableHeader(40);
-          toDeliverYPos = newHeader.yPosition;
-        }
-        
-        // Item name
-        doc.text(item.Nom, xPos, toDeliverYPos, textOptions);
-        xPos += toDeliverTable.columns[0].width;
-        
-        // Quantity
-        doc.text(String(item.quantity), xPos, toDeliverYPos, {
-          width: toDeliverTable.columns[1].width,
-          align: toDeliverTable.columns[1].align
-        });
-        xPos += toDeliverTable.columns[1].width;
-        
-        // Unit price
-        doc.text(`${parseFloat(item.prix).toFixed(2)} CHF`, xPos, toDeliverYPos, {
-          width: toDeliverTable.columns[2].width,
-          align: toDeliverTable.columns[2].align
-        });
-        xPos += toDeliverTable.columns[2].width;
-        
-        // Total
-        doc.text(`${itemTotal.toFixed(2)} CHF`, xPos, toDeliverYPos, {
-          width: toDeliverTable.columns[3].width,
-          align: toDeliverTable.columns[3].align
-        });
-        
-        toDeliverYPos += rowHeight + 8; // Reduced spacing between rows
-      }
-      
-      // Add a small space after each category
-      toDeliverYPos += 5; // Reduced spacing between categories
-    }
-    
-    // Note
-    if (needsNewPage(toDeliverYPos, 25)) {
-      doc.addPage();
-      toDeliverYPos = 40;
-    }
-    
-    toDeliverYPos += 20; // Reduced spacing
-    doc.font('Helvetica').fontSize(9);
-    doc.text('These items will be delivered as soon as they are available in stock.', 50, toDeliverYPos, { align: 'center', width: doc.page.width - 100 });
   }
 }
 
