@@ -734,3 +734,195 @@
     padding: 8px 15px;
     text-align: left;
 }
+
+/* iPhone-specific optimizations for client database */
+
+/* Fix for duplicate client detail title */
+.modal .client-section .client-header {
+    display: none; /* Hide the inner duplicate header completely */
+  }
+  
+  /* Keep spacing consistent after removing the header */
+  .modal .client-section .info-section:first-of-type {
+    margin-top: 15px;
+  }
+
+/* iPhone-specific optimizations for client database */
+
+/* Base improvements for small screens */
+@media screen and (max-width: 480px) {
+    /* Adjust overall table layout */
+    .client-table {
+      font-size: 13px;
+    }
+    
+    .client-table th,
+    .client-table td {
+      padding: 10px 8px;
+    }
+    
+    /* Make the ID column narrower */
+    .client-table th:first-child,
+    .client-table td:first-child {
+      width: 60px;
+      max-width: 60px;
+      padding-left: 5px;
+      padding-right: 5px;
+    }
+    
+    /* Optimize client ID display */
+    .client-id {
+      font-size: 12px;
+      padding: 3px 5px;
+      display: block;
+      width: 100%;
+      text-align: center;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    
+    /* Adjust names and contact info */
+    .client-info {
+      max-width: 180px;
+    }
+    
+    .client-name {
+      font-size: 14px;
+      margin-bottom: 3px;
+    }
+    
+    .client-shop {
+      font-size: 12px;
+      margin-bottom: 2px;
+    }
+    
+    .contact-link {
+      font-size: 11px;
+      gap: 3px;
+    }
+    
+    /* Optimize the action buttons */
+    .action-btn {
+      padding: 6px 8px;
+      font-size: 12px;
+      white-space: nowrap;
+    }
+    
+    .details-btn {
+      width: 100%;
+      padding: 8px 5px;
+      justify-content: center;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    
+    /* Force table layout for better iPhone display */
+    .client-table {
+      table-layout: fixed;
+      width: 100%;
+    }
+    
+    /* Adjust column widths for better distribution */
+    .client-table th:nth-child(1), 
+    .client-table td:nth-child(1) {
+      width: 15%;
+    }
+    
+    .client-table th:nth-child(2), 
+    .client-table td:nth-child(2) {
+      width: 55%;
+    }
+    
+    .client-table th:nth-child(3), 
+    .client-table td:nth-child(3) {
+      width: 30%;
+      text-align: center;
+    }
+  }
+  
+  /* iPhone SE and other very small screens */
+  @media screen and (max-width: 375px) {
+    /* Further adjustments for the smallest screens */
+    .client-info {
+      max-width: 150px;
+    }
+    
+    .contact-link {
+      font-size: 10px;
+    }
+    
+    /* Make buttons more compact */
+    .action-btn {
+      padding: 6px 4px;
+      font-size: 11px;
+    }
+    
+    .client-shop {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 150px;
+    }
+    
+    /* Optimize email display */
+    .client-contact a {
+      display: block;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 150px;
+    }
+  }
+  
+  /* Adjustments for client detail modal on iPhone */
+  @media screen and (max-width: 480px) {
+    .modal-content {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      max-height: 100%;
+      border-radius: 0;
+      padding: 15px 10px;
+    }
+    
+    .close-modal {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      z-index: 1001;
+      background-color: rgba(255, 255, 255, 0.8);
+    }
+    
+    .client-details-title {
+      font-size: 16px;
+      padding-right: 30px;
+      margin-bottom: 15px;
+    }
+    
+    .client-section {
+      border-radius: 0;
+    }
+    
+    .info-section {
+      margin: 0 10px 15px 10px;
+    }
+    
+    .info-section-title {
+      font-size: 14px;
+    }
+    
+    .info-item {
+      margin-bottom: 5px;
+    }
+    
+    .info-row strong {
+      min-width: 100px;
+    }
+    
+    /* Ensure buttons are more tappable */
+    .action-btn, 
+    .details-btn {
+      min-height: 44px; /* Apple's recommended minimum touch target size */
+    }
+  }
