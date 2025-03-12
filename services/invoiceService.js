@@ -200,6 +200,54 @@ async function generateInvoicePDF(doc, orderItems, userProfile, orderDate, order
     return currentY + requiredHeight > doc.page.height - 120;
   }
 
+  // Function to add the payment slip only on the last page
+  function addPaymentSlip() {
+    // Get the path to the receipt image
+    const rootDir = path.resolve(__dirname, '..');
+    const receiptImagePath = path.join(rootDir, 'public', 'images', 'logo', 'recepisse.png');
+    
+    // Set receipt image to fill page width with proper margins
+    const pageWidth = doc.page.width;
+    const receiptImageWidth = pageWidth; // Full page width
+    
+    // Calculate approximate height based on image aspect ratio (assuming 1.8:1 ratio)
+    const receiptAspectRatio = 1.8; // Width:Height ratio
+    const receiptImageHeight = receiptImageWidth / receiptAspectRatio;
+    
+    // Check if there's enough space in the current page for the receipt
+    const minBottomMargin = 0; // Minimize bottom margin to maximize space
+    const spaceNeeded = receiptImageHeight + minBottomMargin;
+    const spaceAvailable = doc.page.height - yPos - 40; // Allowing some extra space
+    
+    if (spaceAvailable >= spaceNeeded) {
+      // There's enough space on current page
+      // Calculate position to place receipt at the absolute bottom of the page
+      const receiptYPosition = doc.page.height - receiptImageHeight;
+      
+      // Add a separator line
+      doc.lineWidth(0.5);
+      doc.moveTo(0, receiptYPosition - 10).lineTo(doc.page.width, receiptYPosition - 10).stroke();
+      
+      // Position the receipt at the very bottom of the page
+      doc.image(receiptImagePath, 0, receiptYPosition, { 
+        width: receiptImageWidth,
+        align: 'center'
+      });
+    } else {
+      // Not enough space, add a new page for receipt
+      doc.addPage();
+      
+      // Position the receipt at the absolute bottom of the new page
+      const receiptYPosition = doc.page.height - receiptImageHeight;
+      
+      // Insert the receipt image aligned to the bottom
+      doc.image(receiptImagePath, 0, receiptYPosition, { 
+        width: receiptImageWidth,
+        align: 'center'
+      });
+    }
+  }
+
   // Ajouter l'en-tête de la facture
   let yPos = addInvoiceHeader();
   
@@ -312,68 +360,9 @@ async function generateInvoicePDF(doc, orderItems, userProfile, orderDate, order
   
   yPos += rowHeight + 10;
   
-  // =========================================
-  // PAYMENT SLIP SECTION
-  // =========================================
-
-  // Get the path to the receipt image
-  const rootDir = path.resolve(__dirname, '..');
-  const receiptImagePath = path.join(rootDir, 'public', 'images', 'logo', 'recepisse.png');
-
-  // Set receipt image to fill page width with proper margins
-  const pageWidth = doc.page.width;
-  const receiptImageWidth = pageWidth; // Full page width
-
-  // Calculate approximate height based on image aspect ratio (assuming 1.8:1 ratio)
-  const receiptAspectRatio = 1.8; // Width:Height ratio
-  const receiptImageHeight = receiptImageWidth / receiptAspectRatio;
-
-  // Check if there's enough space in the current page for the receipt
-  const minBottomMargin = 0; // Minimize bottom margin to maximize space
-  const spaceNeeded = receiptImageHeight + minBottomMargin;
-  const spaceAvailable = doc.page.height - yPos - 40; // Allowing some extra space
-
-  if (spaceAvailable >= spaceNeeded) {
-    // There's enough space on current page
-    // Calculate position to place receipt at the absolute bottom of the page
-    const receiptYPosition = doc.page.height - receiptImageHeight;
-
-    // Add a separator line
-    doc.lineWidth(0.5);
-    doc.moveTo(0, receiptYPosition - 10).lineTo(doc.page.width, receiptYPosition - 10).stroke();
-
-    // Position the receipt at the very bottom of the page
-    doc.image(receiptImagePath, 0, receiptYPosition, { 
-      width: receiptImageWidth,
-      align: 'center'
-    });
-  } else {
-    // Not enough space, add a new page for receipt
-    doc.addPage();
-
-    // Position the receipt at the absolute bottom of the new page
-    const receiptYPosition = doc.page.height - receiptImageHeight;
-
-    // Insert the receipt image aligned to the bottom
-    doc.image(receiptImagePath, 0, receiptYPosition, { 
-      width: receiptImageWidth,
-      align: 'center'
-    });
-  }
-
-  // Add QRCode at the end of the document
-  const qrCodeImagePath = path.join(rootDir, 'public', 'images', 'logo', 'qrcode.png');
-  const qrCodeImageWidth = 100; // Adjust the width as needed
-
-  // Add a new page for the QRCode if there isn't enough space
-  if (doc.y + 150 > doc.page.height - 50) {
-    doc.addPage();
-  }
-
-  // Add the QRCode image at the desired position
-  doc.image(qrCodeImagePath, doc.page.width - qrCodeImageWidth - 50, doc.page.height - 150, { 
-    width: qrCodeImageWidth 
-  });
+  // Add the payment slip on the last page only
+  // This function is now called here, after all content has been added
+  addPaymentSlip();
 }
 
 module.exports = {
