@@ -292,182 +292,55 @@ async function generateInvoicePDF(doc, orderItems, userProfile, orderDate, order
   // PAYMENT SLIP SECTION HANDLING
   // =========================================
   
-  // Get the path to the existing QR code image
+  // Get the path to the receipt image
   const rootDir = path.resolve(__dirname, '..');
-  const qrImagePath = path.join(rootDir, 'public', 'images', 'logo', 'qrcode.png');
+  const receiptImagePath = path.join(rootDir, 'public', 'images', 'logo', 'recepisse.png');
   
-  // Function to check if there's enough space for a payment slip
-  function hasEnoughSpaceForPaymentSlip(currentY) {
-    // Payment slip needs approximately 300 points of vertical space
-    return currentY + 300 <= doc.page.height - 40;
+  // Set receipt image to fill page width with proper margins
+  const pageWidth = doc.page.width;
+  const pageMargin = 0; // No margins for the receipt
+  const receiptImageWidth = pageWidth - (pageMargin * 2);
+  
+  // Calculate approximate height based on image aspect ratio (assuming 1.8:1 ratio)
+  const receiptAspectRatio = 1.8; // Width:Height ratio
+  const receiptImageHeight = receiptImageWidth / receiptAspectRatio;
+  
+  // Always position the receipt at the bottom of the page
+  // First, add current page number
+  addPageNumber();
+  
+  // Check if current page has too much content to fit receipt
+  const bottomMargin = 40;
+  const currentPageRemainingSpace = doc.page.height - yPos;
+  
+  if (currentPageRemainingSpace < receiptImageHeight + 30) {
+    // Not enough space, add a new page
+    doc.addPage();
+    pageCount++;
   }
   
-  // Function to draw a complete payment slip
-  function drawPaymentSlip(startY) {
-    // Left column (Récépissé)
-    doc.font('Helvetica-Bold').fontSize(12).text('Récépissé', 20, startY);
-    
-    // Left column: Account details
-    doc.font('Helvetica').fontSize(9);
-    doc.text('Compte / Payable à', 20, startY + 20);
-    doc.text('CH23 8080 8009 9293 7549 3', 20, startY + 32);
-    doc.text('DISCADO Sàrl', 20, startY + 44);
-    doc.text('Sévelin 4A', 20, startY + 56);
-    doc.text('1007 Lausanne', 20, startY + 68);
-    
-    doc.text('Payable par (nom/adresse)', 20, startY + 90);
-    
-    // Draw left column rectangle for payee info (L-bracket style)
-    doc.lineWidth(0.5);
-    // Draw L-bracket for payee info (top-left)
-    doc.moveTo(20, startY + 105).lineTo(20, startY + 180).stroke();
-    doc.moveTo(20, startY + 180).lineTo(130, startY + 180).stroke();
-    
-    // Draw L-bracket for payee info (bottom-right)
-    doc.moveTo(130, startY + 105).lineTo(130, startY + 105).stroke();
-    doc.moveTo(130, startY + 105).lineTo(130, startY + 180).stroke();
-    
-    // Currency and amount left
-    doc.text('Monnaie', 20, startY + 190);
-    doc.text('CHF', 20, startY + 205);
-    
-    doc.text('Montant', 70, startY + 190);
-    
-    // Draw rectangle L-bracket for amount
-    doc.moveTo(70, startY + 205).lineTo(70, startY + 225).stroke();
-    doc.moveTo(70, startY + 225).lineTo(130, startY + 225).stroke();
-    
-    doc.moveTo(130, startY + 205).lineTo(130, startY + 205).stroke();
-    doc.moveTo(130, startY + 225).lineTo(130, startY + 205).stroke();
-    
-    // Point de dépôt text
-    doc.fontSize(8).text('Point de dépôt', 20, startY + 235);
-    
-    // Middle section: Section paiement
-    doc.fontSize(12).text('Section paiement', 220, startY);
-    
-    // Add QR code image in the middle
-    doc.image(qrImagePath, 220, startY + 25, { width: 150 });
-    
-    // Middle section currency and amount
-    doc.fontSize(9).text('Monnaie', 220, startY + 190);
-    doc.text('CHF', 220, startY + 205);
-    
-    doc.text('Montant', 270, startY + 190);
-    
-    // Draw L-bracket for amount in middle section
-    doc.moveTo(270, startY + 205).lineTo(270, startY + 225).stroke();
-    doc.moveTo(270, startY + 225).lineTo(330, startY + 225).stroke();
-    
-    doc.moveTo(330, startY + 205).lineTo(330, startY + 205).stroke();
-    doc.moveTo(330, startY + 225).lineTo(330, startY + 205).stroke();
-    
-    // Right column (Compte)
-    doc.fontSize(9);
-    doc.text('Compte / Payable à', 400, startY + 20);
-    doc.text('CH23 8080 8009 9293 7549 3', 400, startY + 32);
-    doc.text('DISCADO Sàrl', 400, startY + 44);
-    doc.text('Sévelin 4A', 400, startY + 56);
-    doc.text('1007 Lausanne', 400, startY + 68);
-    
-    doc.text('Payable par (nom/adresse)', 400, startY + 90);
-    
-    // Draw right column L-bracket for payee info
-    doc.moveTo(400, startY + 105).lineTo(400, startY + 180).stroke();
-    doc.moveTo(400, startY + 180).lineTo(510, startY + 180).stroke();
-    
-    doc.moveTo(510, startY + 105).lineTo(510, startY + 105).stroke();
-    doc.moveTo(510, startY + 180).lineTo(510, startY + 105).stroke();
-    
-    // Return the height of the payment slip
-    return 250; // Approximate height of the payment slip
-  }
+  // Position the receipt at the bottom of the page
+  // Calculate the Y position to place it at the bottom
+  const bottomPosition = doc.page.height - receiptImageHeight - bottomMargin;
   
-  // Function to attempt to compact the current page
-  function tryCompactCurrentPage() {
-    // Store the current document state to restore if needed
-    const currentPage = doc.bufferedPageRange().count - 1;
-    
-    // Try to compact the page by reducing line spacing
-    // We can't modify what's already rendered, but we can try to add the payment slip
-    // with minimal spacing and see if it fits
-    
-    // Minimum space needed for a payment slip (reduced from normal 300)
-    const minPaymentSlipHeight = 250;
-    
-    // Check if we have enough space for the minimal version
-    if (yPos + minPaymentSlipHeight <= doc.page.height - 20) {
-      // We might be able to fit it with minimal spacing
-      return true;
-    }
-    
-    return false;
-  }
+  // Add a separator line before the receipt
+  doc.lineWidth(0.5);
+  doc.moveTo(20, bottomPosition - 10).lineTo(doc.page.width - 20, bottomPosition - 10).stroke();
   
-  // Check if we can fit the payment slip on the current page with normal spacing
-  if (hasEnoughSpaceForPaymentSlip(yPos + 50)) {
-    // Add some space before the payment slip
-    yPos += 30; // Reduced from 50 to be more space-efficient
-    
-    // Add a separator line
-    doc.lineWidth(0.5); // Thinner line to save space
-    doc.moveTo(20, yPos).lineTo(550, yPos).stroke();
-    
-    yPos += 15; // Reduced from 20 to save space
-    
-    // Draw payment slip on the current page
-    drawPaymentSlip(yPos);
-  } 
-  // Try to compact the current page if possible
-  else if (tryCompactCurrentPage()) {
-    // Add minimal spacing
-    yPos += 10;
-    
-    // Add a separator line
-    doc.lineWidth(0.3); // Very thin line to save space
-    doc.moveTo(20, yPos).lineTo(550, yPos).stroke();
-    
-    yPos += 10;
-    
-    // Draw a more compact payment slip
-    // Create a more compact version of drawPaymentSlip with tighter spacing
-    const compactHeight = drawPaymentSlip(yPos, true); // true for compact mode
-  } 
-  // If we still don't have space, try one more strategy: single payment slip
-  else {
-    // See if we can fit just one payment slip instead of two
-    const singleSlipHeight = 230; // Height for a single payment slip
-    
-    if (doc.page.height - yPos >= singleSlipHeight + 30) {
-      // We can fit a single payment slip
-      yPos += 15;
-      
-      // Add a separator line
-      doc.lineWidth(0.3);
-      doc.moveTo(20, yPos).lineTo(550, yPos).stroke();
-      
-      yPos += 10;
-      
-      // Draw a single compact payment slip
-      drawPaymentSlip(yPos, true, true); // compact mode + single slip mode
-    } else {
-      // If all strategies fail, add a new page with double payment slips
-      doc.addPage();
-      
-      // Draw payment slip at the top of the page
-      drawPaymentSlip(40);
-      
-      // Draw a separator line in the middle of the page
-      doc.lineWidth(0.2);
-      doc.moveTo(20, 320).lineTo(550, 320).dash(3, { space: 2 }).stroke();
-      
-      // Draw payment slip at the bottom of the page
-      drawPaymentSlip(350);
-      
-      // Add page number
-      addPageNumber();
-    }
-  }
+  // Insert the receipt image aligned to the bottom
+  doc.image(receiptImagePath, pageMargin, bottomPosition, { 
+    width: receiptImageWidth,
+    align: 'center'
+  });
+  
+  // Add page number to the page with receipt
+  doc.font('Helvetica').fontSize(8);
+  doc.text(
+    `Page ${pageCount}/${totalPages}`,
+    doc.page.width - 50,
+    doc.page.height - 20,
+    { align: 'right' }
+  );
   
   // =========================================
   // ITEMS TO BE DELIVERED SECTION (if applicable)
