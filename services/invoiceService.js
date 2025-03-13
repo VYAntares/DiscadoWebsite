@@ -63,6 +63,7 @@ class InvoiceService {
 
   /**
    * Génère la première page de la facture avec la liste des articles
+   * et ajoute les totaux correctement alignés
    * @private
    * @returns {Object} - Totaux calculés et position Y finale
    */
@@ -104,15 +105,15 @@ class InvoiceService {
       
       const titleY = senderY + lineSpacing * 11;
       
-      doc.font('Helvetica-Bold').fontSize(14).text(`Facture ${formattedOrderId}`, 50, titleY + 5);
-      doc.font('Helvetica-Oblique').fontSize(9).text('Pour le détail du montant total, veuillez consulter la dernière page.', 50, titleY + 25);
+      doc.font('Helvetica-Bold').fontSize(14).text(`Invoice ${formattedOrderId}`, 50, titleY + 5);
       addHeaderElement(`Invoice date: ${orderDate.toLocaleDateString('Fr')}`, 50, titleY + 40);
 
       return titleY + 60;
     };
 
-    // Création du tableau structuré
-    const createCompactTable = (startY) => {
+    // Définition des colonnes
+    const createTableHeader = (startY) => {
+      // Configuration des colonnes
       const columns = [
         { title: 'Description', width: 230, align: 'left' },
         { title: 'Quantity', width: 70, align: 'center' },
@@ -123,6 +124,7 @@ class InvoiceService {
       const tableX = 50;
       const tableWidth = columns.reduce((sum, col) => sum + col.width, 0);
       
+      // Dessiner l'en-tête du tableau
       doc.rect(tableX, startY, tableWidth, 25).stroke();
       
       let currentX = tableX;
@@ -206,7 +208,7 @@ class InvoiceService {
     // Ajouter une nouvelle page avec tableau
     const addNewPage = () => {
       doc.addPage();
-      return createCompactTable(40).yPosition;
+      return createTableHeader(40).yPosition;
     };
 
     // Vérifier si une nouvelle page est nécessaire
@@ -216,7 +218,7 @@ class InvoiceService {
 
     // Début de la génération
     let yPos = addInvoiceHeader();
-    const tableConfig = createCompactTable(yPos);
+    const tableConfig = createTableHeader(yPos);
     yPos = tableConfig.yPosition;
     
     // Grouper les articles par catégorie
@@ -250,15 +252,105 @@ class InvoiceService {
       }
     }
     
-    // Note en bas de page
-    yPos += 20;
-    doc.font('Helvetica-Bold').fontSize(10);
-    doc.text('Voir page suivante pour le montant total et le bulletin de paiement.', 50, yPos);
-    
     // Calculs des totaux
     const TVA = 0.081;
     const montantTVA = totalHT * TVA;
     const totalTTC = totalHT + montantTVA;
+    
+    // Vérifier s'il reste assez d'espace pour les totaux
+    if (needsNewPage(yPos, 80)) {
+      doc.addPage();
+      yPos = 40;
+    }
+    
+    // Extraire les positions des colonnes pour un alignement correct
+    const { tableX, tableWidth, columns } = tableConfig;
+    const col1Width = columns[0].width;
+    const col2Width = columns[1].width;
+    const col3Width = columns[2].width;
+    const col4Width = columns[3].width;
+    
+    // Position de début pour les colonnes
+    const col1X = tableX;
+    const col2X = col1X + col1Width;
+    const col3X = col2X + col2Width;
+    const col4X = col3X + col3Width;
+    
+    // Hauteur de ligne pour les totaux
+    const totalRowHeight = 20;
+    
+    // Ligne pour Sous-total HT
+    // Cellule vide (col1 + col2)
+    doc.rect(col1X, yPos, col1Width + col2Width, totalRowHeight).stroke();
+    // Cellule "SOUS-TOTAL HT" (col3)
+    doc.rect(col3X, yPos, col3Width, totalRowHeight).stroke();
+    // Cellule pour le montant (col4)
+    doc.rect(col4X, yPos, col4Width, totalRowHeight).stroke();
+    
+    // Texte "SOUS-TOTAL HT"
+    doc.font('Helvetica-Bold').fontSize(9);
+    doc.text("SOUS-TOTAL HT", col3X + 5, yPos + 6, {
+      width: col3Width - 10,
+      align: 'left'
+    });
+    
+    // Montant HT
+    doc.text(`${totalHT.toFixed(2)} CHF`, col4X + 5, yPos + 6, {
+      width: col4Width - 10,
+      align: 'right'
+    });
+    
+    yPos += totalRowHeight;
+    
+    // Ligne pour TVA
+    // Cellule vide (col1 + col2)
+    doc.rect(col1X, yPos, col1Width + col2Width, totalRowHeight).stroke();
+    // Cellule "TVA 8.1%" (col3)
+    doc.rect(col3X, yPos, col3Width, totalRowHeight).stroke();
+    // Cellule pour le montant (col4)
+    doc.rect(col4X, yPos, col4Width, totalRowHeight).stroke();
+    
+    // Texte "TVA 8.1%"
+    doc.text("TVA 8.1%", col3X + 5, yPos + 6, {
+      width: col3Width - 10,
+      align: 'left'
+    });
+    
+    // Montant TVA
+    doc.text(`${montantTVA.toFixed(2)} CHF`, col4X + 5, yPos + 6, {
+      width: col4Width - 10,
+      align: 'right'
+    });
+    
+    yPos += totalRowHeight;
+    
+    // Ligne pour TOTAL TTC et CONDITIONS DE PAIEMENT
+    // Cellule "CONDITIONS DE PAIEMENT" (col1 + col2)
+    doc.rect(col1X, yPos, col1Width + col2Width, totalRowHeight).stroke();
+    // Cellule "TOTAL TTC" (col3)
+    doc.rect(col3X, yPos, col3Width, totalRowHeight).stroke();
+    // Cellule pour le montant (col4)
+    doc.rect(col4X, yPos, col4Width, totalRowHeight).stroke();
+    
+    
+    // Texte "TOTAL TTC"
+    doc.text("TOTAL TTC", col3X + 5, yPos + 6, {
+      width: col3Width - 10,
+      align: 'left'
+    });
+    
+    // Montant TTC
+    doc.text(`${totalTTC.toFixed(2)} CHF`, col4X + 5, yPos + 6, {
+      width: col4Width - 10,
+      align: 'right'
+    });
+    
+    yPos += totalRowHeight;
+    
+    // Note en bas de page
+    yPos += 20;
+    doc.font('Helvetica-Bold').fontSize(10);
+    doc.text('See next page for the payment slip.', 50, yPos);
     
     return {
       totals: {
@@ -266,12 +358,13 @@ class InvoiceService {
         montantTVA,
         totalTTC
       },
-      finalYPosition: yPos // Retourner la position Y finale
+      finalYPosition: yPos + 20 // Retourner la position Y finale ajustée
     };
   }
 
-  /**
-   * Génère la page récapitulative de la facture
+      /**
+   * Génère la page récapitulative de la facture en utilisant le même en-tête que la facture
+   * et ajoute un résumé simple des conditions et du total
    * @private
    */
   static async generateTotalPage(doc, invoiceData) {
@@ -279,75 +372,72 @@ class InvoiceService {
     
     // Formatage de l'ID de commande
     const formattedOrderId = this.formatOrderId(orderId, orderDate);
+    
+    // En-tête identique à celui de la facture
+    const addHeaderElement = (text, x, y, options = {}) => {
+      doc.font('Helvetica').fontSize(9).text(text, x, y, options);
+    };
 
-    // En-tête de la page récapitulative
-    const addTotalPageHeader = () => {
+    // En-tête de facture avec espacement réduit (identique à la première page)
+    const addInvoiceHeader = () => {
       const rootDir = path.resolve(__dirname, '..');
       doc.image(path.join(rootDir, 'public', 'images', 'logo', 'logo_discado_noir.png'), 50, 35, { width: 90 });
+
+      // Informations de l'expéditeur
+      const senderY = 50;
+      const lineSpacing = 12;
       
-      doc.font('Helvetica-Bold').fontSize(16);
-      doc.text(`Récapitulatif de la Facture ${formattedOrderId}`, 50, 100, { align: 'center' });
+      addHeaderElement('Discado Sàrl', 50, senderY + lineSpacing * 1);
+      addHeaderElement('Sevelin 4A', 50, senderY + lineSpacing * 2);
+      addHeaderElement('1007 Lausanne', 50, senderY + lineSpacing * 3);
+      addHeaderElement('+41 79 457 33 85', 50, senderY + lineSpacing * 4);
+      addHeaderElement('discadoswiss@gmail.com', 50, senderY + lineSpacing * 5);
+      addHeaderElement('TVA CHE-114.139.308', 50, senderY + lineSpacing * 8);
+
+      // Informations du client
+      const clientStartY = senderY + lineSpacing * 7;
       
-      doc.font('Helvetica').fontSize(10);
-      doc.text(`Date: ${orderDate.toLocaleDateString('Fr')}`, 50, 130, { align: 'center' });
+      addHeaderElement(`${userProfile.firstName} ${userProfile.lastName}`, 350, clientStartY);
+      addHeaderElement(userProfile.shopName, 350, clientStartY + lineSpacing * 1);
+      addHeaderElement(userProfile.shopAddress || userProfile.address, 350, clientStartY + lineSpacing * 2);
+      addHeaderElement(
+        `${userProfile.shopZipCode || userProfile.postalCode} ${userProfile.shopCity || userProfile.city}`,
+        350,
+        clientStartY + lineSpacing * 3
+      );
+
+      // Détails de la facture
+      const titleY = senderY + lineSpacing * 12;
       
-      doc.moveDown(2);
+      doc.font('Helvetica-Bold').fontSize(14).text(`Invoice ${formattedOrderId}`, 50, titleY + 5);
+      doc.font('Helvetica').fontSize(10).text(`Date: ${orderDate.toLocaleDateString('Fr')}`, 50, titleY + 25);
+
+      return titleY + 60;
     };
 
-    // Section des totaux
-    const addTotalSection = () => {
-      const boxWidth = 350;
-      const boxHeight = 180;
-      const boxX = (doc.page.width - boxWidth) / 2;
-      const boxY = 180;
+    // Ajouter une ligne simple avec les conditions de paiement et le total
+    const addSimpleTotalLine = (yPosition) => {
+      // Calculer le centre de la page (entre l'en-tête et le bulletin de paiement)
+      const pageHeight = doc.page.height;
+      const pageWidth = doc.page.width;
+      const receiptHeight = pageHeight / 2.8; // Estimation de la hauteur du bulletin
+      const availableHeight = pageHeight - receiptHeight - yPosition;
+      const centerY = yPosition + (availableHeight / 2) - 70; // Centre vertical avec ajustement
       
-      doc.rect(boxX, boxY, boxWidth, boxHeight)
-        .lineWidth(1)
-        .stroke();
+      // Position horizontale centrée
+      const horizontalCenter = Math.floor(pageWidth / 2);
       
-      doc.font('Helvetica-Bold').fontSize(14);
-      doc.fillColor('#8B0000');
-      doc.text('MONTANT TOTAL DE LA FACTURE', boxX + 20, boxY + 20, { 
-        width: boxWidth - 40,
-        align: 'center'
-      });
-      
-      doc.fillColor('black');
-      
-      doc.fontSize(10).font('Helvetica');
-      doc.text(`Client: ${userProfile.firstName} ${userProfile.lastName}`, boxX + 20, boxY + 60);
-      doc.text(`${userProfile.shopName}`, boxX + 20, boxY + 75);
-      
-      doc.moveTo(boxX + 20, boxY + 100).lineTo(boxX + boxWidth - 20, boxY + 100).stroke();
-      
-      doc.fontSize(10).font('Helvetica');
-      doc.text('Sous-total HT:', boxX + 20, boxY + 120);
-      doc.text(`${totalHT.toFixed(2)} CHF`, boxX + boxWidth - 100, boxY + 120, { align: 'right' });
-      
-      doc.text('TVA (8.1%):', boxX + 20, boxY + 140);
-      doc.text(`${montantTVA.toFixed(2)} CHF`, boxX + boxWidth - 100, boxY + 140, { align: 'right' });
-      
-      doc.moveTo(boxX + 20, boxY + 160).lineTo(boxX + boxWidth - 20, boxY + 160).stroke();
-      
-      doc.fontSize(12).font('Helvetica-Bold');
-      doc.text('TOTAL TTC:', boxX + 20, boxY + 165);
-      doc.text(`${totalTTC.toFixed(2)} CHF`, boxX + boxWidth - 100, boxY + 165, { align: 'right' });
-    };
-
-    // Instructions de paiement
-    const addPaymentInstructions = () => {
-      const y = 380;
-      
+      // Total TTC en premier
       doc.font('Helvetica-Bold').fontSize(12);
-      doc.text('Instructions de paiement', 50, y, { align: 'center' });
+      doc.text(`TOTAL TTC: ${totalTTC.toFixed(2)} CHF`, horizontalCenter - 90, centerY);
       
-      doc.font('Helvetica').fontSize(10);
-      doc.text('Veuillez utiliser le bulletin de paiement ci-dessous pour effectuer votre règlement.', 50, y + 25, { align: 'center' });
-      doc.text('Délai de paiement: 30 jours', 50, y + 45, { align: 'center' });
-      doc.text('Merci pour votre confiance.', 50, y + 65, { align: 'center' });
+      doc.font('Helvetica-Bold').fontSize(10);
+      doc.text('PAYMENT TERMS: net 30 days', horizontalCenter - 95, centerY + 50);
+      
+      return centerY + 50; // Retourner la position Y après la ligne
     };
 
-    // Bulletin de paiement
+    // Bulletin de paiement (conservé tel quel)
     const addPaymentSlip = () => {
       const rootDir = path.resolve(__dirname, '..');
       const receiptImagePath = path.join(rootDir, 'public', 'images', 'logo', 'recepisse.png');
@@ -364,7 +454,6 @@ class InvoiceService {
       doc.moveTo(0, receiptYPosition - 10).lineTo(pageWidth, receiptYPosition - 10).stroke();
       
       // Empêcher le chevauchement en vérifiant si l'image a déjà été ajoutée
-      // On utilise une propriété interne pour marquer l'image comme ajoutée
       if (!doc._receiptAdded) {
         doc.image(receiptImagePath, 0, receiptYPosition, { 
           width: receiptImageWidth,
@@ -374,10 +463,9 @@ class InvoiceService {
       }
     };
 
-    // Générer la page récapitulative
-    addTotalPageHeader();
-    addTotalSection();
-    addPaymentInstructions();
+    // Générer la page récapitulative avec une ligne simple pour le total
+    const headerEndY = addInvoiceHeader();
+    const totalLineEndY = addSimpleTotalLine(headerEndY);
     addPaymentSlip();
   }
 }

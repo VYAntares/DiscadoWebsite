@@ -49,7 +49,6 @@ async function generateDeliveryNotePDF(doc, orderItems, userProfile, orderDate, 
     );
 
     // Determine position for title (after both sender and client info sections)
-    // Now positioned after the longer of the two columns
     const titleY = senderY + lineSpacing * 8; // Adjusted position
     
     // Add the delivery note title WITHOUT number
@@ -62,58 +61,99 @@ async function generateDeliveryNotePDF(doc, orderItems, userProfile, orderDate, 
     return titleY + 50;
   }
 
-  // Add table header - SIMPLIFIED VERSION WITHOUT PRICES
-  function addTableHeader(yPosition) {
-    // Column configuration - ONLY DESCRIPTION AND QUANTITY
+  // Création du tableau structuré (comparable à celui de invoiceService)
+  const createCompactTable = (startY) => {
     const columns = [
       { title: 'Description', width: 350, align: 'left' },
-      { title: 'Quantity',    width: 100, align: 'center' }
+      { title: 'Quantity', width: 100, align: 'center' }
     ];
-
-    // Starting X position
-    let currentX = 50;
-
-    // Table header
-    doc.font('Helvetica-Bold').fontSize(9);
-
-    columns.forEach(col => {
-      doc.text(col.title, currentX, yPosition, {
-        width: col.width,
+    
+    const tableX = 50;
+    const tableWidth = columns.reduce((sum, col) => sum + col.width, 0);
+    
+    doc.rect(tableX, startY, tableWidth, 25).stroke();
+    
+    let currentX = tableX;
+    doc.font('Helvetica-Bold').fontSize(10);
+    
+    columns.forEach((col, index) => {
+      if (index > 0) {
+        doc.moveTo(currentX, startY).lineTo(currentX, startY + 25).stroke();
+      }
+      
+      doc.text(col.title, currentX + 5, startY + 8, {
+        width: col.width - 10,
         align: col.align
       });
+      
       currentX += col.width;
     });
+    
+    return { 
+      yPosition: startY + 25, 
+      columns, 
+      tableX, 
+      tableWidth
+    };
+  };
 
-    // Header separator line
-    doc.lineWidth(1);
-    const lineEnd = 50 + columns.reduce((sum, col) => sum + col.width, 0);
-    doc.moveTo(50, yPosition + 15)
-       .lineTo(lineEnd, yPosition + 15)
-       .stroke();
+  // Ajout d'une ligne au tableau
+  const addTableRow = (item, category, rowY, isCategory = false, tableConfig) => {
+    const { tableX, columns, tableWidth } = tableConfig;
+    const rowHeight = 20;
+    
+    doc.rect(tableX, rowY, tableWidth, rowHeight).stroke();
+    
+    let currentX = tableX;
+    
+    if (isCategory) {
+      doc.font('Helvetica-Bold').fontSize(9);
+      doc.fillColor('#f0f0f0');
+      doc.rect(tableX, rowY, tableWidth, rowHeight).fill();
+      doc.fillColor('black');
+      doc.text(category.charAt(0).toUpperCase() + category.slice(1), currentX + 5, rowY + 6, {
+        width: tableWidth - 10
+      });
+    } else {
+      doc.font('Helvetica').fontSize(9);
+      
+      doc.text(item.Nom, currentX + 5, rowY + 6, {
+        width: columns[0].width - 10,
+        align: columns[0].align
+      });
+      currentX += columns[0].width;
+      
+      doc.moveTo(currentX, rowY).lineTo(currentX, rowY + rowHeight).stroke();
+      
+      doc.text(String(item.quantity), currentX + 5, rowY + 6, {
+        width: columns[1].width - 10,
+        align: columns[1].align
+      });
+    }
+    
+    return rowY + rowHeight;
+  };
 
-    return { yPosition: yPosition + 20, columns, lineEnd };
-  }
-
-  // Check if new page is needed
-  function needsNewPage(currentYPos, requiredHeight = 40) {
-    return currentYPos + requiredHeight > doc.page.height - 40;
-  }
-
-  // Add a new page
-  function addNewPage() {
+  // Ajouter une nouvelle page avec tableau
+  const addNewPage = () => {
     doc.addPage();
-    return addTableHeader(40).yPosition;
-  }
+    return createCompactTable(40).yPosition;
+  };
+
+  // Vérifier si une nouvelle page est nécessaire
+  const needsNewPage = (currentY, requiredHeight = 30) => {
+    return currentY + requiredHeight > doc.page.height - 120;
+  };
 
   // Set the delivery date
   const deliveryDate = orderDate;
   
   // Add delivery note header
   let yPos = addDeliveryNoteHeader();
-
-  // Add table header
-  const { yPosition, columns, lineEnd } = addTableHeader(yPos);
-  yPos = yPosition;
+  
+  // Initialiser le tableau
+  const tableConfig = createCompactTable(yPos);
+  yPos = tableConfig.yPosition;
 
   // Group items by category
   const groupedItems = {};
@@ -128,78 +168,38 @@ async function generateDeliveryNotePDF(doc, orderItems, userProfile, orderDate, 
   // Sort categories alphabetically
   const sortedCategories = Object.keys(groupedItems).sort();
   
+  // Ajouter les articles au tableau par catégorie
   for (const category of sortedCategories) {
-    // Add category header
-    if (needsNewPage(yPos, 25)) {
+    if (needsNewPage(yPos)) {
       yPos = addNewPage();
     }
     
-    // Add category title
-    doc.font('Helvetica-Bold').fontSize(10);
-    doc.text(category.charAt(0).toUpperCase() + category.slice(1), 50, yPos);
-    yPos += 15;
-    
-    // Add items in this category
-    doc.font('Helvetica').fontSize(9);
+    yPos = addTableRow(null, category, yPos, true, tableConfig);
     
     for (const item of groupedItems[category]) {
-      // Check if new page needed
-      if (needsNewPage(yPos, 25)) {
+      if (needsNewPage(yPos)) {
         yPos = addNewPage();
       }
-
-      let xPos = 50;
-
-      // Item name
-      const textOptions = {
-        width: columns[0].width,
-        align: columns[0].align
-      };
       
-      const textHeight = doc.heightOfString(item.Nom, textOptions);
-      const rowHeight = Math.max(textHeight, 15);
-
-      // Double-check page break
-      if (needsNewPage(yPos, rowHeight)) {
-        yPos = addNewPage();
-      }
-
-      doc.text(item.Nom, xPos, yPos, textOptions);
-      xPos += columns[0].width;
-
-      // Quantity
-      doc.text(String(item.quantity), xPos, yPos, {
-        width: columns[1].width,
-        align: columns[1].align
-      });
-
-      yPos += rowHeight + 8;
+      yPos = addTableRow(item, category, yPos, false, tableConfig);
     }
-    
-    // Add a small space after each category
-    yPos += 5;
   }
   
   // Process remaining items section
   if (remainingItems && remainingItems.length > 0) {
-    // Add space before displaying remaining items
-    yPos += 25;
+    // Always start on a new page for the remaining items section
+    doc.addPage();
+    yPos = 40;
     
-    // Check if enough space for the remaining items section
-    if (needsNewPage(yPos, 60)) {
-      doc.addPage();
-      yPos = 40;
-    }
-    
-    // Title
+    // Title for remaining items
     doc.font('Helvetica-Bold').fontSize(14).text('Items to be delivered later', 50, yPos);
     yPos += 20;
     doc.font('Helvetica').fontSize(9).text('The following items from your order will be delivered at a later date.', 50, yPos);
-    yPos += 20;
+    yPos += 25;
     
-    // Table header for remaining items
-    const toDeliverTable = addTableHeader(yPos);
-    let toDeliverYPos = toDeliverTable.yPosition;
+    // Créer un nouveau tableau pour les articles restants
+    const remainingTableConfig = createCompactTable(yPos);
+    yPos = remainingTableConfig.yPosition;
     
     // Group remaining items by category
     const groupedRemainingItems = {};
@@ -216,71 +216,30 @@ async function generateDeliveryNotePDF(doc, orderItems, userProfile, orderDate, 
     
     // Process remaining items by category
     for (const category of sortedRemainingCategories) {
-      // Add category header
-      if (needsNewPage(toDeliverYPos, 25)) {
-        doc.addPage();
-        const newHeader = addTableHeader(40);
-        toDeliverYPos = newHeader.yPosition;
+      if (needsNewPage(yPos)) {
+        yPos = addNewPage();
       }
       
-      // Add category title
-      doc.font('Helvetica-Bold').fontSize(10);
-      doc.text(category.charAt(0).toUpperCase() + category.slice(1), 50, toDeliverYPos);
-      toDeliverYPos += 15;
-      
-      // Add items in this category
-      doc.font('Helvetica').fontSize(9);
+      yPos = addTableRow(null, category, yPos, true, remainingTableConfig);
       
       for (const item of groupedRemainingItems[category]) {
-        if (needsNewPage(toDeliverYPos, 25)) {
-          doc.addPage();
-          const newHeader = addTableHeader(40);
-          toDeliverYPos = newHeader.yPosition;
+        if (needsNewPage(yPos)) {
+          yPos = addNewPage();
         }
         
-        let xPos = 50;
-        
-        // Item name
-        const textOptions = {
-          width: toDeliverTable.columns[0].width,
-          align: toDeliverTable.columns[0].align
-        };
-        
-        const textHeight = doc.heightOfString(item.Nom, textOptions);
-        const rowHeight = Math.max(textHeight, 15);
-        
-        if (needsNewPage(toDeliverYPos, rowHeight)) {
-          doc.addPage();
-          const newHeader = addTableHeader(40);
-          toDeliverYPos = newHeader.yPosition;
-        }
-        
-        // Item name
-        doc.text(item.Nom, xPos, toDeliverYPos, textOptions);
-        xPos += toDeliverTable.columns[0].width;
-        
-        // Quantity
-        doc.text(String(item.quantity), xPos, toDeliverYPos, {
-          width: toDeliverTable.columns[1].width,
-          align: toDeliverTable.columns[1].align
-        });
-        
-        toDeliverYPos += rowHeight + 8;
+        yPos = addTableRow(item, category, yPos, false, remainingTableConfig);
       }
-      
-      // Add a small space after each category
-      toDeliverYPos += 5;
     }
     
     // Note
-    if (needsNewPage(toDeliverYPos, 25)) {
+    if (needsNewPage(yPos, 30)) {
       doc.addPage();
-      toDeliverYPos = 40;
+      yPos = 40;
     }
     
-    toDeliverYPos += 20;
+    yPos += 20;
     doc.font('Helvetica').fontSize(9);
-    doc.text('These items will be delivered as soon as they are available in stock.', 50, toDeliverYPos, { align: 'center', width: doc.page.width - 100 });
+    doc.text('These items will be delivered as soon as they are available in stock.', 50, yPos, { align: 'center', width: doc.page.width - 100 });
   }
 
   // After generating delivery note, add a page break and generate the invoice
